@@ -5,3 +5,7 @@ CORE add-on services and other code
 
 [Git info]
 Git repo: ssh://git@10.176.149.213:4850/~/coremews.git
+- Server uses private key.  Make sure to have in ~/.ssh/config:
+host 10.176.149.213
+ IdentityFile ~/.ssh/git_rsa
+ User git
