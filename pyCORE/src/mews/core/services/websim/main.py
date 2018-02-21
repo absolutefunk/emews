@@ -7,6 +7,6 @@ import mews.core.services.websim.sitecrawler
 
 if __name__ == '__main__':
     crawler = mews.core.services.websim.sitecrawler.SiteCrawler();
-    
-    crawler.setsite("https://www.cmu.edu/silicon-valley")
+
+    crawler.setsite("https://www.wellsfargo.com")
     crawler.site_crawl()
