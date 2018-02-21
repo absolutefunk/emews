@@ -2,3 +2,6 @@ CORE add-on services and other code
 
 -website crawler
 -ssh autoconnect
+
+[Git info]
+Git repo: ssh://git@10.176.149.213:4850/~/coremews.git
