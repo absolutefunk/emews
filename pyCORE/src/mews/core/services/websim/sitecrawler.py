@@ -6,19 +6,14 @@ Created on Jan 19, 2018
 
 import random
 import time
-import scipy.stats
 import mechanize
+
+import mews.core.common.functions as functions
 
 class SiteCrawler(object):
     '''
     classdocs
     '''
-    # number of sequential links to follow when crawling
-    _DEFAULT_PAGE_COUNT = 5
-    # std deviation of picking a link around mu (from list of links)
-    _DEFAULT_LINK_STDDEV = 0.8
-    # std deviation of picking a link around mu in a path of links (after first iteration)
-    _DEFAULT_PATH_LINK_STDDEV = 0.2
     # prefix list for links which we should NOT visited
     _INVALID_LINK_PREFIX = ["java", "none"]
 
@@ -30,7 +25,9 @@ class SiteCrawler(object):
         # class attributes
         self._br = mechanize.Browser()
         self._siteURL = None
-        self._num_links_to_follow = self._DEFAULT_PAGE_COUNT
+        self._num_links_to_follow = None
+        self._sigma = None
+        self._path_sigma = None
 
         self.init_config()
 
@@ -45,32 +42,29 @@ class SiteCrawler(object):
         self._br.addheaders = [('User-agent', 'Mozilla/5.0 (X11; Ubuntu; Linux \
         x86_64; rv:57.0) Gecko/20100101 Firefox/57.0')]
 
-    def setsite(self, sitename):
+    def set_site(self, sitename):
         '''
         sets the URL to start crawling from
         '''
-
         self._siteURL = sitename
 
-    def truncnorm_link_index(self, num_links, itr=None):
+    def set_page_count(self, page_count):
         '''
-        selects the link index to visit next
+        sets the number of links to follow
         '''
+        self._num_links_to_follow = page_count
 
-        mu = (num_links - 1) / 2.0  # pick the middle link to distribute around
+    def set_sigma(self, sigma):
+        '''
+        sets the sigma for link selection (first iteration)
+        '''
+        self._sigma = sigma
 
-        if itr is not None and itr > 0:
-            sigma = self._DEFAULT_PATH_LINK_STDDEV
-        else:
-            sigma = self._DEFAULT_LINK_STDDEV  # default stddev
-
-        lower = 0  # lower bound
-        upper = num_links - 1  # upper bound
-
-        dist = scipy.stats.truncnorm(
-            (lower - mu) / sigma, (upper - mu) / sigma, loc=mu, scale=sigma)
-
-        return int(round(dist.rvs(1)[0]))
+    def set_path_sigma(self, path_sigma):
+        '''
+        sets the sigma for link selection (past first iteration)
+        '''
+        self._path_sigma = path_sigma
 
     def checklink(self, link_str):
         '''
@@ -89,6 +83,13 @@ class SiteCrawler(object):
         crawls a web site, starting from the _siteURL, picking links from
         each page visited
         '''
+        if self._siteURL is None:
+            raise ValueError("[SiteCrawler]: siteURL cannot be blank")
+        if self._num_links_to_follow is None or \
+                isinstance(self._num_links_to_follow) is not int or \
+                self._num_links_to_follow < 0:
+            raise ValueError("[SiteCrawler]: page count must be a positive integer")
+
         self._br.open(self._siteURL)
 
         for itr in range(self._num_links_to_follow):
@@ -103,7 +104,8 @@ class SiteCrawler(object):
 
             while len(page_links) > 1:
                 # keep looping until a valid link is found
-                selected_link_index = self.truncnorm_link_index(len(page_links), itr=itr)
+                sigma = (self._sigma if itr == 0 else self._path_sigma)
+                selected_link_index = functions.truncnorm_index(len(page_links), sigma=sigma)
 
                 # print page_links[selected_link_index].base_url
                 if self.checklink(page_links[selected_link_index]):
