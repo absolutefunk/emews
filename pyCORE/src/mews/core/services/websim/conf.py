@@ -10,6 +10,6 @@ START_SITE = "https://www.cmu.edu/silicon-valley"
 # number of sequential links to follow when crawling
 PAGE_COUNT = 5
 # std deviation of picking a link around mu (from list of links)
-LINK_STDDEV = 0.8
+LINK_STDDEV = 2.0
 # std deviation of picking a link around mu in a path of links (after first iteration)
-PATH_LINK_STDDEV = 0.2
+PATH_LINK_STDDEV = 0.5

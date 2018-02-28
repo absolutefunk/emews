@@ -6,10 +6,10 @@ Created on Feb 26, 2018
 @author: Brian Ricks
 '''
 
-HOST = "10.0.0.0"
-PORT = 22
-USERNAME = "user1"
-PASSWORD = "pass1"
+HOST = "10.176.149.20"
+PORT = 2252
+USERNAME = "coreuser"
+PASSWORD = "P28c7RtO0"
 
 # list of commands to execute
 COMMAND_LIST = ["uptime", "ps aux", "df -m", "pwd", "ls -al"]

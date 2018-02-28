@@ -17,13 +17,22 @@ class ValueSampler(object):
     @abstractmethod
     def next_value(self):
         '''
-        returns the next value
+        Returns the next value.
+        Required to be implemented in a child class.
         '''
         raise NotImplementedError("Must implement in subclass.")
 
-    @abstractmethod
     def reset(self):
         '''
-        resets the sampler
+        Resets the sampler.
+        This method should be overridden in a child class if required.
         '''
-        raise NotImplementedError("Must implement in subclass.")
+        pass
+
+    def update_parameters(self, *args):
+        '''
+        Updates parameters for use with sampling.  Provides a way to do this
+        after object instantiation.
+        This method should be overridden in a child class if required.
+        '''
+        pass

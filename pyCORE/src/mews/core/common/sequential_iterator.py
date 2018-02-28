@@ -18,7 +18,6 @@ class SequentualIterator(mews.core.common.value_sampler.ValueSampler):
         '''
         Constructor
         '''
-
         self._start_value = start_value
         self._end_value = end_value
         self._current_value = start_value

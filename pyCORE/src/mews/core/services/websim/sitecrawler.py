@@ -8,7 +8,7 @@ import random
 import time
 import mechanize
 
-import mews.core.common.functions as functions
+from mews.core.common.truncnorm_sampler import TruncnormSampler
 
 class SiteCrawler(object):
     '''
@@ -28,6 +28,7 @@ class SiteCrawler(object):
         self._num_links_to_follow = None
         self._sigma = None
         self._path_sigma = None
+        self._sampler = None
 
         self.init_config()
 
@@ -86,13 +87,15 @@ class SiteCrawler(object):
         if self._siteURL is None:
             raise ValueError("[SiteCrawler]: siteURL cannot be blank")
         if self._num_links_to_follow is None or \
-                isinstance(self._num_links_to_follow) is not int or \
+                not isinstance(self._num_links_to_follow, int) or \
                 self._num_links_to_follow < 0:
             raise ValueError("[SiteCrawler]: page count must be a positive integer")
 
         self._br.open(self._siteURL)
 
-        for itr in range(self._num_links_to_follow):
+        usePathSigma = False
+
+        for _ in range(self._num_links_to_follow):
             page_links = list(self._br.links())
 
             # ie, if page_link length is zero
@@ -100,12 +103,17 @@ class SiteCrawler(object):
                 print "[SiteCrawler]: Reached page without any links, stopping..."
                 return
 
-            selected_link_index = 0
+            if not usePathSigma:
+                # first iteration
+                self._sampler = TruncnormSampler(len(page_links) - 1, self._sigma)
+                usePathSigma = True
+            else:
+                self._sampler.update_parameters(len(page_links) - 1, self._path_sigma)
 
+            selected_link_index = 0
             while len(page_links) > 1:
                 # keep looping until a valid link is found
-                sigma = (self._sigma if itr == 0 else self._path_sigma)
-                selected_link_index = functions.truncnorm_index(len(page_links), sigma=sigma)
+                selected_link_index = self._sampler.next_value()
 
                 # print page_links[selected_link_index].base_url
                 if self.checklink(page_links[selected_link_index]):
