@@ -8,8 +8,9 @@ import time
 
 from pexpect import pxssh
 import mews.core.common.sequential_iterator as default_sampler
+from mews.core.services.baseservice import BaseService
 
-class AutoSSH(object):
+class AutoSSH(BaseService):
     '''
     classdocs
     '''

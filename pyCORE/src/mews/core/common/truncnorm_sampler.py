@@ -44,15 +44,17 @@ class TruncnormSampler(mews.core.common.value_sampler.ValueSampler):
         args[1]=self._sigma
         '''
         if len(args) != 2:
-            raise IndexError("[truncnorm_sampler]: update-parameters args count must equal 2")
+            raise IndexError("[TruncnormSampler - update_parameters]: args count must equal 2")
 
         if args[0] is None or not isinstance(args[0], int) or args[0] < 0:
-            raise ValueError("[truncnorm_sampler]: upper_bound must be a positive int")
+            raise ValueError("[TruncnormSampler - update_parameters]: \
+                    upper_bound must be a positive int")
         self._upper_bound = args[0]
         if args[1] is None or \
                 (not isinstance(args[1], float) and not isinstance(args[1], int)) or \
                 args[1] < 0:
-            raise ValueError("[truncnorm_sampler]: sigma must be a positive int or float")
+            raise ValueError("[TruncnormSampler - update_parameters]: \
+                    sigma must be a positive int or float")
         self._sigma = args[1]
 
         self._mu = self._upper_bound / 2.0
