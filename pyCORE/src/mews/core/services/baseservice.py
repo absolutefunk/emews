@@ -12,9 +12,25 @@ class BaseService(object):
     '''
 
     @abstractmethod
+    def configure(self, config_file=None):
+        '''
+        configures the service.
+        Must be implemented in child class
+        '''
+        raise NotImplementedError("Must implement in subclass.")
+
+    @abstractmethod
     def start(self):
         '''
         Starts the service.
+        Must be implemented in child class
+        '''
+        raise NotImplementedError("Must implement in subclass.")
+
+    @abstractmethod
+    def stop(self):
+        '''
+        Stops the service.
         Must be implemented in child class
         '''
         raise NotImplementedError("Must implement in subclass.")

@@ -3,8 +3,10 @@ Created on Feb 23, 2018
 
 @author: Brian Ricks
 '''
+
+import ConfigParser
 import random
-import time
+from threading import Event
 
 from pexpect import pxssh
 import mews.core.common.sequential_iterator as default_sampler
@@ -32,6 +34,8 @@ class AutoSSH(BaseService):
         self._list_distribution = None  # distribution to sample list indices
         self._command_count = None  # number of commands to execute before terminating
         self._command_list = None  # list of commands to execute
+
+        self._event = Event()  # used for sleep (interuptable)
 
     def set_host(self, host):
         '''
@@ -77,6 +81,34 @@ class AutoSSH(BaseService):
         '''
 
         self._command_list = command_list
+    def stop(self):
+        '''
+        Alerts the service that it has been called to stop.
+        '''
+        # interupt the event blocking
+        self._event.set()
+
+    def configure(self, config_file=None):
+        '''
+        sets up the service for running, which means parsing a config file
+        '''
+        config = ConfigParser.RawConfigParser()
+        config.read(config_file)
+
+        self.set_host(config.get('Server', 'host'))
+        self.set_port(int(config.get('Server', 'port')))
+        self.set_username(config.get('Server', 'username'))
+        self.set_password(config.get('Server', 'password'))
+        self.set_command_count(config.get('Options', 'command_count'))
+
+        command_list_raw = config.items('Commands')
+        command_list = []
+
+        # populate the commmand_list frin the conf file
+        for _, val_cmd in command_list_raw:
+            command_list.append(val_cmd)
+
+        self.set_command_list(config.COMMAND_LIST)
 
     def start(self):
         '''
@@ -107,6 +139,11 @@ class AutoSSH(BaseService):
 
         # loop until command count reached
         for _ in range(self._command_count - 1):
+            # check for event state first
+            if self._event.is_set():
+                print "[AutoSSH]: caught stop request"
+                break
+
             next_command = self._command_list[self._list_distribution.next_value()]
             print "[AutoSSH]: Next Command: " + next_command
 
@@ -116,7 +153,7 @@ class AutoSSH(BaseService):
 
             # introduce a delay to simulate user looking at results before
             # typing next command
-            time.sleep(random.randint(1, 8))
+            self._event.wait(random.randint(1, 8))
 
         print "[AutoSSH]: Done executing commands, logging out..."
         self._s.logout()

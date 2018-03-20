@@ -1,11 +1,15 @@
 '''
+Runs a CORE service in a loop.
+
 Created on Mar 5, 2018
 
 @author: Brian Ricks
 '''
 
+import importlib
 import signal
-import time
+import sys
+from threading import Event
 
 from mews.core.common.value_sampler import ValueSampler
 from mews.core.services.baseservice import BaseService
@@ -22,17 +26,21 @@ class RunService(object):
         # class vars (declared here for readability)
         self._service = None
         self._distribution = None
-        self._keep_looping = True
 
         # signals
         signal.signal(signal.SIGINT, self.exit_service)
         signal.signal(signal.SIGTERM, self.exit_service)
 
-    def exit_service(self):
+        # events
+        self._event = Event()
+
+    def exit_service(self, signal_type, frame):
         '''
         When signal caught (SIGINT, SIGTERM), gracefully exit service
         '''
-        self._keep_looping = False
+        self._event.set()
+        # stop service (gracefully of course)
+        self._service.stop()
 
     def set_service(self, baseservice):
         '''
@@ -58,8 +66,55 @@ class RunService(object):
         '''
         Runs the service in a loop based on the distribution
         '''
-        while self._keep_looping:
-            time.sleep(self._distribution.next_value())
-            self._service.start()
+        while True:
+            self._event.wait(self._distribution.next_value())
+
+            if self._event.is_set():
+                '''
+                We check it here instead of in the loop for two reasons:
+                1) The wait needs to be before the service call, so if the
+                request comes during the wait, we still need to check the flag
+                here anyways to prevent the service from running if flag is set.
+                2) If the request comes during service execution and we check
+                this in the loop, then the nice "Caught shutdown request" message
+                won't be displayed unless we explicitly check why the loop terminated.
+
+                event.wait() will immediately return if event is set
+                '''
+                print "[RunService - run]: Caught shutdown request"
+                break
+
+        self._service.start()
 
         print "[RunService - run]: Exiting..."
+
+if __name__ == '__main__':
+    main()
+
+def main():
+    '''
+    main function
+    '''
+    arg_map = {}
+
+    if not parseargs(arg_map):
+        sys.exit()
+
+    service_module = importlib.import_module(sys.argv[1])
+
+    run_service = RunService()
+    run_service.set_service(service_module)
+
+def parseargs(arg_map):
+    '''
+    Checks for valid command line arguments
+    '''
+    if len(sys.argv) != 2:
+        print "[RunService - __main__ - checkargs]: incorrect number of arguments\n"
+    elif not sys.argv[1].startswith("--service "):
+        print "[RunService - __main__ - checkargs]: argument not recognized (expecting '--service')"
+    else:
+        return True
+
+    print "[RunService - __main__]: usage: " + sys.argv[0] + "--service <service_module>"
+    return False
