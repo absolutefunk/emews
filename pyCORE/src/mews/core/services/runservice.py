@@ -107,14 +107,16 @@ def main():
 
 def parseargs(arg_map):
     '''
-    Checks for valid command line arguments
-    '''
-    if len(sys.argv) != 2:
-        print "[RunService - __main__ - checkargs]: incorrect number of arguments\n"
-    elif not sys.argv[1].startswith("--service "):
-        print "[RunService - __main__ - checkargs]: argument not recognized (expecting '--service')"
-    else:
-        return True
+    Parses command line arguments.  Returns false if something goes awry during
+    parsing.
 
-    print "[RunService - __main__]: usage: " + sys.argv[0] + "--service <service_module>"
-    return False
+    The basic idea is to take the arg list and parse into k/v pairs based on
+    simple rules (ie, key must start with '--').
+    '''
+
+    # check for the bare minimum (service arg is present)
+    if len(sys.argv) < 2 and not sys.argv[1].startswith("--service "):
+        print "[RunService - __main__]: usage: " + sys.argv[0] + "--service <service_module>"
+        return False
+
+    return True
