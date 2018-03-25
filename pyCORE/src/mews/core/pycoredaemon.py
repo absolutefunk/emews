@@ -14,74 +14,14 @@ Created on Mar 24, 2018
 @author: Brian Ricks
 '''
 
-import ConfigParser
 import logging
 import logging.config
 import os
 import sys
 
-from mews.core.logconf import log_config
+from mews.core.config import Config
 from mews.core.servicespawner import ServiceSpawner
 from mews.core.version import __version__
-
-class BaseConfig(object):
-    '''
-    parses and stores the pyCORE config
-    '''
-
-    def __init__(self, filename):
-        '''
-        Constructor
-        '''
-        # class fields
-        self._nodesection = "general"
-        self._nodekey = "nodename"
-        self._nodename = None
-        self._config = ConfigParser.SafeConfigParser()
-
-        self.parse(filename)
-
-    def parse(self, filename):
-        '''
-        parse the config file
-        '''
-        #print filename
-        try:
-            with open(filename) as f:
-                self._config.readfp(f)
-        except IOError as ex:
-            print "Could not open configuration file.\n%s" % ex
-            return
-        except ConfigParser.Error as ex:
-            print "Error while parsing configuration file.\n%s" % ex
-            f.close()
-            return
-
-        f.close()
-
-        # now check for the proper section and key
-        try:
-            self._nodename = self._config.get(self._nodesection, self._nodekey)
-        except ConfigParser.Error as ex:
-            print "Error while assigning node name\n%s" % ex
-            return
-
-    @property
-    def nodename(self):
-        '''
-        Returns the node name.
-        This field is treated a bit differently from the rest as the logger
-        queries this function to obtain the node name for each log output, so
-        the lookup needs to be fast (ie, no dictionary).
-        '''
-        return self._nodename
-
-    def get_value(self, section, key):
-        '''
-        Given a valid section and key, returns its value.
-        Note, this will throw an exception if the section or key does not exist
-        '''
-        return self._config.get(section, key)
 
 def prepend_path(filename):
     '''
@@ -97,25 +37,21 @@ def main():
     '''
 
     # Get the config file path
-    if len(sys.argv) != 2:
-        print "Usage: %s <config_file>\nwhere <config_file> is the path "\
+    # argv[1] = node name
+    # argv[2] = conf file path (including filename)
+    if len(sys.argv) != 3:
+        print "Usage: %s <node_name> <config_file>\nwhere <config_file> is the path "\
               "(including filename) of the pyCORE daemon config file." % sys.argv[0]
         return
 
-    config = BaseConfig(prepend_path(sys.argv[1]))
-    if config.nodename is None:
-        # node name was never assigned, so just return
-        return
+    config = Config(prepend_path(sys.argv[1]))
 
     # setup logging (this will affect all child loggers)
     # Here we pass a dictionary to the logger for initial configuration, then
     # setup a LoggerAdapter so we can log the Node name (hostname) to the log
     # entries without appending it to the message each time.
-    log_config['formatters']['default']['format'] = \
-    log_config['formatters']['default']['format'].replace(
-        '<NodeName>', (log_config['formatters']['default']['nodename-format'] % config.nodename))
-    logging.config.dictConfig(log_config)
-    logger = logging.getLogger('pyCore.base')
+    logging.config.dictConfig(config.logconfig)
+    logger = logging.getLogger(config.logbase)
 
     logger.info("MEWS pyCORE %s", __version__)
 
