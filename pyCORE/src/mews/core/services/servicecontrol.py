@@ -1,20 +1,18 @@
 '''
-Runs a CORE service in a loop.
+Controls the execution cycle of a pyCORE service.
 
 Created on Mar 5, 2018
 
 @author: Brian Ricks
 '''
 
-import importlib
-import signal
-import sys
+import logging
 from threading import Event
 
 from mews.core.common.value_sampler import ValueSampler
 from mews.core.services.baseservice import BaseService
 
-class RunService(object):
+class ServiceControl(object):
     '''
     classdocs
     '''
@@ -27,16 +25,12 @@ class RunService(object):
         self._service = None
         self._distribution = None
 
-        # signals
-        signal.signal(signal.SIGINT, self.exit_service)
-        signal.signal(signal.SIGTERM, self.exit_service)
-
         # events
         self._event = Event()
 
-    def exit_service(self, signal_type, frame):
+    def stop(self):
         '''
-        When signal caught (SIGINT, SIGTERM), gracefully exit service
+        Gracefully exit service
         '''
         self._event.set()
         # stop service (gracefully of course)
@@ -47,8 +41,8 @@ class RunService(object):
         Sets the service to use
         '''
         if not isinstance(baseservice, BaseService):
-            raise ValueError("[RunService - set_service]: Passed argument \
-                    must be of type BaseService.")
+            logging.error("Passed argument must be of type BaseService.")
+            raise ValueError()
 
         self._service = baseservice
 
@@ -57,8 +51,8 @@ class RunService(object):
         sets the distribution from which to sample next service run time
         '''
         if not isinstance(distribution, ValueSampler):
-            raise ValueError("[RunService - set_distribution]: Passed argument \
-                    must be of type ValueSampler.")
+            logging.error("Passed argument must be of type ValueSampler.")
+            raise ValueError()
 
         self._distribution = distribution
 
@@ -66,6 +60,7 @@ class RunService(object):
         '''
         Runs the service in a loop based on the distribution
         '''
+
         while True:
             self._event.wait(self._distribution.next_value())
 
@@ -81,42 +76,10 @@ class RunService(object):
 
                 event.wait() will immediately return if event is set
                 '''
-                print "[RunService - run]: Caught shutdown request"
+                logging.info("Caught shutdown request...")
                 break
 
-        self._service.start()
+            # Service does not excute in a separate thread (blocking)
+            self._service.start()
 
-        print "[RunService - run]: Exiting..."
-
-if __name__ == '__main__':
-    main()
-
-def main():
-    '''
-    main function
-    '''
-    arg_map = {}
-
-    if not parseargs(arg_map):
-        sys.exit()
-
-    service_module = importlib.import_module(sys.argv[1])
-
-    run_service = RunService()
-    run_service.set_service(service_module)
-
-def parseargs(arg_map):
-    '''
-    Parses command line arguments.  Returns false if something goes awry during
-    parsing.
-
-    The basic idea is to take the arg list and parse into k/v pairs based on
-    simple rules (ie, key must start with '--').
-    '''
-
-    # check for the bare minimum (service arg is present)
-    if len(sys.argv) < 2 and not sys.argv[1].startswith("--service "):
-        print "[RunService - __main__]: usage: " + sys.argv[0] + "--service <service_module>"
-        return False
-
-    return True
+        logging.info("Exiting...")

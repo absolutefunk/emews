@@ -88,6 +88,12 @@ class AutoSSH(BaseService):
         # interupt the event blocking
         self._event.set()
 
+    def needs_config(self):
+        '''
+        returns true as this service needs a config file
+        '''
+        return True
+
     def configure(self, config_file=None):
         '''
         sets up the service for running, which means parsing a config file
