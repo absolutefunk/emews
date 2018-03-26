@@ -11,7 +11,7 @@ class Config(object):
     '''
     classdocs
     '''
-    def __init__(self, filename):
+    def __init__(self, nodename, filename):
         '''
         Constructor
         '''
@@ -20,14 +20,14 @@ class Config(object):
             'USER_CONF_SECTION': 'config',
             'BASE_LOGGER': 'pyCORE.base',
             'NODENAME_FORMAT': '%-12.12s',
-            'NODENAME_IDENT': '<NodeName>',
-            'nodename': '',
-            'log': {
+            'NODENAME': nodename,
+            'LOG_CONF': {
                 'version': 1,
                 'formatters': {
                     'default': {
-                        'format': '[%(asctime)s] <NodeName> [%(levelname)-8.8s ' \
-                        '| %(module)-16.16s | %(funcName)-12.12s]: %(message)s'
+                        'format': '[%(asctime)s] ' + '%-12.12s ' % nodename +
+                                  '[%(levelname)-8.8s | %(module)-16.16s |'\
+                                  ' %(funcName)-12.12s]: %(message)s'
                     }
                 },
                 'handlers': {
@@ -53,17 +53,6 @@ class Config(object):
 
         self.__parse(filename)
 
-    def __setnodename(self, nodename):
-        '''
-        Sets the node name for logging.
-        This expects that the user conf (which has the node name) is already
-        parsed and appended to _cf.
-        '''
-        self._cf['nodename'] = nodename
-        self._cf['log']['formatters']['default']['format'].replace(
-            self._cf['NODENAME_IDENT'],
-            (self.__cf['NODENAME_FORMAT'] % self._cf['nodename']))
-
     def __parse(self, filename):
         '''
         parse the config file
@@ -78,11 +67,11 @@ class Config(object):
 
         f.close()
 
-        self._cp[self._cp['USER_CONF_SECTION']] = {}
+        self._cf[self._cf['USER_CONF_SECTION']] = {}
 
         # add the k/v pairs to self._cf
         for key, value in cp.items(self._cf['USER_CONF_SECTION']):
-            self._cp['USER_CONF_SECTION'][key] = value
+            self._cf[self._cf['USER_CONF_SECTION']][key] = value
 
     def get(self, key):
         '''
@@ -103,11 +92,11 @@ class Config(object):
         '''
         returns the logging configuration
         '''
-        return self._cf['log']
+        return self._cf['LOG_CONF']
 
     @property
     def nodename(self):
         '''
         returns the node name assigned
         '''
-        return self._cf["nodename"]
+        return self._cf["NODENAME"]

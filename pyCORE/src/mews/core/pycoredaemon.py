@@ -14,6 +14,7 @@ Created on Mar 24, 2018
 @author: Brian Ricks
 '''
 
+import ConfigParser
 import logging
 import logging.config
 import os
@@ -44,7 +45,11 @@ def main():
               "(including filename) of the pyCORE daemon config file." % sys.argv[0]
         return
 
-    config = Config(prepend_path(sys.argv[1]))
+    try:
+        config = Config(sys.argv[1], prepend_path(sys.argv[2]))
+    except ConfigParser.ParsingError as ex:
+        print ex
+        return
 
     # setup logging (this will affect all child loggers)
     # Here we pass a dictionary to the logger for initial configuration, then
@@ -53,7 +58,18 @@ def main():
     logging.config.dictConfig(config.logconfig)
     logger = logging.getLogger(config.logbase)
 
+    logger.debug("conf path: %s", prepend_path(sys.argv[2]))
     logger.info("MEWS pyCORE %s", __version__)
+
+    try:
+        service_spawner = ServiceSpawner(config)
+    except StandardError:
+        logger.error("ServiceSpawner did not instantiate.")
+        return
+
+    service_spawner.listener()
+
+    logger.info("pyCORE shutdown")
 
 if __name__ == '__main__':
     main()
