@@ -9,7 +9,6 @@ Created on Mar 5, 2018
 import logging
 from threading import Event
 
-from mews.core.common.value_sampler import ValueSampler
 from mews.core.services.baseservice import BaseService
 
 class ServiceControl(object):
@@ -17,13 +16,13 @@ class ServiceControl(object):
     classdocs
     '''
 
-    def __init__(self):
+    def __init__(self, logbase, service):
         '''
         Constructor
         '''
-        # class vars (declared here for readability)
-        self._service = None
-        self._distribution = None
+        self._logger = logging.getLogger(logbase)
+        self._service = service
+        self._distribution = None  # get this from the service conf
 
         # events
         self._event = Event()
@@ -36,27 +35,7 @@ class ServiceControl(object):
         # stop service (gracefully of course)
         self._service.stop()
 
-    def set_service(self, baseservice):
-        '''
-        Sets the service to use
-        '''
-        if not isinstance(baseservice, BaseService):
-            logging.error("Passed argument must be of type BaseService.")
-            raise ValueError()
-
-        self._service = baseservice
-
-    def set_distribution(self, distribution):
-        '''
-        sets the distribution from which to sample next service run time
-        '''
-        if not isinstance(distribution, ValueSampler):
-            logging.error("Passed argument must be of type ValueSampler.")
-            raise ValueError()
-
-        self._distribution = distribution
-
-    def run(self):
+    def run_service(self):
         '''
         Runs the service in a loop based on the distribution
         '''
@@ -76,10 +55,9 @@ class ServiceControl(object):
 
                 event.wait() will immediately return if event is set
                 '''
-                logging.info("Caught shutdown request...")
+                self._logger.debug("Caught shutdown request...")
                 break
 
-            # Service does not excute in a separate thread (blocking)
             self._service.start()
 
-        logging.info("Exiting...")
+        self._logger.info("Exiting...")

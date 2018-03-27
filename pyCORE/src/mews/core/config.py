@@ -27,7 +27,7 @@ class Config(object):
                     'default': {
                         'format': '[%(asctime)s] ' + '%-12.12s ' % nodename +
                                   '[%(levelname)-8.8s | %(module)-16.16s |'\
-                                  ' %(funcName)-12.12s]: %(message)s'
+                                  ' %(funcName)-16.16s]: %(message)s'
                     }
                 },
                 'handlers': {

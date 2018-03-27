@@ -7,12 +7,13 @@ Created on Mar 24, 2018
 '''
 
 import logging
+import signal
 import socket
-from threading import Thread
 
 from mews.core.services.servicecontrol import ServiceControl
+from mews.core.servicethread import ServiceThread
 
-class ServiceSpawner(object):
+class ServiceManager(object):
     '''
     classdocs
     '''
@@ -21,7 +22,14 @@ class ServiceSpawner(object):
         '''
         Constructor
         '''
+        # register signals
+        signal.signal(signal.SIGHUP, self.shutdown_signal_handler)
+        signal.signal(signal.SIGINT, self.shutdown_signal_handler)
+
+        self._logbase = config.logbase
         self._logger = logging.getLogger(config.logbase)
+        self._threadID = 0  # increments each time a thread is spawned
+
         try:
             self._host = config.get('host')
             self._port = int(config.get('port'))
@@ -45,7 +53,32 @@ class ServiceSpawner(object):
         if self._port < 1024:
             self._logger.warning("Port is less than 1024 (given: %d).  "\
             "Elevated permissions may be needed for binding.", self._port)
-    def listener(self):
+
+        self._services = []  # list of all services (ServiceThread) currently running
+
+    def __get_next_thread_id(self):
+        self._threadID += 1
+        return self._threadID
+
+    def callback_register_servicethread(self, service_thread):
+        '''
+        callback method from a service thread to register itself
+        '''
+        self._services.append(service_thread)
+
+    def shutdown_signal_handler(self, signum, frame):
+        '''
+        Signal handler for incoming signals (those which may imply we need to shutdown)
+        '''
+        self._logger.info("Received signum %d, beginning shutdown.", signum)
+
+    def start(self):
+        '''
+        starts the Listener
+        '''
+        self.listen()
+
+    def listen(self):
         '''
         Listens for new incoming services to spawn
         '''
@@ -75,5 +108,32 @@ class ServiceSpawner(object):
             # Listen for new connections, and spawn off a new thread for each
             # connection made (this is to ensure the listener isn't held up if
             # a command is slow to reach a current connection).
-            sock, src_addr = serv_sock.accept()  # TODO: may need to be in separate thread (management)
-            self._logger.info("Connection from %s", src_addr)
+            try:
+                sock, src_addr = serv_sock.accept()
+            except socket.error as ex:
+                # this most likely will occur when the socket is interrupted
+                self._logger.info("Listener no longer accepting incoming connections.")
+                self._logger.debug(ex)
+                serv_sock.close()
+                break
+
+            self._logger.info("Connection established from %s", src_addr)
+            service_thread = ServiceThread(self._logbase,
+                                           "ServiceThread-%d" % self.__get_next_thread_id(), sock,
+                                           self.callback_register_servicethread)
+            service_thread.start()
+
+        self.shutdown()
+
+    def shutdown(self):
+        '''
+        Shuts down all the running services.
+        '''
+        self._logger.info("%d running services to shutdown.", len(self._services))
+
+        for service_thread in self._services:
+            service_thread.stop()
+        for service_thread in self._services:
+            # Wait for each service to shutdown.  We put this in a separate loop so each service
+            # will get the shutdown request first, and can shutdown concurrently.
+            service_thread.join()

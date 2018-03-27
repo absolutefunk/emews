@@ -21,7 +21,7 @@ import os
 import sys
 
 from mews.core.config import Config
-from mews.core.servicespawner import ServiceSpawner
+from mews.core.servicemanager import ServiceManager
 from mews.core.version import __version__
 
 def prepend_path(filename):
@@ -62,12 +62,12 @@ def main():
     logger.info("MEWS pyCORE %s", __version__)
 
     try:
-        service_spawner = ServiceSpawner(config)
+        service_manager = ServiceManager(config)
     except StandardError:
-        logger.error("ServiceSpawner did not instantiate.")
+        logger.error("ServiceManager did not instantiate.")
         return
 
-    service_spawner.listener()
+    service_manager.start()
 
     logger.info("pyCORE shutdown")
 
