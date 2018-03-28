@@ -10,8 +10,8 @@ import logging
 import signal
 import socket
 
-from mews.core.services.servicecontrol import ServiceControl
-from mews.core.servicethread import ServiceThread
+from mews.core.services.servicethread import ServiceThread
+from mews.core.listenerthread import ListenerThread
 
 class ServiceManager(object):
     '''
@@ -29,6 +29,8 @@ class ServiceManager(object):
         self._logbase = config.logbase
         self._logger = logging.getLogger(config.logbase)
         self._threadID = 0  # increments each time a thread is spawned
+        self._listener_config = {}
+        self._listener_config['listener_recv_buffer'] = config['LISTENER_RECV_BUFFER']
 
         try:
             self._host = config.get('host')
@@ -59,12 +61,6 @@ class ServiceManager(object):
     def __get_next_thread_id(self):
         self._threadID += 1
         return self._threadID
-
-    def callback_register_servicethread(self, service_thread):
-        '''
-        callback method from a service thread to register itself
-        '''
-        self._services.append(service_thread)
 
     def shutdown_signal_handler(self, signum, frame):
         '''
@@ -118,10 +114,10 @@ class ServiceManager(object):
                 break
 
             self._logger.info("Connection established from %s", src_addr)
-            service_thread = ServiceThread(self._logbase,
-                                           "ServiceThread-%d" % self.__get_next_thread_id(), sock,
-                                           self.callback_register_servicethread)
-            service_thread.start()
+            listener_thread = ListenerThread(self._logbase, "ListenerThread-%d" %
+                                             self.__get_next_thread_id(),
+                                             sock, self._max_listener_retries)
+            listener_thread.start()
 
         self.shutdown()
 

@@ -1,5 +1,5 @@
 '''
-Controls the execution cycle of a pyCORE service.
+A service that runs in a loop, according to a sampler.
 
 Created on Mar 5, 2018
 
@@ -9,20 +9,22 @@ Created on Mar 5, 2018
 import logging
 from threading import Event
 
-from mews.core.services.baseservice import BaseService
+from mews.core.services.basethread import BaseThread
 
-class ServiceControl(object):
+class ServiceThread(BaseThread):
     '''
     classdocs
     '''
 
-    def __init__(self, logbase, service):
+    def __init__(self, logbase, name, service):
         '''
         Constructor
         '''
+        BaseThread.__init__(self, logbase, name+"-"+service.__class__.__name__)
+
         self._logger = logging.getLogger(logbase)
         self._service = service
-        self._distribution = None  # get this from the service conf
+        self._sampler = None  # get this from the service conf
 
         # events
         self._event = Event()
@@ -37,11 +39,11 @@ class ServiceControl(object):
 
     def run_service(self):
         '''
-        Runs the service in a loop based on the distribution
+        Runs the service in a loop based on the sampler
         '''
 
         while True:
-            self._event.wait(self._distribution.next_value())
+            self._event.wait(self._sampler.next_value())
 
             if self._event.is_set():
                 '''

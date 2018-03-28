@@ -17,6 +17,7 @@ class Config(object):
         '''
         self._cf = {
             # pyCORE config settings
+            'LISTENER_RECV_BUFFER': 256,
             'USER_CONF_SECTION': 'config',
             'BASE_LOGGER': 'pyCORE.base',
             'NODENAME_FORMAT': '%-12.12s',
