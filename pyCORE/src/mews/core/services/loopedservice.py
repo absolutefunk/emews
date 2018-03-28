@@ -9,33 +9,23 @@ Created on Mar 5, 2018
 import logging
 from threading import Event
 
-from mews.core.services.basethread import BaseThread
+from mews.core.services.baseservice import BaseService
 
-class ServiceThread(BaseThread):
+class LoopedService(BaseService):
     '''
     classdocs
     '''
 
-    def __init__(self, logbase, name, service):
+    def __init__(self, logbase):
         '''
         Constructor
         '''
-        BaseThread.__init__(self, logbase, name+"-"+service.__class__.__name__)
 
         self._logger = logging.getLogger(logbase)
-        self._service = service
         self._sampler = None  # get this from the service conf
 
         # events
         self._event = Event()
-
-    def stop(self):
-        '''
-        Gracefully exit service
-        '''
-        self._event.set()
-        # stop service (gracefully of course)
-        self._service.stop()
 
     def run_service(self):
         '''
