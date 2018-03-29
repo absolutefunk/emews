@@ -17,7 +17,7 @@ class ListenerThread(BaseThread):
     classdocs
     '''
 
-    def __init__(self, config, thr_name, sock):
+    def __init__(self, config, thr_name, sock, cb_exit):
         '''
         Constructor
         '''
@@ -37,84 +37,120 @@ class ListenerThread(BaseThread):
 
         self._buf_size = config.get_sys('LISTENER', 'LISTENER_RECV_BUFFER')
         self._command_delim = config.get_sys('LISTENER', 'COMMAND_DELIMITER')
+        self._callback_exit = cb_exit
 
         self._sock = sock  # socket used to receive commands
         self._sock.setblocking(0)
 
         self._logger.debug("Buffer size: %d", self._buf_size)
 
-        self._exit = False  # true once all commands are processed
+        self._exit = False  # true once all commands are processed or stop() invoked
+        self._interrupted = False  # true if stop() invoked (used to make sure shutdown called once)
+
+    def stop(self):
+        '''
+        @Override of BaseThread stop().
+        We call socket shutdown as that will close the session and unblock the select.
+        '''
+        self._logger.info("Stop request received.  Shutting down.")
+        self._exit = True
+        self._interrupted = True
+        self._sock.shutdown(socket.SHUT_RDWR)
 
     def run_service(self):
+        '''
+        @Override from BaseThread run_service()
+        '''
+        command_count = self.__listen()
+
+        if not self._interrupted:
+            self._sock.shutdown(socket.SHUT_RDWR)
+
+        self._sock.close()
+        self._logger.info("%d commands processed.", command_count)
+
+        if not self._interrupted:
+            # Remove self from active thread list in ServiceManager.
+            # Note, if shutting down due to interrupt, then most likely triggered by the
+            # ServiceManager, so we don't want to delete the reference from its list as the
+            # ServiceManager is still still using the list.
+            self._callback_exit(self)
+
+    def __listen(self):
         '''
         Processes commands from client.
         Currently only one command is supported, that to start a service.
         '''
-        # outer loop: loops per command
+        command_count = 0  # successful commands processed
+        # loops per command
+        while not self._exit:
+            line = self.get_line()
+
+            if not line:
+                # something happened, time to exit
+                break
+
+            if self.process_line(line):
+                # command successfully processed
+                command_count += 1
+
+        return command_count
+
+    def get_line(self):
+        '''
+        Gets a line of data, \n terminated.
+        '''
+        data_line = []
+        line = ""
+        chunk_count = 0
         while True:
-            # inner loop: loops per data chunk (part of command)
-            data_line = []
-            line = ""
-            chunk_count = 0
-            while True:
-                try:
-                    select.select([self._sock], [], [])
-                except select.error as ex:
-                    self._logger.debug(ex)
-                    self._sock.close()
-                    return
+            # loops per data chunk (part of command)
+            try:
+                select.select([self._sock], [], [])
+            except select.error as ex:
+                self._logger.debug(ex)
+                return ""
 
-                try:
-                    data = self._sock.recv(self._buf_size)
-                except socket.error as ex:
-                    self._logger.error("Exception when receiving incoming data.")
-                    self._logger.debug(ex)
-                    self._sock.close()
-                    return
+            try:
+                data = self._sock.recv(self._buf_size)
+            except socket.error as ex:
+                self._logger.error("Exception when receiving incoming data.")
+                self._logger.debug(ex)
+                return ""
 
-                if not data:
-                    self._logger.warning("Client abruptly closed the session.")
-                    self._sock.close()
-                    return
+            if not data:
+                if not self._exit:
+                    # If self._exit is True here, it means stop() was invoked, and we closed
+                    # the session.
+                    self._logger.warning("Session abruptly closed.")
+                else:
+                    self._logger.debug("Session closed.")
 
-                chunk_count += 1
-                # check if a carriage return is present in data
-                term_index = data.find('\n')
-                if term_index == -1:
-                    data_line.append(data)
-                    continue
+                return ""
 
-                # truncate anything past the carriage return (and the carriage return)
-                data = data[:term_index]
+            chunk_count += 1
+            # check if a carriage return is present in data
+            term_index = data.find('\n')
+            if term_index == -1:
                 data_line.append(data)
-                line = "".join(data_line).strip()
+                continue
 
-                self._logger.debug("Received %d chunk(s).", chunk_count)
-                self._logger.debug("Received line: %s", line)
-                break
+            # truncate anything past the carriage return (and the carriage return)
+            data = data[:term_index]
+            data_line.append(data)
+            line = "".join(data_line).strip()
 
-            cmd_tuple = self.process_line(line)
+            self._logger.debug("Received %d chunk(s).", chunk_count)
+            self._logger.debug("Received line: %s", line)
+            break
 
-            if cmd_tuple is None or not self.process_command(cmd_tuple):
-                # bad command or arg sent
-                if not self.__send_ack(self._ACK_MSG['fail']):
-                    return
-            else:
-                # command successful
-                if not self.__send_ack(self._ACK_MSG['success']):
-                    return
-
-            if self._exit:
-                break
-
-        self._sock.close()
+        return line
 
     def __send_ack(self, ack_msg):
         try:
             select.select([], [self._sock], [])
         except select.error as ex:
             self._logger.debug(ex)
-            self._sock.close()
             return False
 
         try:
@@ -123,33 +159,43 @@ class ListenerThread(BaseThread):
             self._logger.warning("Connection failure during active client session "\
             "(ACK to send: %s).", ack_msg)
             self._logger.debug(ex)
-            self._sock.close()
             return False
         return True
 
     def process_line(self, line):
         '''
-        Processes a line received from the socket.
-        Returns a tuple of ['cmd', 'value'] if valid, otherwise none
+        processes a line received from the socket
         '''
         cmd_tuple = line.split(self._command_delim)
 
         if len(cmd_tuple) > 2:
             self._logger.warning("Command tuple too long (max size: 2, given: %d).", len(cmd_tuple))
-            return None
+            return False
 
         if len(cmd_tuple) == 1:
             # if no argument given, append one (some commands don't need arguments)
             cmd_tuple.append("")
 
-        self._logger.debug("Command: %s, Arg: %s", cmd_tuple[0], cmd_tuple[1])
+        if not self.process_command(cmd_tuple):
+            # bad command or arg sent
+            if not self.__send_ack(self._ACK_MSG['fail']):
+                self._exit = True
 
-        return cmd_tuple
+            return False
+
+        # command successful
+        if not self.__send_ack(self._ACK_MSG['success']):
+            # the command still counts, but the ACK may not have been received by the client
+            self._exit = True
+
+        return True
 
     def process_command(self, cmd_tuple):
         '''
-        processes an incoming cmd/arg tuple
+        processes the command that the line represents
         '''
+        self._logger.debug("Command: %s, Arg: %s", cmd_tuple[0], cmd_tuple[1])
+
         if not self._COMMAND_MAPPING.has_key(cmd_tuple[0]):
             self._logger.warning("Command %s not recognized.", cmd_tuple[0])
             return False

@@ -11,16 +11,6 @@ from abc import abstractmethod
 import logging
 import threading
 
-def thread_names_str():
-    '''
-    Concatenates active thread names to a space delim string.
-    '''
-    thread_names = []
-    for thread in threading.enumerate():
-        thread_names.append(thread.name)
-
-    return ", ".join(thread_names)
-
 class ThreadLoggerAdapter(logging.LoggerAdapter):
     '''
     Prepends the thread name to log messages originating from the thread, so the log messages from
@@ -43,7 +33,9 @@ class BaseThread(threading.Thread):
         Constructor
         '''
         self._thr_name = thr_name+"-%d" % BaseThread.__current_thread_id
+
         threading.Thread.__init__(self, name=self._thr_name)
+
         BaseThread.__current_thread_id += 1
         self._logger = ThreadLoggerAdapter(logging.getLogger(config.logbase),
                                            {'thr_name': self._thr_name})
@@ -53,8 +45,7 @@ class BaseThread(threading.Thread):
         @Override of run() from threading.Thread.  Used for logging, and calls
         an additional method which is supposed to be overridden
         '''
-        self._logger.info("Thread started.  %d threads currently alive: [%s]",
-                          threading.active_count(), thread_names_str())
+        self._logger.info("Thread started.")
 
         self.run_service()
 
@@ -64,5 +55,12 @@ class BaseThread(threading.Thread):
     def run_service(self):
         '''
         Equivalent of the run() method for child classes.  Must be overridden.
+        '''
+        raise NotImplementedError("Must implement in subclass.")
+
+    @abstractmethod
+    def stop(self):
+        '''
+        Providing appropriate signalling to gracefully shutdown a thread.  Must be overridden.
         '''
         raise NotImplementedError("Must implement in subclass.")
