@@ -7,7 +7,7 @@ Created on Mar 27, 2018
 
 @author: Brian Ricks
 '''
-import logging
+import select
 import socket
 
 from mews.core.services.basethread import BaseThread
@@ -17,11 +17,11 @@ class ListenerThread(BaseThread):
     classdocs
     '''
 
-    def __init__(self, logbase, name, sock, config):
+    def __init__(self, config, thr_name, sock):
         '''
         Constructor
         '''
-        BaseThread.__init__(self, logbase, name)
+        BaseThread.__init__(self, config, thr_name)
 
         # currently supported commands
         self._COMMAND_MAPPING = {
@@ -29,11 +29,19 @@ class ListenerThread(BaseThread):
             'E': self.__do_exit,         # exit
         }
 
-        self._logger = logging.getLogger(logbase)
-        self._sock = sock  # socket used to receive commands
-        self._buf_size = config['listener_recv_buffer']
+        # currently supported acks
+        self._ACK_MSG = {
+            'success': 'OK\n',
+            'fail': "ERR\n"
+        }
 
-        self._logger.debug("max retries: %d, buffer size: %d", self._retries, self._buf_size)
+        self._buf_size = config.get_sys('LISTENER', 'LISTENER_RECV_BUFFER')
+        self._command_delim = config.get_sys('LISTENER', 'COMMAND_DELIMITER')
+
+        self._sock = sock  # socket used to receive commands
+        self._sock.setblocking(0)
+
+        self._logger.debug("Buffer size: %d", self._buf_size)
 
         self._exit = False  # true once all commands are processed
 
@@ -42,13 +50,34 @@ class ListenerThread(BaseThread):
         Processes commands from client.
         Currently only one command is supported, that to start a service.
         '''
-        data_line = []
-        line = ""
         # outer loop: loops per command
         while True:
             # inner loop: loops per data chunk (part of command)
+            data_line = []
+            line = ""
+            chunk_count = 0
             while True:
-                data = self._sock.recv(self._buf_size)
+                try:
+                    select.select([self._sock], [], [])
+                except select.error as ex:
+                    self._logger.debug(ex)
+                    self._sock.close()
+                    return
+
+                try:
+                    data = self._sock.recv(self._buf_size)
+                except socket.error as ex:
+                    self._logger.error("Exception when receiving incoming data.")
+                    self._logger.debug(ex)
+                    self._sock.close()
+                    return
+
+                if not data:
+                    self._logger.warning("Client abruptly closed the session.")
+                    self._sock.close()
+                    return
+
+                chunk_count += 1
                 # check if a carriage return is present in data
                 term_index = data.find('\n')
                 if term_index == -1:
@@ -56,49 +85,73 @@ class ListenerThread(BaseThread):
                     continue
 
                 # truncate anything past the carriage return (and the carriage return)
-                data = data[term_index - 1]
+                data = data[:term_index]
                 data_line.append(data)
                 line = "".join(data_line).strip()
-                data_line = []
+
+                self._logger.debug("Received %d chunk(s).", chunk_count)
+                self._logger.debug("Received line: %s", line)
                 break
 
             cmd_tuple = self.process_line(line)
 
             if cmd_tuple is None or not self.process_command(cmd_tuple):
                 # bad command or arg sent
-                try:
-                    self._sock.sendall("ERR")
-                except socket.error as ex:
-                    self._logger.warning("Connection termination during active client session.")
-                    self._logger.debug(ex)
-                    self._sock.close()
+                if not self.__send_ack(self._ACK_MSG['fail']):
+                    return
+            else:
+                # command successful
+                if not self.__send_ack(self._ACK_MSG['success']):
                     return
 
             if self._exit:
                 break
+
+        self._sock.close()
+
+    def __send_ack(self, ack_msg):
+        try:
+            select.select([], [self._sock], [])
+        except select.error as ex:
+            self._logger.debug(ex)
+            self._sock.close()
+            return False
+
+        try:
+            self._sock.sendall(ack_msg)
+        except socket.error as ex:
+            self._logger.warning("Connection failure during active client session "\
+            "(ACK to send: %s).", ack_msg)
+            self._logger.debug(ex)
+            self._sock.close()
+            return False
+        return True
 
     def process_line(self, line):
         '''
         Processes a line received from the socket.
         Returns a tuple of ['cmd', 'value'] if valid, otherwise none
         '''
-        cmd_tuple = line.split(": ")
+        cmd_tuple = line.split(self._command_delim)
 
-        if len(cmd_tuple) != 2:
+        if len(cmd_tuple) > 2:
+            self._logger.warning("Command tuple too long (max size: 2, given: %d).", len(cmd_tuple))
             return None
+
+        if len(cmd_tuple) == 1:
+            # if no argument given, append one (some commands don't need arguments)
+            cmd_tuple.append("")
 
         self._logger.debug("Command: %s, Arg: %s", cmd_tuple[0], cmd_tuple[1])
-
-        if len(cmd_tuple[0]) != 1:
-            return None
 
         return cmd_tuple
 
     def process_command(self, cmd_tuple):
         '''
-        processes and incoming cmd/arg tuple
+        processes an incoming cmd/arg tuple
         '''
         if not self._COMMAND_MAPPING.has_key(cmd_tuple[0]):
+            self._logger.warning("Command %s not recognized.", cmd_tuple[0])
             return False
 
         return self._COMMAND_MAPPING[cmd_tuple[0]](cmd_tuple[1])
@@ -109,11 +162,10 @@ class ListenerThread(BaseThread):
         '''
         return True
 
-    def __do_exit(self):
+    def __do_exit(self, arg_str):
         '''
         Exit the listener.
         '''
-        self._logger.debug("Exit command processed, shutting down socket and exiting.")
-        self._sock.close()
+        self._logger.debug("Exit command processed.")
         self._exit = True
         return True

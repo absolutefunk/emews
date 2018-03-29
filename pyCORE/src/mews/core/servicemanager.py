@@ -8,6 +8,7 @@ Created on Mar 24, 2018
 
 import logging
 import signal
+import select
 import socket
 
 from mews.core.services.servicethread import ServiceThread
@@ -26,15 +27,12 @@ class ServiceManager(object):
         signal.signal(signal.SIGHUP, self.shutdown_signal_handler)
         signal.signal(signal.SIGINT, self.shutdown_signal_handler)
 
-        self._logbase = config.logbase
-        self._logger = logging.getLogger(config.logbase)
-        self._threadID = 0  # increments each time a thread is spawned
-        self._listener_config = {}
-        self._listener_config['listener_recv_buffer'] = config['LISTENER_RECV_BUFFER']
+        self._config = config
+        self._logger = logging.getLogger(self._config.logbase)
 
         try:
-            self._host = config.get('host')
-            self._port = int(config.get('port'))
+            self._host = self._config.get('host')
+            self._port = int(self._config.get('port'))
         except KeyError as ex:
             self._logger.error("Key %s not found in config.  "\
             "Check pyCORE conf file for missing key.", ex)
@@ -58,10 +56,6 @@ class ServiceManager(object):
 
         self._services = []  # list of all services (ServiceThread) currently running
 
-    def __get_next_thread_id(self):
-        self._threadID += 1
-        return self._threadID
-
     def shutdown_signal_handler(self, signum, frame):
         '''
         Signal handler for incoming signals (those which may imply we need to shutdown)
@@ -82,6 +76,7 @@ class ServiceManager(object):
 
         try:
             serv_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            serv_sock.setblocking(0)  # non-blocking (blocking done by select)
         except socket.error as ex:
             self._logger.error("Could not instantiate socket. %s", ex)
             return
@@ -92,7 +87,7 @@ class ServiceManager(object):
             self._logger.error("Could not bind socket to interface. %s", ex)
             return
         try:
-            serv_sock.listen(1)
+            serv_sock.listen(5)
         except socket.error as ex:
             serv_sock.close()
             self._logger.error("Exception when setting up connection requests. %s", ex)
@@ -105,18 +100,24 @@ class ServiceManager(object):
             # connection made (this is to ensure the listener isn't held up if
             # a command is slow to reach a current connection).
             try:
-                sock, src_addr = serv_sock.accept()
-            except socket.error as ex:
-                # this most likely will occur when the socket is interrupted
+                select.select([serv_sock], [], [])
+            except select.error as ex:
+                # this most likely will occur when select is interrupted
                 self._logger.info("Listener no longer accepting incoming connections.")
                 self._logger.debug(ex)
                 serv_sock.close()
                 break
 
+            try:
+                sock, src_addr = serv_sock.accept()
+            except socket.error as ex:
+                self._logger.error("Exception when accepting incoming connection.")
+                self._logger.debug(ex)
+                serv_sock.close()
+                break
+
             self._logger.info("Connection established from %s", src_addr)
-            listener_thread = ListenerThread(self._logbase, "ListenerThread-%d" %
-                                             self.__get_next_thread_id(),
-                                             sock, self._max_listener_retries)
+            listener_thread = ListenerThread(self._config, "ListenerThread", sock)
             listener_thread.start()
 
         self.shutdown()

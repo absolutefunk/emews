@@ -5,8 +5,6 @@ Created on Mar 5, 2018
 
 @author: Brian Ricks
 '''
-
-import logging
 from threading import Event
 
 from mews.core.services.basethread import BaseThread
@@ -16,13 +14,12 @@ class ServiceThread(BaseThread):
     classdocs
     '''
 
-    def __init__(self, logbase, name, service):
+    def __init__(self, config, thr_name, service):
         '''
         Constructor
         '''
-        BaseThread.__init__(self, logbase, name+"-"+service.__class__.__name__)
+        BaseThread.__init__(self, thr_name+"-"+service.__class__.__name__)
 
-        self._logger = logging.getLogger(logbase)
         self._service = service
         self._sampler = None  # get this from the service conf
 

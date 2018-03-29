@@ -17,8 +17,7 @@ class Config(object):
         '''
         self._cf = {
             # pyCORE config settings
-            'LISTENER_RECV_BUFFER': 256,
-            'USER_CONF_SECTION': 'config',
+            'USER_CONF_SECTION_NAME': 'config',
             'BASE_LOGGER': 'pyCORE.base',
             'NODENAME_FORMAT': '%-12.12s',
             'NODENAME': nodename,
@@ -49,7 +48,14 @@ class Config(object):
                         'propagate': True
                     }
                 }
-            }
+            },
+            'SYS_CONF_SECTION': {
+                'LISTENER': {
+                    'LISTENER_RECV_BUFFER': 2,
+                    'COMMAND_DELIMITER': ': '
+                }
+            },
+            'USER_CONF_SECTION': {}
         }
 
         self.__parse(filename)
@@ -68,17 +74,27 @@ class Config(object):
 
         f.close()
 
-        self._cf[self._cf['USER_CONF_SECTION']] = {}
-
-        # add the k/v pairs to self._cf
-        for key, value in cp.items(self._cf['USER_CONF_SECTION']):
-            self._cf[self._cf['USER_CONF_SECTION']][key] = value
+        # add the k/v pairs to self._cf (only from the 'USER_CONF_SECTION' in the conf file)
+        for key, value in cp.items(self._cf['USER_CONF_SECTION_NAME']):
+            self._cf['USER_CONF_SECTION'][key] = value
 
     def get(self, key):
         '''
         Gets a value from the user conf space.
         '''
-        return self._cf[self._cf['USER_CONF_SECTION']][key]
+        return self._cf['USER_CONF_SECTION'][key]
+
+    def get_sys(self, section, key):
+        '''
+        Gets a value from the sys conf space, given a section and key.
+        '''
+        return self._cf['SYS_CONF_SECTION'][section][key]
+
+    def get_sys_section(self, section):
+        '''
+        Gets a dict from the sys conf space, given a section.
+        '''
+        return self._cf['SYS_CONF_SECTION'][section]
 
     # specific getters
     @property

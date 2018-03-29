@@ -63,11 +63,11 @@ def main():
 
     try:
         service_manager = ServiceManager(config)
-    except StandardError:
+    except StandardError as ex:
         logger.error("ServiceManager did not instantiate.")
-        return
-
-    service_manager.start()
+        logger.debug("(from ServiceManager): %s", ex)
+    else:
+        service_manager.start()
 
     logger.info("pyCORE shutdown")
 

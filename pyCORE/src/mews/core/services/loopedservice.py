@@ -1,5 +1,7 @@
 '''
 A service that runs in a loop, according to a sampler.
+This implies that the core functionality of the service itself is not infinite in duration,
+but that its behavior needs to be looped for the service duration to be infinite.
 
 Created on Mar 5, 2018
 
