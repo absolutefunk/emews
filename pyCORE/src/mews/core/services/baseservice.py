@@ -33,6 +33,9 @@ class BaseService(mews.core.services.iservice.IService):
 
         self._config = mews.core.config.parse(mews.core.config.prepend_path(service_config_path))
 
+        # TODO: In standalone mode, REMOVE_THREAD_CALLBACK is not needed.  Perhaps a key in
+        # sys_config to let service know if it was spawned through ServiceManager or standalone?
+
     @property
     def config(self):
         '''
