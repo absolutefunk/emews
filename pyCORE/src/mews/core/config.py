@@ -6,18 +6,46 @@ Created on Mar 24, 2018
 @author: Brian Ricks
 '''
 import ConfigParser
+import os
+
+def parse(filename):
+    '''
+    Parses the given filename (if it exists), and returns a ConfigParser object with the data.
+    '''
+    if filename is None:
+        return None
+
+    cp = ConfigParser.SafeConfigParser()
+    try:
+        with open(filename) as f:
+            cp.readfp(f)
+    except ConfigParser.Error:
+        f.close()
+        raise
+
+    f.close()
+
+    return cp
+
+def prepend_path(filename):
+    '''
+    Prepends an absolute path to the filename, relative to the directory this
+    module was loaded from.
+    '''
+    path = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+    return os.path.join(path, filename)
 
 class Config(object):
     '''
     classdocs
     '''
-    def __init__(self, nodename, filename):
+    def __init__(self, nodename, filename=None):
         '''
         Constructor
         '''
         self._cf = {
             # pyCORE config settings
-            'USER_CONF_SECTION_NAME': 'config',
+            'USER_CONF_SECTION_NAME': 'config',  # the section name in the conf file
             'BASE_LOGGER': 'pyCORE.base',
             'NODENAME_FORMAT': '%-12.12s',
             'NODENAME': nodename,
@@ -52,7 +80,7 @@ class Config(object):
             'SYS_CONF_SECTION': {
                 'LISTENER': {
                     'LISTENER_RECV_BUFFER': 2,
-                    'COMMAND_DELIMITER': ': '
+                    'COMMAND_DELIMITER': ' '
                 }
             },
             'USER_CONF_SECTION': {}
@@ -64,15 +92,10 @@ class Config(object):
         '''
         parse the config file
         '''
-        cp = ConfigParser.SafeConfigParser()
-        try:
-            with open(filename) as f:
-                cp.readfp(f)
-        except ConfigParser.Error:
-            f.close()
-            raise
+        cp = parse(filename)
 
-        f.close()
+        if cp is None:
+            return
 
         # add the k/v pairs to self._cf (only from the 'USER_CONF_SECTION' in the conf file)
         for key, value in cp.items(self._cf['USER_CONF_SECTION_NAME']):
@@ -83,6 +106,18 @@ class Config(object):
         Gets a value from the user conf space.
         '''
         return self._cf['USER_CONF_SECTION'][key]
+
+    def add_sys(self, section, key, value):
+        '''
+        Adds a k/v to the section given under SYS_CONF_SECTION.  If the key already exists,
+        an exception is thrown.
+        '''
+        if not section in self._cf['SYS_CONF_SECTION']:
+            self._cf['SYS_CONF_SECTION'][section] = {}
+        elif key in self._cf['SYS_CONF_SECTION'][section]:
+            raise ValueError("Key %s already exists in section %s." % (key, section))
+
+        self._cf['SYS_CONF_SECTION'][section][key] = value
 
     def get_sys(self, section, key):
         '''

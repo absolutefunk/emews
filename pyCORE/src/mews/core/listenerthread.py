@@ -16,8 +16,7 @@ class ListenerThread(BaseThread):
     '''
     classdocs
     '''
-
-    def __init__(self, config, thr_name, sock, cb_exit):
+    def __init__(self, config, thr_name, sock):
         '''
         Constructor
         '''
@@ -37,7 +36,7 @@ class ListenerThread(BaseThread):
 
         self._buf_size = config.get_sys('LISTENER', 'LISTENER_RECV_BUFFER')
         self._command_delim = config.get_sys('LISTENER', 'COMMAND_DELIMITER')
-        self._callback_exit = cb_exit
+        self._callback_exit = config.get_sys('THREADING', 'REMOVE_THREAD_CALLBACK')
 
         self._sock = sock  # socket used to receive commands
         self._sock.setblocking(0)
@@ -168,10 +167,6 @@ class ListenerThread(BaseThread):
         '''
         cmd_tuple = line.split(self._command_delim)
 
-        if len(cmd_tuple) > 2:
-            self._logger.warning("Command tuple too long (max size: 2, given: %d).", len(cmd_tuple))
-            return False
-
         if len(cmd_tuple) == 1:
             # if no argument given, append one (some commands don't need arguments)
             cmd_tuple.append("")
@@ -194,9 +189,10 @@ class ListenerThread(BaseThread):
         '''
         processes the command that the line represents
         '''
+        #TODO: generalize to services with cmdline args
         self._logger.debug("Command: %s, Arg: %s", cmd_tuple[0], cmd_tuple[1])
 
-        if not self._COMMAND_MAPPING.has_key(cmd_tuple[0]):
+        if not cmd_tuple[0] in self._COMMAND_MAPPING:
             self._logger.warning("Command %s not recognized.", cmd_tuple[0])
             return False
 

@@ -17,20 +17,11 @@ Created on Mar 24, 2018
 import ConfigParser
 import logging
 import logging.config
-import os
 import sys
 
-from mews.core.config import Config
+import mews.core.config
 from mews.core.servicemanager import ServiceManager
 from mews.core.version import __version__
-
-def prepend_path(filename):
-    '''
-    Prepends an absolute path to the filename, relative to the directory this
-    module was loaded from.
-    '''
-    path = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-    return os.path.join(path, filename)
 
 def main():
     '''
@@ -46,7 +37,7 @@ def main():
         return
 
     try:
-        config = Config(sys.argv[1], prepend_path(sys.argv[2]))
+        config = mews.core.config.Config(sys.argv[1], mews.core.config.prepend_path(sys.argv[2]))
     except ConfigParser.ParsingError as ex:
         print ex
         return
@@ -58,16 +49,11 @@ def main():
     logging.config.dictConfig(config.logconfig)
     logger = logging.getLogger(config.logbase)
 
-    logger.debug("conf path: %s", prepend_path(sys.argv[2]))
+    logger.debug("conf path: %s", mews.core.config.prepend_path(sys.argv[2]))
     logger.info("MEWS pyCORE %s", __version__)
 
-    try:
-        service_manager = ServiceManager(config)
-    except StandardError as ex:
-        logger.error("ServiceManager did not instantiate.")
-        logger.debug("(from ServiceManager): %s", ex)
-    else:
-        service_manager.start()
+    service_manager = ServiceManager(config)
+    service_manager.start()
 
     logger.info("pyCORE shutdown")
 

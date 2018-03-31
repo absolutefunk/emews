@@ -1,5 +1,9 @@
 '''
-Base class for pyCORE services
+Base class for pyCORE services.
+While this class is abstract, it still inherits the IService interface.  This is mainly to
+separate base service functionality from the service decorators, which would be redundant otherwise.
+Also instantiating decorators would be awkward if the base decorator had to call the BaseService
+contructor.
 
 Created on Mar 5, 2018
 
@@ -10,36 +14,45 @@ from abc import abstractmethod
 import logging
 from threading import Event
 
-class BaseService(object):
+import mews.core.config
+import mews.core.services.iservice
+
+class BaseService(mews.core.services.iservice.IService):
     '''
     classdocs
     '''
-    def __init__(self):
+    def __init__(self, sys_config, service_config_path=None):
         '''
         Constructor
+        If service_config_path=None, implies that service does not need to be configured (outside of
+        any sys_config parameters).
+        sys_config provides pyCORE relevant configuration (may or may not be relevant to a service).
         '''
-        self._logger = logging  # replaced by pyCORE logger unless running standalone
-        self._needs_config = True  # change to False if no config file needed
-        self._config = {}
-
+        self._logger = logging.getLogger(sys_config.logbase)
         self._service_interrupt_event = Event()  # used to interrupt Event.wait() on stop()
 
-    def configure(self, config_file):
-        '''
-        Configures the service.
-        '''
+        self._config = mews.core.config.parse(mews.core.config.prepend_path(service_config_path))
 
-    def needs_config(self):
+    @property
+    def config(self):
         '''
-        Returns whether this service needs to be configured.
+        @Override Returns the service config object.
         '''
-        return self._needs_config
+        return self._config
 
-    def __set_config(self, bool_config):
+    @property
+    def logger(self):
         '''
-        Does this service need to be configured? True = yes, False = no.
+        @Override Returns the logging object.
         '''
-        self._needs_config = bool_config
+        return self._logger
+
+    @abstractmethod
+    def run_service(self):
+        '''
+        Where the service entrance code goes.  Must be implemented by child class.
+        '''
+        pass
 
     def sleep(self, time):
         '''
@@ -49,21 +62,14 @@ class BaseService(object):
 
     def start(self):
         '''
-        Starts the service.
+        @Override Starts the service.
         '''
         self._logger.info("Service starting.")
         self.run_service()
 
-    @abstractmethod
-    def run_service(self):
-        '''
-        Where the service entrance code goes.  Must be implemented by child class.
-        '''
-        raise NotImplementedError("Must implement in subclass.")
-
     def stop(self):
         '''
-        Gracefully exit service
+        @Override Gracefully exit service
         '''
         self._logger.info("Service stopping.")
         self._service_interrupt_event.set()

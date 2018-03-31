@@ -10,19 +10,9 @@ import logging
 import signal
 import select
 import socket
-import threading
 
 from mews.core.listenerthread import ListenerThread
-
-def thread_names_str():
-    '''
-    Concatenates active thread names to a space delim string.
-    '''
-    thread_names = []
-    for thread in threading.enumerate():
-        thread_names.append(thread.name)
-
-    return ", ".join(thread_names)
+from mews.core.threadstate import ThreadState
 
 class ServiceManager(object):
     '''
@@ -33,14 +23,17 @@ class ServiceManager(object):
         '''
         Constructor
         '''
+
         # register signals
         signal.signal(signal.SIGHUP, self.shutdown_signal_handler)
         signal.signal(signal.SIGINT, self.shutdown_signal_handler)
 
-        self._thr_lock = threading.Lock()
-
         self._config = config
         self._logger = logging.getLogger(self._config.logbase)
+
+        self._thr_state = ThreadState(config)
+        self._config.add_sys('THREADING', 'REMOVE_THREAD_CALLBACK',
+                             self._thr_state.remove_thread)
 
         try:
             self._host = self._config.get('host')
@@ -65,8 +58,6 @@ class ServiceManager(object):
         if self._port < 1024:
             self._logger.warning("Port is less than 1024 (given: %d).  "\
             "Elevated permissions may be needed for binding.", self._port)
-
-        self._active_threads = []  # list of all threads (BaseThread) currently running
 
     def shutdown_signal_handler(self, signum, frame):
         '''
@@ -128,48 +119,25 @@ class ServiceManager(object):
                 break
 
             self._logger.info("Connection established from %s", src_addr)
-            listener_thread = ListenerThread(self._config, "ListenerThread", sock,
-                                             self.remove_thread)
+            listener_thread = ListenerThread(self._config, "ListenerThread", sock)
             listener_thread.start()
 
-            self.add_thread(listener_thread)
+            self._thr_state.add_thread(listener_thread)  # add thread to active state
 
         serv_sock.shutdown(socket.SHUT_RDWR)
         serv_sock.close()
         self.shutdown()
 
-    def add_thread(self, base_thread):
-        '''
-        adds a BaseThread to the active list
-        '''
-        self._active_threads.append(base_thread)
-        self._logger.info("%d threads currently active.", threading.active_count())
-        self._logger.debug("Active threads: [%s].", thread_names_str())
-
-    def remove_thread(self, base_thread):
-        '''
-        removes a BaseThread to the active list
-        '''
-        try:
-            self._logger.debug("(%s) Acquiring lock...", base_thread.name)
-            with self._thr_lock:
-                self._logger.debug("(%s) Lock acquired", base_thread.name)
-                self._active_threads.remove(base_thread)
-        except ValueError:
-            self._logger.warning("Thread not found in the active list.")
-
-        self._logger.debug("Thread %s removed from active thread list.", base_thread.name)
-
     def shutdown(self):
         '''
         Shuts down all the running threads.
         '''
-        self._logger.info("%d running threads to shutdown.", len(self._active_threads))
+        self._logger.info("%d running thread(s) to shutdown.", self._thr_state.count)
 
-        for active_thread in self._active_threads:
+        for active_thread in self._thr_state.active_threads:
             self._logger.debug("Stopping thread %s.", active_thread.name)
             active_thread.stop()
-        for active_thread in self._active_threads:
+        for active_thread in self._thr_state.active_threads:
             # Wait for each service to shutdown.  We put this in a separate loop so each service
             # will get the shutdown request first, and can shutdown concurrently.
             active_thread.join()

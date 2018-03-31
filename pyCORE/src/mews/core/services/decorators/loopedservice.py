@@ -1,5 +1,5 @@
 '''
-A service that runs in a loop, according to a sampler.
+A decorator that runs a service in a loop, according to a sampler.
 This implies that the core functionality of the service itself is not infinite in duration,
 but that its behavior needs to be looped for the service duration to be infinite.
 
@@ -7,29 +7,27 @@ Created on Mar 5, 2018
 
 @author: Brian Ricks
 '''
-
-import logging
 from threading import Event
 
-from mews.core.services.baseservice import BaseService
+from mews.core.services.decorators.servicedecorator import ServiceDecorator
 
-class LoopedService(BaseService):
+class LoopedService(ServiceDecorator):
     '''
     classdocs
     '''
 
-    def __init__(self, logbase):
+    def __init__(self, recipient_service):
         '''
         Constructor
         '''
+        ServiceDecorator.__init__(recipient_service)
 
-        self._logger = logging.getLogger(logbase)
         self._sampler = None  # get this from the service conf
 
         # events
         self._event = Event()
 
-    def run_service(self):
+    def loop_service(self):
         '''
         Runs the service in a loop based on the sampler
         '''
@@ -49,9 +47,9 @@ class LoopedService(BaseService):
 
                 event.wait() will immediately return if event is set
                 '''
-                self._logger.debug("Caught shutdown request...")
+                self.logger.debug("Caught shutdown request...")
                 break
 
             self._service.start()
 
-        self._logger.info("Exiting...")
+        self.logger.info("Exiting...")
