@@ -25,7 +25,21 @@ class IService(object):
     @abstractproperty
     def logger(self):
         '''
-        Returns the service logger object
+        Returns the service logger object.
+        '''
+        pass
+
+    @abstractproperty
+    def interrupted(self):
+        '''
+        Returns true if the service has been interrupted (requested to stop)
+        '''
+        pass
+
+    @abstractmethod
+    def sleep(self, time):
+        '''
+        Provides an interruptable method for sleeping.
         '''
         pass
 
@@ -39,6 +53,6 @@ class IService(object):
     @abstractmethod
     def stop(self):
         '''
-        Gracefully exit service
+        Gracefully exit service.
         '''
         pass

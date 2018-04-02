@@ -20,7 +20,7 @@ class ListenerThread(BaseThread):
         '''
         Constructor
         '''
-        BaseThread.__init__(self, config, thr_name)
+        super(ListenerThread, self).__init__(self, config, thr_name)
 
         # currently supported commands
         self._COMMAND_MAPPING = {
@@ -56,9 +56,9 @@ class ListenerThread(BaseThread):
         self._interrupted = True
         self._sock.shutdown(socket.SHUT_RDWR)
 
-    def run_service(self):
+    def run_thread(self):
         '''
-        @Override from BaseThread run_service()
+        @Override from BaseThread
         '''
         command_count = self.__listen()
 

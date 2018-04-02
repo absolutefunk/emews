@@ -1,6 +1,6 @@
 '''
 Base class for pyCORE service decorators.
-Subclasses when overriding the require methods can use super(cls, self) to access the methods
+Subclasses when overriding the required methods can use super(cls, self) to access the methods
 being overridden.
 
 Created on Mar 30, 2018
@@ -35,14 +35,28 @@ class ServiceDecorator(mews.core.services.iservice.IService):
         '''
         return self._recipient_service.logger
 
+    @property
+    def interrupted(self):
+        '''
+        Returns true if the service has been interrupted (requested to stop).  Use implementaton
+        from recipient_service.
+        '''
+        return self._recipient_service.interrupted
+
+    def sleep(self, time):
+        '''
+        @Override calls the sleep implementaton of recipient_service.
+        '''
+        self._recipient_service.sleep(time)
+
     def start(self):
         '''
         @Override Starts the service.
         '''
-        return self._recipient_service.start()
+        self._recipient_service.start()
 
     def stop(self):
         '''
         @Override Gracefully exit service
         '''
-        return self._recipient_service.stop()
+        self._recipient_service.stop()

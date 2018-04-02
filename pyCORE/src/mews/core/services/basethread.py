@@ -34,7 +34,7 @@ class BaseThread(threading.Thread):
         '''
         self._thr_name = thr_name+"-%d" % BaseThread.__current_thread_id
 
-        threading.Thread.__init__(self, name=self._thr_name)
+        super(BaseThread, self).__init__(self, name=self._thr_name)
 
         BaseThread.__current_thread_id += 1
         self._logger = ThreadLoggerAdapter(logging.getLogger(config.logbase),
@@ -47,14 +47,15 @@ class BaseThread(threading.Thread):
         '''
         self._logger.info("Thread started.")
 
-        self.run_service()
+        self.run_thread()
 
         self._logger.info("Thread terminating.")
 
     @abstractmethod
-    def run_service(self):
+    def run_thread(self):
         '''
-        Equivalent of the run() method for child classes.  Must be overridden.
+        Executed by the run() method, and for child classes provides the entry point for thread
+        execution.  Must be overridden.
         '''
         raise NotImplementedError("Must implement in subclass.")
 

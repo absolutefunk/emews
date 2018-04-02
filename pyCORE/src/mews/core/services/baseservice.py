@@ -50,18 +50,25 @@ class BaseService(mews.core.services.iservice.IService):
         '''
         return self._logger
 
+    @property
+    def interrupted(self):
+        '''
+        Returns true if the service has been interrupted (requested to stop).  Uses events.
+        '''
+        return self._service_interrupt_event.is_set
+
+    def sleep(self, time):
+        '''
+        @Override Wraps the event.wait().  Convenience method.
+        '''
+        self._service_interrupt_event.wait(time)
+
     @abstractmethod
     def run_service(self):
         '''
         Where the service entrance code goes.  Must be implemented by child class.
         '''
         pass
-
-    def sleep(self, time):
-        '''
-        Wraps the event.wait().  Convenience method.
-        '''
-        self._service_interrupt_event.wait(time)
 
     def start(self):
         '''

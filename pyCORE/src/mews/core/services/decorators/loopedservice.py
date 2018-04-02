@@ -7,7 +7,6 @@ Created on Mar 5, 2018
 
 @author: Brian Ricks
 '''
-from threading import Event
 
 from mews.core.services.decorators.servicedecorator import ServiceDecorator
 
@@ -15,17 +14,19 @@ class LoopedService(ServiceDecorator):
     '''
     classdocs
     '''
-
     def __init__(self, recipient_service):
         '''
         Constructor
         '''
-        ServiceDecorator.__init__(recipient_service)
+        super(LoopedService, self).__init__(recipient_service)
 
         self._sampler = None  # get this from the service conf
 
-        # events
-        self._event = Event()
+    def start(self):
+        '''
+        @Override Starts the service, with additional code for the looping.
+        '''
+        self.loop_service()
 
     def loop_service(self):
         '''
@@ -33,23 +34,20 @@ class LoopedService(ServiceDecorator):
         '''
 
         while True:
-            self._event.wait(self._sampler.next_value())
+            self.sleep(self._sampler.next_value())
 
-            if self._event.is_set():
+            if self.interrupted:
                 '''
-                We check it here instead of in the loop for two reasons:
-                1) The wait needs to be before the service call, so if the
+                The wait needs to be before the service call, so if the interrupt
                 request comes during the wait, we still need to check the flag
-                here anyways to prevent the service from running if flag is set.
-                2) If the request comes during service execution and we check
-                this in the loop, then the nice "Caught shutdown request" message
-                won't be displayed unless we explicitly check why the loop terminated.
-
-                event.wait() will immediately return if event is set
+                here anyways to prevent the service from running if interrupted.
+                Note:  The current implementation of sleep() uses events, so once
+                interrupted (event.set()), then sleep will immediately return on future
+                calls.
                 '''
                 self.logger.debug("Caught shutdown request...")
                 break
 
-            self._service.start()
+            super(LoopedService, self).start()
 
         self.logger.info("Exiting...")
