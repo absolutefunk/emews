@@ -5,6 +5,10 @@ separate base service functionality from the service decorators, which would be 
 Also instantiating decorators would be awkward if the base decorator had to call the BaseService
 contructor.
 
+Services must be in their own module, with the service name the same as the module name (service
+name can use upper camelCase - ServiceName for example).  This is so the string name passed to
+build the appropriate service can also perform module lookup.
+
 Created on Mar 5, 2018
 
 @author: Brian Ricks
@@ -21,17 +25,15 @@ class BaseService(mews.core.services.iservice.IService):
     '''
     classdocs
     '''
-    def __init__(self, sys_config, service_config_path=None):
+    def __init__(self, service_config):
         '''
         Constructor
-        If service_config_path=None, implies that service does not need to be configured (outside of
-        any sys_config parameters).
-        sys_config provides pyCORE relevant configuration (may or may not be relevant to a service).
+        The service_config contains system config information (such as logging), and any service
+        specific configuration information.
         '''
-        self._logger = logging.getLogger(sys_config.logbase)
+        self._config = service_config
+        self._logger = logging.getLogger(self._config.logbase)
         self._service_interrupt_event = Event()  # used to interrupt Event.wait() on stop()
-
-        self._config = mews.core.config.parse(mews.core.config.prepend_path(service_config_path))
 
         # TODO: In standalone mode, REMOVE_THREAD_CALLBACK is not needed.  Perhaps a key in
         # sys_config to let service know if it was spawned through ServiceManager or standalone?

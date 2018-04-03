@@ -12,8 +12,9 @@ class ServiceThread(BaseThread):
     classdocs
     '''
 
-    def __init__(self, config, thr_name, service):
+    def __init__(self, sys_config, thr_name, service):
         '''
         Constructor
         '''
-        super(ServiceThread, self).__init__(self, thr_name+"-"+service.__class__.__name__)
+        super(ServiceThread, self).__init__(self, sys_config,
+                                            thr_name+"-"+service.__class__.__name__)

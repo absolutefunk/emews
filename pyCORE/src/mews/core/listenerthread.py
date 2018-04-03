@@ -16,11 +16,11 @@ class ListenerThread(BaseThread):
     '''
     classdocs
     '''
-    def __init__(self, config, thr_name, sock):
+    def __init__(self, sys_config, thr_name, sock):
         '''
         Constructor
         '''
-        super(ListenerThread, self).__init__(self, config, thr_name)
+        super(ListenerThread, self).__init__(self, sys_config, thr_name)
 
         # currently supported commands
         self._COMMAND_MAPPING = {
@@ -34,14 +34,14 @@ class ListenerThread(BaseThread):
             'fail': "ERR\n"
         }
 
-        self._buf_size = config.get_sys('LISTENER', 'LISTENER_RECV_BUFFER')
-        self._command_delim = config.get_sys('LISTENER', 'COMMAND_DELIMITER')
-        self._callback_exit = config.get_sys('THREADING', 'REMOVE_THREAD_CALLBACK')
+        self._buf_size = self.config.get_sys('LISTENER_RECV_BUFFER', 'LISTENER')
+        self._command_delim = self.config.get_sys('COMMAND_DELIMITER', 'LISTENER')
+        self._callback_exit = self.config.get_sys('REMOVE_THREAD_CALLBACK', 'LISTENER')
 
         self._sock = sock  # socket used to receive commands
         self._sock.setblocking(0)
 
-        self._logger.debug("Buffer size: %d", self._buf_size)
+        self.logger.debug("Buffer size: %d", self._buf_size)
 
         self._exit = False  # true once all commands are processed or stop() invoked
         self._interrupted = False  # true if stop() invoked (used to make sure shutdown called once)
@@ -51,7 +51,7 @@ class ListenerThread(BaseThread):
         @Override of BaseThread stop().
         We call socket shutdown as that will close the session and unblock the select.
         '''
-        self._logger.info("Stop request received.  Shutting down.")
+        self.logger.info("Stop request received.  Shutting down.")
         self._exit = True
         self._interrupted = True
         self._sock.shutdown(socket.SHUT_RDWR)
@@ -66,7 +66,7 @@ class ListenerThread(BaseThread):
             self._sock.shutdown(socket.SHUT_RDWR)
 
         self._sock.close()
-        self._logger.info("%d commands processed.", command_count)
+        self.logger.info("%d commands processed.", command_count)
 
         if not self._interrupted:
             # Remove self from active thread list in ServiceManager.
@@ -107,23 +107,23 @@ class ListenerThread(BaseThread):
             try:
                 select.select([self._sock], [], [])
             except select.error as ex:
-                self._logger.debug(ex)
+                self.logger.debug(ex)
                 return ""
 
             try:
                 data = self._sock.recv(self._buf_size)
             except socket.error as ex:
-                self._logger.error("Exception when receiving incoming data.")
-                self._logger.debug(ex)
+                self.logger.error("Exception when receiving incoming data.")
+                self.logger.debug(ex)
                 return ""
 
             if not data:
                 if not self._exit:
                     # If self._exit is True here, it means stop() was invoked, and we closed
                     # the session.
-                    self._logger.warning("Session abruptly closed.")
+                    self.logger.warning("Session abruptly closed.")
                 else:
-                    self._logger.debug("Session closed.")
+                    self.logger.debug("Session closed.")
 
                 return ""
 
@@ -139,8 +139,8 @@ class ListenerThread(BaseThread):
             data_line.append(data)
             line = "".join(data_line).strip()
 
-            self._logger.debug("Received %d chunk(s).", chunk_count)
-            self._logger.debug("Received line: %s", line)
+            self.logger.debug("Received %d chunk(s).", chunk_count)
+            self.logger.debug("Received line: %s", line)
             break
 
         return line
@@ -149,15 +149,15 @@ class ListenerThread(BaseThread):
         try:
             select.select([], [self._sock], [])
         except select.error as ex:
-            self._logger.debug(ex)
+            self.logger.debug(ex)
             return False
 
         try:
             self._sock.sendall(ack_msg)
         except socket.error as ex:
-            self._logger.warning("Connection failure during active client session "\
+            self.logger.warning("Connection failure during active client session "\
             "(ACK to send: %s).", ack_msg)
-            self._logger.debug(ex)
+            self.logger.debug(ex)
             return False
         return True
 
@@ -190,10 +190,10 @@ class ListenerThread(BaseThread):
         processes the command that the line represents
         '''
         #TODO: generalize to services with cmdline args
-        self._logger.debug("Command: %s, Arg: %s", cmd_tuple[0], cmd_tuple[1])
+        self.logger.debug("Command: %s, Arg: %s", cmd_tuple[0], cmd_tuple[1])
 
         if not cmd_tuple[0] in self._COMMAND_MAPPING:
-            self._logger.warning("Command %s not recognized.", cmd_tuple[0])
+            self.logger.warning("Command %s not recognized.", cmd_tuple[0])
             return False
 
         return self._COMMAND_MAPPING[cmd_tuple[0]](cmd_tuple[1])
@@ -208,6 +208,6 @@ class ListenerThread(BaseThread):
         '''
         Exit the listener.
         '''
-        self._logger.debug("Exit command processed.")
+        self.logger.debug("Exit command processed.")
         self._exit = True
         return True

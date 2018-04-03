@@ -3,7 +3,7 @@ Interface for pyCORE services.
 Concrete class should inherit BaseClass or a subclass of it.  This interface is mainly to properly
 support service decorator classes.
 
-Created on Mar 5, 2018
+Created on Mar 30, 2018
 
 @author: Brian Ricks
 '''

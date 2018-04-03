@@ -28,7 +28,7 @@ class BaseThread(threading.Thread):
     '''
     __current_thread_id = 0  # each thread has a unique id assigned
 
-    def __init__(self, config, thr_name):
+    def __init__(self, sys_config, thr_name):
         '''
         Constructor
         '''
@@ -37,8 +37,23 @@ class BaseThread(threading.Thread):
         super(BaseThread, self).__init__(self, name=self._thr_name)
 
         BaseThread.__current_thread_id += 1
-        self._logger = ThreadLoggerAdapter(logging.getLogger(config.logbase),
+        self._sys_config = sys_config
+        self._logger = ThreadLoggerAdapter(logging.getLogger(self._sys_config.logbase),
                                            {'thr_name': self._thr_name})
+
+    @property
+    def config(self):
+        '''
+        returns the system config object
+        '''
+        return self._sys_config
+
+    @property
+    def logger(self):
+        '''
+        returns the logger
+        '''
+        return self._logger
 
     def run(self):
         '''
