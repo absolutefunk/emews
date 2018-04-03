@@ -1,6 +1,0 @@
-
-
-class ConfigContainer(object):
-    '''
-    classdocs
-    '''

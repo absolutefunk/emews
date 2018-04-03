@@ -34,7 +34,7 @@ class BaseThread(threading.Thread):
         '''
         self._thr_name = thr_name+"-%d" % BaseThread.__current_thread_id
 
-        super(BaseThread, self).__init__(name=self._thr_name)
+        super(BaseThread, self).__init__(self, name=self._thr_name)
 
         BaseThread.__current_thread_id += 1
         self._sys_config = sys_config
