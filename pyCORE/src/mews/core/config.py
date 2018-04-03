@@ -1,102 +1,26 @@
 '''
 pyCORE configuration.
+Stores component configuration data.
 
-Created on Mar 24, 2018
+Created on Apr 3, 2018
 
 @author: Brian Ricks
 '''
-import ConfigParser
-import os
 
-def parse(filename):
-    '''
-    Parses the given filename (if it exists), and returns a ConfigParser object with the data.
-    '''
-    if filename is None:
-        return None
+import mews.core.iconfig
 
-    cp = ConfigParser.SafeConfigParser()
-    try:
-        with open(filename) as f:
-            cp.readfp(f)
-    except ConfigParser.Error:
-        f.close()
-        raise
-
-    f.close()
-
-    return cp
-
-def prepend_path(filename):
-    '''
-    Prepends an absolute path to the filename, relative to the directory this
-    module was loaded from.
-    '''
-    path = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-    return os.path.join(path, filename)
-
-class Config(object):
+class Config(mews.core.iconfig.IConfig):
     '''
     classdocs
     '''
-    def __init__(self, nodename):
+    def __init__(self, nodename, component_config_filename):
         '''
         Constructor
         '''
-        self._cf = {
-            # pyCORE config settings
-            'PYCORE_PKG_PATH': 'mews.core',
-            'PYCORE_PKG_SERVICES_PATH': 'mews.core.services',
-            'BASE_LOGGER': 'pyCORE.base',
-            'NODENAME_FORMAT': '%-12.12s',
-            'NODENAME': nodename,
-            'LOG_CONF': {
-                'version': 1,
-                'formatters': {
-                    'default': {
-                        'format': '[%(asctime)s] ' + '%-12.12s ' % nodename +
-                                  '[%(levelname)-8.8s | %(module)-16.16s |'\
-                                  ' %(funcName)-16.16s]: %(message)s'
-                    }
-                },
-                'handlers': {
-                    'console': {
-                        'class': 'logging.StreamHandler',
-                        'formatter': 'default',
-                        'level': 'DEBUG',
-                        'stream': 'ext://sys.stdout'
-                    }
-                },
-                'loggers': {
-                    '': {
-                        'handlers': ['console'],
-                        'level': 'DEBUG',
-                    },
-                    'pyCORE.base': {
-                        'level': 'DEBUG',  # change this to INFO for production
-                        'propagate': True
-                    }
-                }
-            }
-        }
+        self.__component_config = mews.core.config.parse(
+            mews.core.config.prepend_path(component_config_filename))
 
-    @property
-    def logbase(self):
+    def spawn_new(self, key, component_conf_file):
         '''
-        @Override returns the string representing the pyCORE base logger
+        spawns a new config object, with shared system config (self._cf) but new component config
         '''
-        return self._cf['BASE_LOGGER']
-
-    @property
-    def nodename(self):
-        '''
-        @Override returns the node name assigned
-        '''
-        return self._cf["NODENAME"]
-
-    def get(self, key, section=None):
-        '''
-        Gets a value from the config dictionary.
-        '''
-        if section is None:
-            return self._cf[key]

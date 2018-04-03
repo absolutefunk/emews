@@ -20,7 +20,7 @@ class ListenerThread(BaseThread):
         '''
         Constructor
         '''
-        super(ListenerThread, self).__init__(self, sys_config, thr_name)
+        super(ListenerThread, self).__init__(sys_config, thr_name)
 
         # currently supported commands
         self._COMMAND_MAPPING = {
