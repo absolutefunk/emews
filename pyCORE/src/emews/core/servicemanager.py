@@ -5,14 +5,12 @@ Created on Mar 24, 2018
 
 @author: Brian Ricks
 '''
-
-import logging
 import signal
 import select
 import socket
 
-from mews.core.listenerthread import ListenerThread
-from mews.core.threadstate import ThreadState
+from emews.core.listenerthread import ListenerThread
+from emews.core.threadstate import ThreadState
 
 class ServiceManager(object):
     '''
@@ -29,21 +27,19 @@ class ServiceManager(object):
         signal.signal(signal.SIGINT, self.shutdown_signal_handler)
 
         self._config = config
-        self._logger = logging.getLogger(self._config.logbase)
+        self._logger = self._config.logger
 
         self._thr_state = ThreadState(config)
-        self._config.add_sys('THREADING', 'REMOVE_THREAD_CALLBACK',
-                             self._thr_state.remove_thread)
 
         try:
-            self._host = self._config.get('host')
-            self._port = int(self._config.get('port'))
+            self._host = self._config.get('general', 'host')
+            self._port = int(self._config.get('general', 'port'))
         except KeyError as ex:
             self._logger.error("Key %s not found in config.  "\
-            "Check pyCORE conf file for missing key.", ex)
+            "Check emews conf file for missing key.", ex)
             raise
         except ValueError as ex:
-            self._logger.error("%s.  Check pyCORE conf file for invalid values.", ex)
+            self._logger.error("%s.  Check emews conf file for invalid values.", ex)
             raise
 
         # parameter checks
@@ -119,7 +115,8 @@ class ServiceManager(object):
                 break
 
             self._logger.info("Connection established from %s", src_addr)
-            listener_thread = ListenerThread(self._config, "ListenerThread", sock)
+            listener_thread = ListenerThread(self._config, "ListenerThread", sock,
+                                             self._thr_state.remove_thread)
             listener_thread.start()
 
             self._thr_state.add_thread(listener_thread)  # add thread to active state

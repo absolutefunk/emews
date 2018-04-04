@@ -1,5 +1,5 @@
 '''
-Base class for service threads.
+Base class for threads.
 Provides extended support for autologging thread info on start.
 
 Created on Mar 26, 2018
@@ -38,8 +38,7 @@ class BaseThread(threading.Thread):
 
         BaseThread.__current_thread_id += 1
         self._sys_config = sys_config
-        self._logger = ThreadLoggerAdapter(logging.getLogger(self._sys_config.logbase),
-                                           {'thr_name': self._thr_name})
+        self._logger = ThreadLoggerAdapter(self._sys_config.logger, {'thr_name': self._thr_name})
 
     @property
     def config(self):

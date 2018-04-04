@@ -7,9 +7,9 @@ Created on Mar 30, 2018
 
 @author: Brian Ricks
 '''
-import mews.core.services.iservice
+import emews.core.services.iservice
 
-class ServiceDecorator(mews.core.services.iservice.IService):
+class ServiceDecorator(emews.core.services.iservice.IService):
     '''
     classdocs
     '''

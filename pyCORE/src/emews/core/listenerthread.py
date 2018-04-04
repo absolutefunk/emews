@@ -10,13 +10,13 @@ Created on Mar 27, 2018
 import select
 import socket
 
-from mews.core.services.basethread import BaseThread
+from emews.core.services.basethread import BaseThread
 
 class ListenerThread(BaseThread):
     '''
     classdocs
     '''
-    def __init__(self, sys_config, thr_name, sock):
+    def __init__(self, sys_config, thr_name, sock, cb_exit):
         '''
         Constructor
         '''
@@ -34,9 +34,9 @@ class ListenerThread(BaseThread):
             'fail': "ERR\n"
         }
 
-        self._buf_size = self.config.get_sys('LISTENER_RECV_BUFFER', 'LISTENER')
-        self._command_delim = self.config.get_sys('COMMAND_DELIMITER', 'LISTENER')
-        self._callback_exit = self.config.get_sys('REMOVE_THREAD_CALLBACK', 'LISTENER')
+        self._buf_size = self.config.get_sys('listener', 'receive_buffer')
+        self._command_delim = self.config.get_sys('listener', 'command_delimiter')
+        self._callback_exit = cb_exit
 
         self._sock = sock  # socket used to receive commands
         self._sock.setblocking(0)
@@ -72,7 +72,7 @@ class ListenerThread(BaseThread):
             # Remove self from active thread list in ServiceManager.
             # Note, if shutting down due to interrupt, then most likely triggered by the
             # ServiceManager, so we don't want to delete the reference from its list as the
-            # ServiceManager is still still using the list.
+            # ServiceManager is still using the list.
             self._callback_exit(self)
 
     def __listen(self):

@@ -9,15 +9,15 @@ Created on Feb 26, 2018
 
 import sys
 
-import mews.core.services.autossh.autossh
-import mews.core.services.runservice
+import emews.core.services.autossh.autossh
+import emews.core.services.runservice
 
 if __name__ == '__main__':
 
     if not checkargs():
         sys.exit()
 
-    ssh_client = mews.core.services.autossh.autossh.AutoSSH()
+    ssh_client = emews.core.services.autossh.autossh.AutoSSH()
     ssh_client.configure(sys.argv[1])
 
 def checkargs():

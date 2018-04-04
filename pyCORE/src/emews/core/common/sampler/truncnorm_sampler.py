@@ -5,9 +5,9 @@ Created on Feb 26, 2018
 '''
 
 from scipy.stats import truncnorm
-import mews.core.common.value_sampler
+import emews.core.common.value_sampler
 
-class TruncnormSampler(mews.core.common.value_sampler.ValueSampler):
+class TruncnormSampler(emews.core.common.value_sampler.ValueSampler):
     '''
     classdocs
     '''

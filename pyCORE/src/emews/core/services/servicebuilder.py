@@ -7,9 +7,8 @@ Created on Apr 2, 2018
 '''
 import ConfigParser
 import importlib
-import logging
 
-import mews.core.config
+import emews.core.config
 
 class ServiceBuilder(object):
     '''
@@ -20,7 +19,7 @@ class ServiceBuilder(object):
         Constructor
         '''
         self._sys_config = sys_config
-        self._logger = logging.getLogger(self._sys_config.logbase)
+        self._logger = self._sys_config.logger
 
         self._config = None
         self._service_config = None
@@ -71,7 +70,7 @@ class ServiceBuilder(object):
         add this configuration data to the system configuration until service creation.
         '''
         try:
-            self._config = mews.core.config.parse(mews.core.config.prepend_path(val_config_path))
+            self._config = emews.core.config.parse(emews.core.config.prepend_path(val_config_path))
         except ConfigParser.Error as ex:
             self.logger.error("Service configuration could not be parsed.")
             self.logger.debug(ex)

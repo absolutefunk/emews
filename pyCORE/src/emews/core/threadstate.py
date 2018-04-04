@@ -5,8 +5,6 @@ Created on Mar 30, 2018
 
 @author: Brian Ricks
 '''
-
-import logging
 import threading
 
 def thread_names_str():
@@ -51,7 +49,7 @@ class ThreadState(object):
         '''
         Constructor
         '''
-        self._logger = logging.getLogger(sys_config.logbase)
+        self._logger = sys_config.logger
         self._thr_lock = threading.Lock()
         self._active_threads = []
 

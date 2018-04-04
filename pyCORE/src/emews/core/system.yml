@@ -1,0 +1,38 @@
+# Base configuration for the emews system
+# Note, some of the settings can break the system if changed.
+# YAML 1.2 compliant
+
+general:
+  host: localhost  # host to bind to (listening for incoming commands, etc...)
+  port: 32518      # port to use
+
+paths:
+  # package paths for the emews system
+  emews_pkg_path: emews.core
+  emews_pkg_services_path: emews.core.services
+
+listener:
+  receive_buffer: 128     # buffer for incoming characters from a emews client
+  command_delimiter: ' '  # delimit commands using this
+
+logging:
+  base_logger: &base_logger emews.base
+  log_conf:
+    version: 1
+    formatters:
+      default:
+        format: '[%(asctime)s] %(nodename)-12.12s [%(levelname)-8.8s | %(module)-16.16s | %(funcName)-16.16s]: %(message)s'
+    handlers:
+      console:
+        class: logging.StreamHandler
+        formatter: default
+        level: DEBUG
+        stream: 'ext://sys.stdout'
+    loggers:
+        root:
+          handlers:
+          - console
+          level: DEBUG
+        *base_logger:
+            level: DEBUG  # change this to INFO for production
+            propagate: True

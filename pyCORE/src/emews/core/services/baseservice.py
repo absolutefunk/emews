@@ -15,13 +15,12 @@ Created on Mar 5, 2018
 '''
 
 from abc import abstractmethod
-import logging
 from threading import Event
 
-import mews.core.config
-import mews.core.services.iservice
+import emews.core.config
+import emews.core.services.iservice
 
-class BaseService(mews.core.services.iservice.IService):
+class BaseService(emews.core.services.iservice.IService):
     '''
     classdocs
     '''
@@ -32,7 +31,7 @@ class BaseService(mews.core.services.iservice.IService):
         specific configuration information.
         '''
         self._config = service_config
-        self._logger = logging.getLogger(self._config.logbase)
+        self._logger = self._config.logger
         self._service_interrupt_event = Event()  # used to interrupt Event.wait() on stop()
 
         # TODO: In standalone mode, REMOVE_THREAD_CALLBACK is not needed.  Perhaps a key in
