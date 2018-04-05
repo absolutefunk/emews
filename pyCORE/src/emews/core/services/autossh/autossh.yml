@@ -1,0 +1,30 @@
+# Configuration file for AutoSSH
+# YAML 1.2 compliant
+
+server:
+  host: 10.176.149.20
+  port: 2252
+  username: coreuser
+  password: P28c7RtO0
+
+command:
+  sampler:
+    class: UniformSampler  # distribution to sample commands from
+    parameters:
+    - lower_bound: 1  # lower bound (sec)
+    - upper_bound: 5  # upper bound (sec)
+  command_count: 5  #how many commands to execute from the list
+  command_list:
+  - uptime
+  - ps aux
+  - df -m
+  - pwd
+  - ls -al
+
+decorators:  # any decorators required need to be defined here
+  LoopedService:  # LoopedService decorator
+    sampler:
+      class: UniformSampler  # distribution to sample service loop start time from
+      parameters:
+      - lower_bound: 120  # lower bound (sec)
+      - upper_bound: 3600  # upper bound (sec)

@@ -24,7 +24,6 @@ class ServiceBuilder(object):
         self._config = None
         self._service_config = None
         self._service_class = None
-        self._service_module = None
 
     @property
     def result(self):
@@ -46,18 +45,18 @@ class ServiceBuilder(object):
         Sets the service.  We do parsing of the service name to the module and class here so they
         will be cached on build calls.
         '''
-        # Attempt to resolve the module.  If using pyCORE naming, then service should also resolve.
+        # Attempt to resolve the module.  If using emews naming, then service should also resolve.
         try:
-            self._service_module = importlib.import_module(val_service_name.lowercase(),
-                                                           self._sys_config.get_sys(
-                                                               'PYCORE_PKG_SERVICES_PATH'))
+            service_module = importlib.import_module(
+                val_service_name.lowercase(), self._sys_config.get_sys(
+                    'paths', 'emews_pkg_services_path'))
         except ImportError as ex:
             self.logger.error("Service name could not be resolved into a module.")
             self.logger.debug(ex)
             raise
 
         try:
-            self._service_class = getattr(self._service_module, val_service_name)
+            self._service_class = getattr(service_module, val_service_name)
         except AttributeError as ex:
             self.logger.error("Service name could not be resolved into a class.")
             self.logger.debug(ex)
@@ -82,8 +81,24 @@ class ServiceBuilder(object):
         '''
 
         try:
-            service_instantiation =  self._service_class()
+            service_instantiation = self._service_class(self._sys_config)
         except StandardError as ex:
             self.logger.error("Service class could not be instantiated.")
             self.logger.debug(ex)
             raise
+
+        current_instantiation = service_instantiation
+        # check config for decorators, and add any found
+        if 'decorators' in self._service_config.component_config:
+            for service_decorator in self._service_config.component_config.get('decorators'):
+                try:
+                    service_decorator_class = service_instantiation.importclass(
+                        service_decorator,
+                        self._sys_config('paths', 'emews_pkg_service_decorators_path'))
+                except KeyError as ex:
+                    self.logger.error("(A key is missing from the config): %s", ex)
+                    raise
+
+                current_instantiation = service_decorator_class(current_instantiation)
+
+        return current_instantiation

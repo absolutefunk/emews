@@ -10,6 +10,8 @@ paths:
   # package paths for the emews system
   emews_pkg_path: emews.core
   emews_pkg_services_path: emews.core.services
+  emews_pkg_service_decorators_path: emews.core.services.decorators
+  emews_pkg_samplers_path: emews.core.common.samplers
 
 listener:
   receive_buffer: 128     # buffer for incoming characters from a emews client

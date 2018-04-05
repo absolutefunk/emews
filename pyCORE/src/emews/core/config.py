@@ -35,15 +35,6 @@ def prepend_path(filename):
     path = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
     return os.path.join(path, filename)
 
-def get_value_from_keys(dct, *keys):
-    '''
-    given a dictionary, returns a value based on the given key(s)
-    '''
-    for key in keys:
-        dct = dct[key]
-
-    return dct
-
 class Config(object):
     '''
     classdocs
@@ -75,6 +66,13 @@ class Config(object):
         '''
         return self._logger
 
+    @property
+    def component_config(self):
+        '''
+        returns the component config object
+        '''
+        return self._component_config
+
     def clone_with_new(self, component_config_path):
         '''
         Creates a new Config object with the given component configuration and shared system
@@ -84,18 +82,34 @@ class Config(object):
         cloned_config and self, so we comment out the warning locally.
         '''
         cloned_config = copy.copy(self)
-        cloned_config._component_config = parse(prepend_path(component_config_path)) # pylint: disable=W0212
+        cloned_config._component_config = emews.core.configcomponent.ConfigComponent(  # pylint: disable=W0212
+            parse(prepend_path(component_config_path)))
 
         return cloned_config
+
+    def extract_with_key(self, *keys):
+        '''
+        Creates a new ConfigComponent object using the key as the root for the new object.
+        The returned object shares its k/v's with the original dict from this object.
+        '''
+        if self._component_config is None:
+            return None
+
+        try:
+            extracted_dct = self._component_config.get(keys)
+        except KeyError:
+            return None
+
+        return emews.core.configcomponent.ConfigComponent(extracted_dct)
 
     def get(self, *keys):
         '''
         returns a value given the keys from the component config
         '''
-        return get_value_from_keys(self._component_config, keys)
+        return self._component_config.get(keys)
 
     def get_sys(self, *keys):
         '''
         returns a value given the keys from the system config
         '''
-        return get_value_from_keys(self._sys_config, keys)
+        return self._sys_config.get(keys)

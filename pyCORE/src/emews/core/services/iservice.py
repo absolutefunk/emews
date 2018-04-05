@@ -56,3 +56,13 @@ class IService(object):
         Gracefully exit service.
         '''
         pass
+
+    @abstractmethod
+    def importclass(self, class_name, module_path):
+        '''
+        Import a class, given the class name and module path.  Use emews naming
+        conventions, in that the class to import will have the same name as the module (class name
+        converted to lower case automatically for module).  This method calls the same method from
+        the recipient_service.
+        '''
+        pass

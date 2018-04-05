@@ -15,6 +15,7 @@ Created on Mar 5, 2018
 '''
 
 from abc import abstractmethod
+import importlib
 from threading import Event
 
 import emews.core.config
@@ -62,6 +63,7 @@ class BaseService(emews.core.services.iservice.IService):
         '''
         @Override Wraps the event.wait().  Convenience method.
         '''
+        self.logger.debug("Sleeping for %s seconds.", time)
         self._service_interrupt_event.wait(time)
 
     @abstractmethod
@@ -84,3 +86,28 @@ class BaseService(emews.core.services.iservice.IService):
         '''
         self._logger.info("Service stopping.")
         self._service_interrupt_event.set()
+
+    def importclass(self, class_name, module_path):
+        '''
+        @Override Import a class, given the class name and module path.  Use emews naming
+        conventions, in that the class to import will have the same name as the module (class name
+        converted to lower case automatically for module).  This method calls the same method from
+        the recipient_service.
+        '''
+        try:
+            i_module = importlib.import_module(class_name.lowercase(), module_path)
+        except ImportError as ex:
+            self.logger.error("Module (class) name '%s' could not be resolved to a module.",
+                              class_name.lowercase())
+            self.logger.debug(ex)
+            raise
+
+        try:
+            i_class = getattr(i_module, class_name)
+        except AttributeError as ex:
+            self.logger.error("Module (class) name '%s' could not be resolved into a class.",
+                              class_name)
+            self.logger.debug(ex)
+            raise
+
+        return i_class

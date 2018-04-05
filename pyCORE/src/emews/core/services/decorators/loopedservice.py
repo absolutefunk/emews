@@ -7,7 +7,6 @@ Created on Mar 5, 2018
 
 @author: Brian Ricks
 '''
-
 from emews.core.services.decorators.servicedecorator import ServiceDecorator
 
 class LoopedService(ServiceDecorator):
@@ -20,7 +19,13 @@ class LoopedService(ServiceDecorator):
         '''
         super(LoopedService, self).__init__(recipient_service)
 
-        self._sampler = None  # get this from the service conf
+        try:
+            self._sampler = self.importclass(
+                self.config.get('sampler', 'class'),
+                self.service_config.get('paths', 'emews_pkg_samplers_path'))()
+        except KeyError as ex:
+            self.logger.error("(A key is missing from the config): %s", ex)
+            raise
 
     def start(self):
         '''
@@ -47,7 +52,7 @@ class LoopedService(ServiceDecorator):
                 '''
                 self.logger.debug("Caught shutdown request...")
                 break
-
+            self.logger.debug("Starting service %s", super(LoopedService, self).__class__.__name__)
             super(LoopedService, self).start()
 
         self.logger.info("Exiting...")

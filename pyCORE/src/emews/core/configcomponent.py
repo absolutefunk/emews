@@ -26,3 +26,9 @@ class ConfigComponent(object):
             config = config[key]
 
         return config
+
+    def __contains__(self, key):
+        '''
+        membership test
+        '''
+        return key in self._config
