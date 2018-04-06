@@ -18,10 +18,10 @@ from abc import abstractmethod
 import importlib
 from threading import Event
 
-import emews.core.config
-import emews.core.services.iservice
+import emews.base.config
+import emews.services.iservice
 
-class BaseService(emews.core.services.iservice.IService):
+class BaseService(emews.services.iservice.IService):
     '''
     classdocs
     '''
@@ -34,9 +34,6 @@ class BaseService(emews.core.services.iservice.IService):
         self._config = service_config
         self._logger = self._config.logger
         self._service_interrupt_event = Event()  # used to interrupt Event.wait() on stop()
-
-        # TODO: In standalone mode, REMOVE_THREAD_CALLBACK is not needed.  Perhaps a key in
-        # sys_config to let service know if it was spawned through ServiceManager or standalone?
 
     @property
     def config(self):

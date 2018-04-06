@@ -8,10 +8,10 @@ general:
 
 paths:
   # package paths for the emews system
-  emews_pkg_path: emews.core
-  emews_pkg_services_path: emews.core.services
-  emews_pkg_service_decorators_path: emews.core.services.decorators
-  emews_pkg_samplers_path: emews.core.common.samplers
+  emews_pkg_path: emews
+  emews_pkg_services_path: emews.services
+  emews_pkg_service_decorators_path: emews.services.decorators
+  emews_pkg_samplers_path: emews.common.samplers
 
 listener:
   receive_buffer: 128     # buffer for incoming characters from a emews client
@@ -23,7 +23,7 @@ logging:
     version: 1
     formatters:
       default:
-        format: '[%(asctime)s] %(nodename)-12.12s [%(levelname)-8.8s | %(module)-16.16s | %(funcName)-16.16s]: %(message)s'
+        format: '[%(asctime)s] %(nodename)-12.12s | %(threadname)-12.12s [%(levelname)-8.8s | %(module)-16.16s | %(funcName)-16.16s]: %(message)s'
     handlers:
       console:
         class: logging.StreamHandler

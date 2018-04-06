@@ -10,7 +10,6 @@ class ConfigComponent(object):
     '''
     classdocs
     '''
-
     def __init__(self, config):
         '''
         Constructor

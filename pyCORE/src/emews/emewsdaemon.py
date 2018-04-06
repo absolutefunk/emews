@@ -15,15 +15,14 @@ Created on Mar 24, 2018
 '''
 import sys
 
-import emews.core.config
-from emews.core.servicemanager import ServiceManager
-from emews.core.version import __version__
+import emews.base.config
+from emews.base.servicemanager import ServiceManager
+from emews.version import __version__
 
 def main():
     '''
     main function
     '''
-
     # Get the config file path
     # argv[1] = node name
     # argv[2] = conf file path (including filename)
@@ -33,14 +32,14 @@ def main():
         return
 
     try:
-        config = emews.core.config.Config(sys.argv[1], sys.argv[2])
+        config = emews.config.Config(sys.argv[1], sys.argv[2])
     except StandardError as ex:
         print ex
         return
 
     logger = config.logger
 
-    logger.debug("conf path: %s", emews.core.config.prepend_path(sys.argv[2]))
+    logger.debug("conf path: %s", emews.config.prepend_path(sys.argv[2]))
     logger.info("emews %s", __version__)
 
     service_manager = ServiceManager(config)

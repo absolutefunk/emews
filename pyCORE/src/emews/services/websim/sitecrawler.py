@@ -8,7 +8,7 @@ import random
 import time
 import mechanize
 
-from emews.core.common.truncnorm_sampler import TruncnormSampler
+from emews.common.truncnorm_sampler import TruncnormSampler
 
 class SiteCrawler(object):
     '''

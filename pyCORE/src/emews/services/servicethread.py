@@ -5,7 +5,7 @@ Created on Mar 5, 2018
 
 @author: Brian Ricks
 '''
-from emews.core.services.basethread import BaseThread
+from emews.base.basethread import BaseThread
 
 class ServiceThread(BaseThread):
     '''

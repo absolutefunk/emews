@@ -13,14 +13,24 @@ import threading
 
 class ThreadLoggerAdapter(logging.LoggerAdapter):
     '''
-    Prepends the thread name to log messages originating from the thread, so the log messages from
-    this thread will be easy to identify.
+    Updates the thread name from the default one (<main>) to the name of this thread.
     '''
+    def __init__(self, logger_instance, thr_name, extra=None):
+        '''
+        Constructor
+        '''
+        super(ThreadLoggerAdapter, self).__init__(logger_instance, extra)
+        self._logkw_thread_name = thr_name
+
     def process(self, msg, kwargs):
         '''
         @Override of logging.LoggerAdapter process() method.
+        Replaces the value of 'threadname' with the name of thread passed (in 'extra').
         '''
-        return '(%s) %s' % (self.extra['thr_name'], msg), kwargs
+        if 'threadname' in kwargs:
+            kwargs['threadname'] = self._logkw_thread_name
+
+        return msg, kwargs
 
 class BaseThread(threading.Thread):
     '''
@@ -32,13 +42,13 @@ class BaseThread(threading.Thread):
         '''
         Constructor
         '''
-        self._thr_name = thr_name+"-%d" % BaseThread.__current_thread_id
+        self._thread_name = thr_name+"-%d" % BaseThread.__current_thread_id
 
-        super(BaseThread, self).__init__(self, name=self._thr_name)
+        super(BaseThread, self).__init__(name=self._thread_name)
 
         BaseThread.__current_thread_id += 1
         self._sys_config = sys_config
-        self._logger = ThreadLoggerAdapter(self._sys_config.logger, {'thr_name': self._thr_name})
+        self._logger = ThreadLoggerAdapter(self._sys_config.logger, self._thread_name)
 
     @property
     def config(self):
@@ -71,11 +81,11 @@ class BaseThread(threading.Thread):
         Executed by the run() method, and for child classes provides the entry point for thread
         execution.  Must be overridden.
         '''
-        raise NotImplementedError("Must implement in subclass.")
+        pass
 
     @abstractmethod
     def stop(self):
         '''
         Providing appropriate signalling to gracefully shutdown a thread.  Must be overridden.
         '''
-        raise NotImplementedError("Must implement in subclass.")
+        pass

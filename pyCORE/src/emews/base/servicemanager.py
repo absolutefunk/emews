@@ -9,14 +9,13 @@ import signal
 import select
 import socket
 
-from emews.core.listenerthread import ListenerThread
-from emews.core.threadstate import ThreadState
+from emews.base.listenerthread import ListenerThread
+from emews.base.threadstate import ThreadState
 
 class ServiceManager(object):
     '''
     classdocs
     '''
-
     def __init__(self, config):
         '''
         Constructor

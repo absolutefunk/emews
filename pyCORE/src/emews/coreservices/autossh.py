@@ -4,7 +4,7 @@ Created on Mar 5, 2018
 @author: Brian Ricks
 '''
 
-# Note, core in module path belongs to CORE, not emews.core
+# Note, core in module path belongs to CORE, not emews
 from core.services.utility import UtilService
 
 class AutoSSHService(UtilService):

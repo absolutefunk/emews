@@ -10,7 +10,7 @@ Created on Mar 27, 2018
 import select
 import socket
 
-from emews.core.services.basethread import BaseThread
+from emews.base.basethread import BaseThread
 
 class ListenerThread(BaseThread):
     '''
@@ -36,6 +36,9 @@ class ListenerThread(BaseThread):
 
         self._buf_size = self.config.get_sys('listener', 'receive_buffer')
         self._command_delim = self.config.get_sys('listener', 'command_delimiter')
+
+        # TODO: In standalone mode, REMOVE_THREAD_CALLBACK is not needed.  Perhaps a key in
+        # sys_config to let service know if it was spawned through ServiceManager or standalone?
         self._callback_exit = cb_exit
 
         self._sock = sock  # socket used to receive commands
@@ -189,7 +192,7 @@ class ListenerThread(BaseThread):
         '''
         processes the command that the line represents
         '''
-        #TODO: generalize to services with cmdline args
+        #TODO: generalize (commands) to services with cmdline args
         self.logger.debug("Command: %s, Arg: %s", cmd_tuple[0], cmd_tuple[1])
 
         if not cmd_tuple[0] in self._COMMAND_MAPPING:

@@ -7,7 +7,7 @@ Created on Mar 5, 2018
 
 @author: Brian Ricks
 '''
-from emews.core.services.decorators.servicedecorator import ServiceDecorator
+from emews.services.decorators.servicedecorator import ServiceDecorator
 
 class LoopedService(ServiceDecorator):
     '''

@@ -13,7 +13,7 @@ import os
 
 from ruamel.yaml import YAML
 
-import emews.core.configcomponent
+import emews.base.configcomponent
 
 def parse(filename):
     '''
@@ -44,11 +44,14 @@ class Config(object):
         Constructor
         '''
         self._nodename = nodename
-        self._sys_config = emews.core.configcomponent.ConfigComponent(
+        self._sys_config = emews.configcomponent.ConfigComponent(
             parse(prepend_path(sys_config_path)))
 
+        # Set up base logger. Default threadname is <main>; this will be changed in BaseThread
         self._logger = logging.LoggerAdapter(logging.getLogger(
-            self._sys_config.get('logging', 'base_logger')), {'nodename': self._nodename})
+            self._sys_config.get('logging', 'base_logger')),
+                                             {'nodename': self._nodename,
+                                              'threadname': '<main>'})
 
         self._component_config = None
 
@@ -82,7 +85,7 @@ class Config(object):
         cloned_config and self, so we comment out the warning locally.
         '''
         cloned_config = copy.copy(self)
-        cloned_config._component_config = emews.core.configcomponent.ConfigComponent(  # pylint: disable=W0212
+        cloned_config._component_config = emews.configcomponent.ConfigComponent(  # pylint: disable=W0212
             parse(prepend_path(component_config_path)))
 
         return cloned_config
@@ -100,7 +103,7 @@ class Config(object):
         except KeyError:
             return None
 
-        return emews.core.configcomponent.ConfigComponent(extracted_dct)
+        return emews.configcomponent.ConfigComponent(extracted_dct)
 
     def get(self, *keys):
         '''

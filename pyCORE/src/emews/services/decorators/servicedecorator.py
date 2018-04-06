@@ -1,5 +1,5 @@
 '''
-Base class for pyCORE service decorators.
+Base class for emews service decorators.
 Subclasses when overriding the required methods can use super(cls, self) to access the methods
 being overridden.
 
@@ -7,9 +7,9 @@ Created on Mar 30, 2018
 
 @author: Brian Ricks
 '''
-import emews.core.services.iservice
+import emews.services.iservice
 
-class ServiceDecorator(emews.core.services.iservice.IService):
+class ServiceDecorator(emews.services.iservice.IService):
     '''
     classdocs
     '''

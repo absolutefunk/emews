@@ -9,8 +9,8 @@ import random
 from threading import Event
 
 from pexpect import pxssh
-import emews.core.common.sequential_iterator as default_sampler
-from emews.core.services.baseservice import BaseService
+import emews.common.sequential_iterator as default_sampler
+from emews.services.baseservice import BaseService
 
 class AutoSSH(BaseService):
     '''

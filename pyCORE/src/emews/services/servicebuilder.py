@@ -8,7 +8,7 @@ Created on Apr 2, 2018
 import ConfigParser
 import importlib
 
-import emews.core.config
+import emews.base.config
 
 class ServiceBuilder(object):
     '''
@@ -69,7 +69,7 @@ class ServiceBuilder(object):
         add this configuration data to the system configuration until service creation.
         '''
         try:
-            self._config = emews.core.config.parse(emews.core.config.prepend_path(val_config_path))
+            self._config = emews.config.parse(emews.config.prepend_path(val_config_path))
         except ConfigParser.Error as ex:
             self.logger.error("Service configuration could not be parsed.")
             self.logger.debug(ex)
@@ -79,7 +79,6 @@ class ServiceBuilder(object):
         '''
         builds the service
         '''
-
         try:
             service_instantiation = self._service_class(self._sys_config)
         except StandardError as ex:
