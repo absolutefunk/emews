@@ -11,6 +11,7 @@ import select
 import socket
 
 from emews.base.basethread import BaseThread
+import emews.base.clienthandler
 
 class ListenerThread(BaseThread):
     '''
@@ -21,12 +22,6 @@ class ListenerThread(BaseThread):
         Constructor
         '''
         super(ListenerThread, self).__init__(self, sys_config, thr_name)
-
-        # currently supported commands
-        self._COMMAND_MAPPING = {
-            'S': self.__do_makeservice,  # add a service
-            'E': self.__do_exit,         # exit
-        }
 
         # currently supported acks
         self._ACK_MSG = {
@@ -46,8 +41,11 @@ class ListenerThread(BaseThread):
 
         self.logger.debug("Buffer size: %d", self._buf_size)
 
-        self._exit = False  # true once all commands are processed or stop() invoked
         self._interrupted = False  # true if stop() invoked (used to make sure shutdown called once)
+
+        # ClientHandler (handles command processing, service spawning, etc...)
+        self._client_handler = emews.base.clienthandler.ClientHandler(sys_config)
+        self._command_count = 0  # successful commands processed
 
     def stop(self):
         '''
@@ -55,7 +53,6 @@ class ListenerThread(BaseThread):
         We call socket shutdown as that will close the session and unblock the select.
         '''
         self.logger.info("Stop request received.  Shutting down.")
-        self._exit = True
         self._interrupted = True
         self._sock.shutdown(socket.SHUT_RDWR)
 
@@ -63,13 +60,13 @@ class ListenerThread(BaseThread):
         '''
         @Override from BaseThread
         '''
-        command_count = self.__listen()
+        self.__listen()
 
         if not self._interrupted:
             self._sock.shutdown(socket.SHUT_RDWR)
 
         self._sock.close()
-        self.logger.info("%d commands processed.", command_count)
+        self.logger.info("%d commands processed.", self._command_count)
 
         if not self._interrupted:
             # Remove self from active thread list in ServiceManager.
@@ -83,20 +80,15 @@ class ListenerThread(BaseThread):
         Processes commands from client.
         Currently only one command is supported, that to start a service.
         '''
-        command_count = 0  # successful commands processed
         # loops per command
-        while not self._exit:
+        while not self._interrupted:
             line = self.get_line()
 
-            if not line:
-                # something happened, time to exit
+            if not line or not self.process_line(line):
+                # something happened or we were told to exit, time to exit
                 break
 
-            if self.process_line(line):
-                # command successfully processed
-                command_count += 1
-
-        return command_count
+        return
 
     def get_line(self):
         '''
@@ -110,24 +102,27 @@ class ListenerThread(BaseThread):
             try:
                 select.select([self._sock], [], [])
             except select.error as ex:
-                self.logger.debug(ex)
+                if not self._interrupted:
+                    self.logger.warning("Select error on socket during active client session "\
+                    "(trying to receive data).")
+                else:
+                    self.logger.debug(ex)
                 return ""
 
             try:
                 data = self._sock.recv(self._buf_size)
             except socket.error as ex:
-                self.logger.error("Exception when receiving incoming data.")
-                self.logger.debug(ex)
+                if not self._interrupted:
+                    self.logger.warning("Socket error when receiving incoming data.")
+                else:
+                    self.logger.debug(ex)
                 return ""
 
             if not data:
-                if not self._exit:
-                    # If self._exit is True here, it means stop() was invoked, and we closed
-                    # the session.
+                if not self._interrupted:
                     self.logger.warning("Session abruptly closed.")
                 else:
                     self.logger.debug("Session closed.")
-
                 return ""
 
             chunk_count += 1
@@ -152,21 +147,29 @@ class ListenerThread(BaseThread):
         try:
             select.select([], [self._sock], [])
         except select.error as ex:
-            self.logger.debug(ex)
+            if not self._interrupted:
+                self.logger.warning("Select error on socket during active client session "\
+                "(ACK to send: %s).", ack_msg)
+            else:
+                self.logger.debug(ex)
             return False
 
         try:
             self._sock.sendall(ack_msg)
         except socket.error as ex:
-            self.logger.warning("Connection failure during active client session "\
-            "(ACK to send: %s).", ack_msg)
-            self.logger.debug(ex)
+            if not self._interrupted:
+                self.logger.warning("Socket error during active client session "\
+                "(ACK to send: %s).", ack_msg)
+            else:
+                self.logger.debug(ex)
             return False
+
         return True
 
     def process_line(self, line):
         '''
-        processes a line received from the socket
+        Processes a line received from the socket.  Returns False if it's time to shut down the
+        listener, True to continue listening for commands.
         '''
         cmd_tuple = line.split(self._command_delim)
 
@@ -174,43 +177,17 @@ class ListenerThread(BaseThread):
             # if no argument given, append one (some commands don't need arguments)
             cmd_tuple.append("")
 
-        if not self.process_command(cmd_tuple):
-            # bad command or arg sent
-            if not self.__send_ack(self._ACK_MSG['fail']):
-                self._exit = True
-
-            return False
+        # delegate to ClientHandler
+        try:
+            result_continue = self._client_handler.process(cmd_tuple)
+        except emews.base.clienthandler.ClientCommandException as ex:
+            # bad command or arg, or some other issue occurred with command processing
+            self.logger.debug(ex)
+            # If the ACK fails to send, then it's time to shut down the listener.
+            return self.__send_ack(self._ACK_MSG['fail'])
 
         # command successful
-        if not self.__send_ack(self._ACK_MSG['success']):
-            # the command still counts, but the ACK may not have been received by the client
-            self._exit = True
-
-        return True
-
-    def process_command(self, cmd_tuple):
-        '''
-        processes the command that the line represents
-        '''
-        #TODO: generalize (commands) to services with cmdline args
-        self.logger.debug("Command: %s, Arg: %s", cmd_tuple[0], cmd_tuple[1])
-
-        if not cmd_tuple[0] in self._COMMAND_MAPPING:
-            self.logger.warning("Command %s not recognized.", cmd_tuple[0])
-            return False
-
-        return self._COMMAND_MAPPING[cmd_tuple[0]](cmd_tuple[1])
-
-    def __do_makeservice(self, service_str):
-        '''
-        Attempts to create a Service from the service_str.
-        '''
-        return True
-
-    def __do_exit(self, arg_str):
-        '''
-        Exit the listener.
-        '''
-        self.logger.debug("Exit command processed.")
-        self._exit = True
-        return True
+        self._command_count += 1
+        # If the ACK could not be sent or the ClientHandler told us to shut down, then time to shut
+        # down the listener.
+        return self.__send_ack(self._ACK_MSG['success']) and result_continue
