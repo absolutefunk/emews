@@ -6,3 +6,9 @@ Created on Apr 8, 2018
 
 @author: Brian Ricks
 '''
+import emews.base.thread_decorator
+
+class ManagedThread(emews.base.thread_decorator.ThreadDecorator):
+    '''
+    classdocs
+    '''
