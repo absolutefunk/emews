@@ -23,7 +23,7 @@ class ServiceDecorator(emews.services.iservice.IService):
             'decorators', self.__class.__name__)
 
         self.logger.info("Added decorator '%s' to %s.", self.__class__.__name__,
-                         recipient_service.name)
+                         recipient_service.__class__.__name__)
 
     @property
     def config(self):

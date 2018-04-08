@@ -12,7 +12,7 @@ class ConfigComponent(object):
     '''
     def __init__(self, config):
         '''
-        Constructor
+        config parameter passed is a dictionary containing config info
         '''
         self._config = config
 

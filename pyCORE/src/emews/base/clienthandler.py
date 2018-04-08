@@ -6,6 +6,7 @@ Created on Apr 6, 2018
 
 @author: Brian Ricks
 '''
+from emews.services.servicebuilder import ServiceBuilder
 
 class ClientCommandException(Exception):
     '''
@@ -27,7 +28,8 @@ class ClientHandler(object):
             'E': self.__do_exit,         # exit
         }
 
-        self._logger = sys_config.logger
+        self._sys_config = sys_config
+        self._logger = self.config.logger
 
     @property
     def logger(self):
@@ -35,6 +37,13 @@ class ClientHandler(object):
         returns the logger object
         '''
         return self._logger
+
+    @property
+    def config(self):
+        '''
+        returns the system configuration object
+        '''
+        return self._sys_config
 
     def process(self, cmd_tuple):
         '''
@@ -50,10 +59,20 @@ class ClientHandler(object):
 
         return self._COMMAND_MAPPING[cmd_tuple[0]](cmd_tuple[1])
 
-    def __do_makeservice(self, service_str):
+    def __do_makeservice(self, service_str, service_config_path=None):
         '''
-        Attempts to create a Service from the service_str.
+        Attempts to create a Service from the service_str.  If a config_path for the service is
+        given, then use that for service configuration.
         '''
+        service_builder = ServiceBuilder(self.config)
+        try:
+            service_builder.service(service_str)
+            service_builder.config_path(service_config_path)
+            service_instance = service_builder.result
+        except StandardError:
+            # We still return true so other commands can be processed
+            self.logger.error("Could not build service %s from client input.", service_str)
+
         return True
 
     def __do_exit(self, arg_str):

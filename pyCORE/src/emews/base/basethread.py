@@ -11,6 +11,8 @@ from abc import abstractmethod
 import logging
 import threading
 
+import emews.base.ithread
+
 class ThreadLoggerAdapter(logging.LoggerAdapter):
     '''
     Updates the thread name from the default one (<main>) to the name of this thread.
@@ -32,7 +34,7 @@ class ThreadLoggerAdapter(logging.LoggerAdapter):
 
         return msg, kwargs
 
-class BaseThread(threading.Thread):
+class BaseThread(threading.Thread, emews.base.ithread.IThread):
     '''
     classdocs
     '''
@@ -48,19 +50,19 @@ class BaseThread(threading.Thread):
 
         BaseThread.__current_thread_id += 1
         self._sys_config = sys_config
-        self._logger = ThreadLoggerAdapter(self._sys_config.logger, self._thread_name)
+        self._logger = ThreadLoggerAdapter(self.config.logger, self._thread_name)
 
     @property
     def config(self):
         '''
-        returns the system config object
+        @Override returns the system config object
         '''
         return self._sys_config
 
     @property
     def logger(self):
         '''
-        returns the logger
+        @Override returns the logger
         '''
         return self._logger
 

@@ -9,6 +9,7 @@ import ConfigParser
 import importlib
 
 import emews.base.config
+from emews.base.configcomponent import ConfigComponent
 
 class ServiceBuilder(object):
     '''
@@ -21,7 +22,7 @@ class ServiceBuilder(object):
         self._sys_config = sys_config
         self._logger = self._sys_config.logger
 
-        self._config = None
+        self._config_component = None
         self._service_config = None
         self._service_class = None
 
@@ -39,6 +40,13 @@ class ServiceBuilder(object):
         '''
         return self._logger
 
+    @property
+    def config(self):
+        '''
+        returns the system configuration object
+        '''
+        return self._sys_config
+
     @service.setter
     def service(self, val_service_name):
         '''
@@ -48,7 +56,7 @@ class ServiceBuilder(object):
         # Attempt to resolve the module.  If using emews naming, then service should also resolve.
         try:
             service_module = importlib.import_module(
-                val_service_name.lowercase(), self._sys_config.get_sys(
+                val_service_name.lowercase(), self.config.get_sys(
                     'paths', 'emews_pkg_services_path'))
         except ImportError as ex:
             self.logger.error("Service name could not be resolved into a module.")
@@ -63,37 +71,50 @@ class ServiceBuilder(object):
             raise
 
     @config.setter
-    def config(self, val_config_path):
+    def config_path(self, val_config_path):
         '''
-        Sets the configuration.  We do parsing of the configuration here for caching, but do not
-        add this configuration data to the system configuration until service creation.
+        Sets the configuration component for the service.  Parsing of the config path is done
+        now for caching.
         '''
+        if val_config_path is None:
+            return
+
         try:
-            self._config = emews.config.parse(emews.config.prepend_path(val_config_path))
+            config_dict = emews.base.config.parse(emews.config.prepend_path(val_config_path))
         except ConfigParser.Error as ex:
             self.logger.error("Service configuration could not be parsed.")
             self.logger.debug(ex)
             raise
 
+        self._config_component = ConfigComponent(config_dict)
+
     def __build_service(self):
         '''
         builds the service
         '''
+        if self._config_component is not None:
+            service_config = self.config.clone_with_config(self._config_component)
+        else:
+            service_config = self.config
+
         try:
-            service_instantiation = self._service_class(self._sys_config)
+            service_instantiation = self._service_class(service_config)
         except StandardError as ex:
             self.logger.error("Service class could not be instantiated.")
             self.logger.debug(ex)
             raise
 
         current_instantiation = service_instantiation
-        # check config for decorators, and add any found
-        if 'decorators' in self._service_config.component_config:
-            for service_decorator in self._service_config.component_config.get('decorators'):
+        # Check config for decorators, and add any found.  Note, the structure in the config in
+        # regards to decorators needs to follow a specific ordering:
+        # ['decorators'] --> [<DecoratorClass>] --> (config dict/list/etc for DecoratorClass)
+        # If no config_path for the service was given, then this section is skipped.
+        if 'decorators' in service_config.component_config:
+            for service_decorator in service_config.get('decorators'):
                 try:
                     service_decorator_class = service_instantiation.importclass(
-                        service_decorator,
-                        self._sys_config('paths', 'emews_pkg_service_decorators_path'))
+                        service_decorator, self.config.get_sys(
+                            'paths', 'emews_pkg_service_decorators_path'))
                 except KeyError as ex:
                     self.logger.error("(A key is missing from the config): %s", ex)
                     raise

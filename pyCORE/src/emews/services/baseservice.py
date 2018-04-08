@@ -32,7 +32,7 @@ class BaseService(emews.services.iservice.IService):
         specific configuration information.
         '''
         self._config = service_config
-        self._logger = self._config.logger
+        self._logger = self.config.logger
         self._service_interrupt_event = Event()  # used to interrupt Event.wait() on stop()
 
     @property

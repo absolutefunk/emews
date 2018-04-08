@@ -53,7 +53,7 @@ class Config(object):
                                              {'nodename': self._nodename,
                                               'threadname': '<main>'})
 
-        self._component_config = None
+        self._component_config = {}
 
     @property
     def nodename(self):
@@ -78,16 +78,28 @@ class Config(object):
 
     def clone_with_new(self, component_config_path):
         '''
-        Creates a new Config object with the given component configuration and shared system
+        Creates a new Config object with the given component configuration path and shared system
         configuration.
         Note, pylint flags the line where we assign directly to the protected member
         self._component_config.  This is okay in our case as the class is the same for both
         cloned_config and self, so we comment out the warning locally.
         '''
-        cloned_config = copy.copy(self)
+        cloned_config = copy.copy(self)  # shallow copy
         cloned_config._component_config = emews.configcomponent.ConfigComponent(  # pylint: disable=W0212
             parse(prepend_path(component_config_path)))
 
+        return cloned_config
+
+    def clone_with_config(self, component_config):
+        '''
+        Creates a new Config object with the given ConfigComponent object and shared system
+        configuration.
+        Note, pylint flags the line where we assign directly to the protected member
+        self._component_config.  This is okay in our case as the class is the same for both
+        cloned_config and self, so we comment out the warning locally.
+        '''
+        cloned_config = copy.copy(self)  # shallow copy
+        cloned_config._component_config = component_config  # pylint: disable=W0212
         return cloned_config
 
     def extract_with_key(self, *keys):

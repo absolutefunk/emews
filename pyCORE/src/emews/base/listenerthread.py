@@ -44,7 +44,7 @@ class ListenerThread(BaseThread):
         self._interrupted = False  # true if stop() invoked (used to make sure shutdown called once)
 
         # ClientHandler (handles command processing, service spawning, etc...)
-        self._client_handler = emews.base.clienthandler.ClientHandler(sys_config)
+        self._client_handler = emews.base.clienthandler.ClientHandler(self.config)
         self._command_count = 0  # successful commands processed
 
     def stop(self):
