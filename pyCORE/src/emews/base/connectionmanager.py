@@ -1,5 +1,5 @@
 '''
-Spawns new service threads and handles their management.
+Listens for new client connections and spawns ListenerThreads when appropriate.
 
 Created on Mar 24, 2018
 
@@ -10,9 +10,8 @@ import select
 import socket
 
 from emews.base.listenerthread import ListenerThread
-from emews.base.threadstate import ThreadState
 
-class ServiceManager(object):
+class ConnectionManager(object):
     '''
     classdocs
     '''
@@ -27,8 +26,6 @@ class ServiceManager(object):
 
         self._config = config
         self._logger = self._config.logger
-
-        self._thr_state = ThreadState(config)
 
         try:
             self._host = self._config.get('general', 'host')
@@ -68,7 +65,7 @@ class ServiceManager(object):
 
     def listen(self):
         '''
-        Listens for new incoming services to spawn
+        Listens for new incoming client connections.
         '''
         self._logger.debug("Starting listener, given host: %s, port: %d", self._host, self._port)
 
@@ -128,6 +125,7 @@ class ServiceManager(object):
         '''
         Shuts down all the running threads.
         '''
+        # TODO: move this to ThreadState
         self._logger.info("%d running thread(s) to shutdown.", self._thr_state.count)
 
         for active_thread in self._thr_state.active_threads:

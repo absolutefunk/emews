@@ -1,6 +1,6 @@
 '''
 Handles client command processing and service spawning.  Instantiations of this class invoked by
-a ListenerThread, which itself handles the communication between emews and a client.
+a ConnectionThread, which itself handles the communication between emews and a client.
 
 Created on Apr 6, 2018
 
@@ -8,13 +8,13 @@ Created on Apr 6, 2018
 '''
 from emews.services.servicebuilder import ServiceBuilder
 
-class ClientCommandException(Exception):
+class CommandException(Exception):
     '''
     Raised if a problem arises with a given command.
     '''
     pass
 
-class ClientHandler(object):
+class CommandHandler(object):
     '''
     classdocs
     '''
@@ -55,7 +55,7 @@ class ClientHandler(object):
 
         if not cmd_tuple[0] in self._COMMAND_MAPPING:
             self.logger.warning("Command %s not recognized.", cmd_tuple[0])
-            raise ClientCommandException("Command %s not recognized." % cmd_tuple[0])
+            raise CommandException("Command %s not recognized." % cmd_tuple[0])
 
         return self._COMMAND_MAPPING[cmd_tuple[0]](cmd_tuple[1])
 
@@ -77,7 +77,7 @@ class ClientHandler(object):
 
     def __do_exit(self, arg_str):
         '''
-        Exit the listener.
+        Exits the underlying ConnectionThread (terminate connection with client).
         '''
         self.logger.debug("Exit command processed.")
         return False

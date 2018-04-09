@@ -1,5 +1,5 @@
 '''
-Provides functionality in a separate thread for socket communication between ServiceManager's
+Provides functionality in a separate thread for socket communication between ConnectionManager's
 listener and a client.  If client sends a service to run, then this thread will terminate with the
 appropriate service to spawn.
 
@@ -11,9 +11,9 @@ import select
 import socket
 
 from emews.base.basethread import BaseThread
-import emews.base.clienthandler
+import emews.base.commandhandler
 
-class ListenerThread(BaseThread):
+class ConnectionThread(BaseThread):
     '''
     classdocs
     '''
@@ -21,7 +21,7 @@ class ListenerThread(BaseThread):
         '''
         Constructor
         '''
-        super(ListenerThread, self).__init__(self, sys_config, thr_name)
+        super(ConnectionThread, self).__init__(self, sys_config, thr_name)
 
         # currently supported acks
         self._ACK_MSG = {
@@ -33,7 +33,7 @@ class ListenerThread(BaseThread):
         self._command_delim = self.config.get_sys('listener', 'command_delimiter')
 
         # TODO: In standalone mode, REMOVE_THREAD_CALLBACK is not needed.  Perhaps a key in
-        # sys_config to let service know if it was spawned through ServiceManager or standalone?
+        # sys_config to let service know if it was spawned through ConnectionManager or standalone?
         self._callback_exit = cb_exit
 
         self._sock = sock  # socket used to receive commands
@@ -43,8 +43,8 @@ class ListenerThread(BaseThread):
 
         self._interrupted = False  # true if stop() invoked (used to make sure shutdown called once)
 
-        # ClientHandler (handles command processing, service spawning, etc...)
-        self._client_handler = emews.base.clienthandler.ClientHandler(self.config)
+        # CommandHandler (handles command processing, service spawning, etc...)
+        self._command_handler = emews.base.commmandhandler.CommandHandler(self.config)
         self._command_count = 0  # successful commands processed
 
     def stop(self):
@@ -69,7 +69,7 @@ class ListenerThread(BaseThread):
         self.logger.info("%d commands processed.", self._command_count)
 
         if not self._interrupted:
-            # Remove self from active thread list in ServiceManager.
+            # Remove self from active thread list in ConnectionManager.
             # Note, if shutting down due to interrupt, then most likely triggered by the
             # ServiceManager, so we don't want to delete the reference from its list as the
             # ServiceManager is still using the list.
@@ -177,10 +177,10 @@ class ListenerThread(BaseThread):
             # if no argument given, append one (some commands don't need arguments)
             cmd_tuple.append("")
 
-        # delegate to ClientHandler
+        # delegate to CommandHandler
         try:
             result_continue = self._client_handler.process(cmd_tuple)
-        except emews.base.clienthandler.ClientCommandException as ex:
+        except emews.base.commandhandler.CommandException as ex:
             # bad command or arg, or some other issue occurred with command processing
             self.logger.debug(ex)
             # If the ACK fails to send, then it's time to shut down the listener.

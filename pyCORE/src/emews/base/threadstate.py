@@ -1,5 +1,5 @@
 '''
-Handles thread state information.
+Handles thread management.  Acts as a dispatcher for threads (ManagedThread)
 
 Created on Mar 30, 2018
 
@@ -69,7 +69,9 @@ class ThreadState(object):
 
     def add_thread(self, base_thread):
         '''
-        adds a BaseThread to the active list
+        Adds a ManagedThread to the active list. Note, if a thread terminates ungracefully,
+        it will not be removed from this list, and the ServiceManager won't know about it until it
+        tries to do something with the thread.
         '''
         self._active_threads.append(base_thread)
         self._logger.debug("Thread %s added to active thread list.", base_thread.name)
@@ -78,7 +80,7 @@ class ThreadState(object):
 
     def remove_thread(self, base_thread):
         '''
-        removes a BaseThread to the active list
+        removes a ManagedThread to the active list
         '''
         try:
             self._logger.debug("(%s) Acquiring lock...", base_thread.name)
