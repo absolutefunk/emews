@@ -1,33 +1,35 @@
 '''
-Decorator for BaseThread which provides support for management using ServiceManager.
-Currently extended by ServiceThread and ListenerThread.
+Decorator for BaseThread which provides support for management using a dispatcher.  Note that this
+class is also a dispatcher, which is needed to dispatch events when it shuts down on its own.
 
 Created on Apr 8, 2018
 
 @author: Brian Ricks
 '''
-import emews.base.ilistener
+import emews.base.basedispatcher
 import emews.base.thread_decorator
 
-class ManagedThread(emews.base.thread_decorator.ThreadDecorator, emews.base.ilistener.IListener):
+class ManagedThread(emews.base.thread_decorator.ThreadDecorator,
+                    emews.base.basedispatcher.BaseDispatcher):
     '''
-    classdocs
+    The following events are used:
+    thread_stopping: called when thread is stopping
     '''
-    def __init__(self, recipient_thread, cb_registration):
+
+    def __init__(self, recipient_thread, dispatcher_subscribe):
         '''
-        cb_registration is the callback for registering this object to the ServiceManager.  While
-        the ServiceManager could simply register this object itself when instantiating it, this
-        method enforces that at least a registration callback will be invoked during construction.
-        Using a callback also loosens coupling as compared to passing the ServiceManager object
-        itself and calling some register method (which would most likely be this callback, except
-        now we don't need to know the name of it or anything, and no other methods of the
-        ServiceManager are known to us - ie, no additional dependencies can form).
+        dispatcher_subscribe is the dispatcher subscribe method in which we use to subscribe to its
+        events.
         '''
         super(ManagedThread, self).__init__(recipient_thread)
 
-    def update_listener(self, dispatched_event):
+        # subscribe to the dispatcher's 'stop_thread' event
+        dispatcher_subscribe('stop_thread', self.stop)
+
+    def stop(self):
         '''
-        @Override from IListener
-        Called from a dispatcher when an event is dispatched.  In this case, the dispatcher should
-        be the service manager or some delegate on its behalf telling us what we should do.
+        @Override Notify any callbacks subscribed that we are shutting down.
         '''
+
+        self.dispatch('thread_stopping', self)
+        super(ManagedThread, self).stop()

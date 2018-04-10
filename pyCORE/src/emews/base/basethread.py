@@ -7,11 +7,10 @@ Created on Mar 26, 2018
 @author: Brian Ricks
 '''
 from abc import abstractmethod
-
 import logging
 import threading
 
-import emews.base.ithread
+import emews.base.baseobject
 
 class ThreadLoggerAdapter(logging.LoggerAdapter):
     '''
@@ -34,60 +33,35 @@ class ThreadLoggerAdapter(logging.LoggerAdapter):
 
         return msg, kwargs
 
-class BaseThread(threading.Thread, emews.base.ithread.IThread):
+class BaseThread(emews.base.baseobject.BaseObject):
     '''
     classdocs
     '''
-    __current_thread_id = 0  # each thread has a unique id assigned
 
-    def __init__(self, sys_config, thr_name):
+    def __init__(self, config):
         '''
         Constructor
         '''
-        self._thread_name = thr_name+"-%d" % BaseThread.__current_thread_id
+        super(BaseThread, self).__init__(config, self._thread_name)
 
-        super(BaseThread, self).__init__(name=self._thread_name)
-
-        BaseThread.__current_thread_id += 1
-        self._sys_config = sys_config
+        # Override logger from BaseObject
         self._logger = ThreadLoggerAdapter(self.config.logger, self._thread_name)
 
-    @property
-    def config(self):
-        '''
-        @Override returns the system config object
-        '''
-        return self._sys_config
-
-    @property
-    def logger(self):
-        '''
-        @Override returns the logger
-        '''
-        return self._logger
-
-    def run(self):
+    def run_thread(self):
         '''
         @Override of run() from threading.Thread.  Used for logging, and calls
         an additional method which is supposed to be overridden
         '''
-        self._logger.info("Thread started.")
+        self.logger.info("Thread started.")
 
-        self.run_thread()
+        self.run()
 
-        self._logger.info("Thread terminating.")
+        self.logger.info("Thread terminating.")
 
     @abstractmethod
-    def run_thread(self):
+    def run(self):
         '''
         Executed by the run() method, and for child classes provides the entry point for thread
         execution.  Must be overridden.
-        '''
-        pass
-
-    @abstractmethod
-    def stop(self):
-        '''
-        Providing appropriate signalling to gracefully shutdown a thread.  Must be overridden.
         '''
         pass

@@ -1,5 +1,5 @@
 '''
-Driver for running emews services.
+Driver for running emews services and other components.
 
 Because each node in an emulation environment is assumed to be contained (ie,
 each node has its own process space and network stack), the daemon would need
@@ -16,7 +16,7 @@ Created on Mar 24, 2018
 import sys
 
 import emews.base.config
-from emews.base.servicemanager import ServiceManager
+from emews.base.connectionmanager import ConnectionManager
 from emews.version import __version__
 
 def main():
@@ -44,8 +44,8 @@ def main():
 
     # TODO: Add a base class for all classes which use the logger/config, and pass the sys_config
     # to its constructor, with properties for logger and config
-    service_manager = ServiceManager(config)
-    service_manager.start()
+    connection_manager = ConnectionManager(config)
+    connection_manager.start()
 
     logger.info("emews shutdown")
 

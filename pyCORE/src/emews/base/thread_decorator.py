@@ -5,9 +5,9 @@ Created on Apr 8, 2018
 
 @author: Brian Ricks
 '''
-import emews.base.ithread
+import emews.base.basethread
 
-class ThreadDecorator(emews.base.ithread.IThread):
+class ThreadDecorator(emews.base.basethread.BaseThread):
     '''
     classdocs
     '''

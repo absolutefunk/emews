@@ -17,11 +17,11 @@ class ConnectionThread(BaseThread):
     '''
     classdocs
     '''
-    def __init__(self, sys_config, thr_name, sock, cb_exit):
+    def __init__(self, sys_config, sock):
         '''
         Constructor
         '''
-        super(ConnectionThread, self).__init__(self, sys_config, thr_name)
+        super(ConnectionThread, self).__init__(self, sys_config)
 
         # currently supported acks
         self._ACK_MSG = {
@@ -31,10 +31,6 @@ class ConnectionThread(BaseThread):
 
         self._buf_size = self.config.get_sys('listener', 'receive_buffer')
         self._command_delim = self.config.get_sys('listener', 'command_delimiter')
-
-        # TODO: In standalone mode, REMOVE_THREAD_CALLBACK is not needed.  Perhaps a key in
-        # sys_config to let service know if it was spawned through ConnectionManager or standalone?
-        self._callback_exit = cb_exit
 
         self._sock = sock  # socket used to receive commands
         self._sock.setblocking(0)
@@ -69,6 +65,7 @@ class ConnectionThread(BaseThread):
         self.logger.info("%d commands processed.", self._command_count)
 
         if not self._interrupted:
+            # TODO: this is now handled in ManagedThread
             # Remove self from active thread list in ConnectionManager.
             # Note, if shutting down due to interrupt, then most likely triggered by the
             # ServiceManager, so we don't want to delete the reference from its list as the

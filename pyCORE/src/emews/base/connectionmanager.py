@@ -9,7 +9,7 @@ import signal
 import select
 import socket
 
-from emews.base.listenerthread import ListenerThread
+from emews.base.connectionthread import ConnectionThread
 
 class ConnectionManager(object):
     '''
@@ -111,27 +111,10 @@ class ConnectionManager(object):
                 break
 
             self._logger.info("Connection established from %s", src_addr)
-            listener_thread = ListenerThread(self._config, "ListenerThread", sock,
-                                             self._thr_state.remove_thread)
-            listener_thread.start()
+            connection_thread = ConnectionThread(self._config, sock)
+            connection_thread.start()
 
             self._thr_state.add_thread(listener_thread)  # add thread to active state
 
         serv_sock.shutdown(socket.SHUT_RDWR)
         serv_sock.close()
-        self.shutdown()
-
-    def shutdown(self):
-        '''
-        Shuts down all the running threads.
-        '''
-        # TODO: move this to ThreadState
-        self._logger.info("%d running thread(s) to shutdown.", self._thr_state.count)
-
-        for active_thread in self._thr_state.active_threads:
-            self._logger.debug("Stopping thread %s.", active_thread.name)
-            active_thread.stop()
-        for active_thread in self._thr_state.active_threads:
-            # Wait for each service to shutdown.  We put this in a separate loop so each service
-            # will get the shutdown request first, and can shutdown concurrently.
-            active_thread.join()
