@@ -15,7 +15,7 @@ class ThreadWrapper(emews.base.irunnable.IRunnable):
     '''
     __current_thread_id = 0  # each thread has a unique id assigned (for logging)
 
-    def __init__(self, wrapped_object):
+    def __init__(self, wrapped_object, autostart=True):
         '''
         Constructor
         '''
@@ -24,6 +24,9 @@ class ThreadWrapper(emews.base.irunnable.IRunnable):
 
         # Target is outside the class.  We pass this instance to it.
         self._thread = threading.Thread(name=self._thread_name, target=self.run_thread)
+
+        if autostart:
+            self.start()
 
     @property
     def name(self):
@@ -36,6 +39,7 @@ class ThreadWrapper(emews.base.irunnable.IRunnable):
         '''
         starts the thread
         '''
+        self._wrapped_object.context_name(self._thread_name)
         self._thread.start()
 
     def run_thread(self):

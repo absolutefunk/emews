@@ -18,7 +18,7 @@ class CommandHandler(object):
     '''
     classdocs
     '''
-    def __init__(self, sys_config):
+    def __init__(self, sys_config, thread_dispatcher):
         '''
         Constructor
         '''
@@ -30,6 +30,7 @@ class CommandHandler(object):
 
         self._sys_config = sys_config
         self._logger = self.config.logger
+        self._thread_dispatcher = thread_dispatcher
 
     @property
     def logger(self):
@@ -72,6 +73,8 @@ class CommandHandler(object):
         except StandardError:
             # We still return true so other commands can be processed
             self.logger.error("Could not build service %s from client input.", service_str)
+
+        self._thread_dispatcher.dispatch_thread(service_instance)
 
         return True
 

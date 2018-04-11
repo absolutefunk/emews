@@ -47,7 +47,7 @@ class Config(object):
         self._sys_config = emews.configcomponent.ConfigComponent(
             parse(prepend_path(sys_config_path)))
 
-        # Set up base logger. Default threadname is <main>; this will be changed in BaseThread
+        # Set up base logger. Default threadname is <main>; this will be changed as needed.
         self._logger = logging.LoggerAdapter(logging.getLogger(
             self._sys_config.get('logging', 'base_logger')),
                                              {'nodename': self._nodename,

@@ -20,6 +20,8 @@ class BaseObject(object):
         self._config = config
         self._logger = self._config.logger  # logger is a property of Configuration
 
+        self._context_name = self._config.get('context_name')
+
     @property
     def logger(self):
         '''
@@ -33,3 +35,8 @@ class BaseObject(object):
         returns the configuration object
         '''
         return self._config
+
+    @context_name.setter
+    def context_name(self, context):
+        '''
+        Updates the context name of the object.  Usually refers to name of active thread.

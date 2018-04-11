@@ -18,7 +18,7 @@ class ClientSession(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunn
     '''
     classdocs
     '''
-    def __init__(self, sys_config, sock):
+    def __init__(self, sys_config, thread_dispatcher, sock):
         '''
         Constructor
         '''
@@ -41,7 +41,8 @@ class ClientSession(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunn
         self._interrupted = False  # true if stop() invoked (used to make sure shutdown called once)
 
         # CommandHandler (handles command processing, service spawning, etc...)
-        self._command_handler = emews.base.commmandhandler.CommandHandler(self.config)
+        self._command_handler = emews.base.commmandhandler.CommandHandler(
+            self.config, thread_dispatcher)
         self._command_count = 0  # successful commands processed
 
     def stop(self):
@@ -177,7 +178,7 @@ class ClientSession(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunn
 
         # delegate to CommandHandler
         try:
-            result_continue = self._client_handler.process(cmd_tuple)
+            result_continue = self._command_handler.process(cmd_tuple)
         except emews.base.commandhandler.CommandException as ex:
             # bad command or arg, or some other issue occurred with command processing
             self.logger.debug(ex)

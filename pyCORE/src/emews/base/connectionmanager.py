@@ -1,5 +1,5 @@
 '''
-Listens for new client connections and spawns ListenerThreads when appropriate.
+Listens for new client connections and spawns ClientSessions when appropriate.
 
 Created on Mar 24, 2018
 
@@ -9,7 +9,8 @@ import signal
 import select
 import socket
 
-from emews.base.connectionthread import ConnectionThread
+from emews.base.clientsession import ClientSession
+from emews.base.thread_dispatcher import ThreadDispatcher
 
 class ConnectionManager(object):
     '''
@@ -19,7 +20,6 @@ class ConnectionManager(object):
         '''
         Constructor
         '''
-
         # register signals
         signal.signal(signal.SIGHUP, self.shutdown_signal_handler)
         signal.signal(signal.SIGINT, self.shutdown_signal_handler)
@@ -50,6 +50,9 @@ class ConnectionManager(object):
         if self._port < 1024:
             self._logger.warning("Port is less than 1024 (given: %d).  "\
             "Elevated permissions may be needed for binding.", self._port)
+
+        # handles thread spawning/management
+        self._thread_dispatcher = ThreadDispatcher(self._config)
 
     def shutdown_signal_handler(self, signum, frame):
         '''
@@ -111,10 +114,8 @@ class ConnectionManager(object):
                 break
 
             self._logger.info("Connection established from %s", src_addr)
-            connection_thread = ConnectionThread(self._config, sock)
-            connection_thread.start()
-
-            self._thr_state.add_thread(listener_thread)  # add thread to active state
+            self._thread_dispatcher.dispatch_thread(
+                ClientSession(self._config, self._thread_dispatcher, sock))
 
         serv_sock.shutdown(socket.SHUT_RDWR)
         serv_sock.close()

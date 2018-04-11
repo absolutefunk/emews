@@ -43,12 +43,12 @@ class ThreadDispatcher(emews.base.basedispatcher.BaseDispatcher):
         return len(self._active_threads)
 
 
-    def dispatch_thread(self, wrapped_obj):
+    def dispatch_thread(self, object_instance):
         '''
-        Creates and dispatches a new ThreadWrapper.  wrapped_obj is the object that we want to
+        Creates and dispatches a new ThreadWrapper.  object_instance is the object that we want to
         wrap around ThreadWrapper.
         '''
-        wrapped_object = ThreadWrapper(wrapped_obj)
+        wrapped_object = ThreadWrapper(object_instance)
 
         # subscribe wrapped_object to our 'stop_thread' event
         self.subscribe('stop_thread', wrapped_object.stop)
