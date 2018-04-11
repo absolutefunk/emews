@@ -1,14 +1,15 @@
 '''
-Handles thread management.  Acts as a dispatcher for threads (ManagedThread)
+Handles thread management.  Acts as a dispatcher for threads.
 
 Created on Mar 30, 2018
 
 @author: Brian Ricks
 '''
 import threading
+from weakref import WeakSet
 
 import emews.base.basedispatcher
-from emews.base.managedthread import ManagedThread
+from emews.base.threadwrapper import ThreadWrapper
 
 def thread_names_str():
     '''
@@ -31,8 +32,8 @@ class ThreadDispatcher(emews.base.basedispatcher.BaseDispatcher):
         Constructor
         '''
         super(ThreadDispatcher, self).__init__(config)
-        self._thr_lock = threading.Lock()
-        self._active_threads = set()
+        # When a thread dies, it is automatically removed from the _active_threads set.
+        self._active_threads = WeakSet()
 
     @property
     def count(self):
@@ -42,40 +43,18 @@ class ThreadDispatcher(emews.base.basedispatcher.BaseDispatcher):
         return len(self._active_threads)
 
 
-    def dispatch_thread(self, thread_cls, *args):
+    def dispatch_thread(self, wrapped_obj):
         '''
-        Creates and dispatches a new ManagedThread.  thread_cls is the class object that we want to
-        instantiate, and the args are additional args to pass to the thread class constructor during
-        construction.
+        Creates and dispatches a new ThreadWrapper.  wrapped_obj is the object that we want to
+        wrap around ThreadWrapper.
         '''
-        try:
-            thread_instance = thread_cls(self.config, *args)
-        except TypeError as ex:
-            self.logger.error("Could not instantiate passed thread_cls: %s", ex)
-            raise
+        wrapped_object = ThreadWrapper(wrapped_obj)
 
-         # ManagedThread subscribes to 'stop_thread'
-        managed_thread = ManagedThread(thread_instance, self.subscribe)
-        # We subscribe to 'thread_stopping'
-        managed_thread.subscribe('thread_stopping', self.remove_thread)
+        # subscribe wrapped_object to our 'stop_thread' event
+        self.subscribe('stop_thread', wrapped_object.stop)
         # we also need to store the thread reference itself, so shutting down all threads we can
         # join each thread
-        self._active_threads.add(managed_thread)
-
-    def remove_thread(self, managed_thread):
-        '''
-        Removes a ManagedThread to the active list
-        Called from a thread which needs to be removed.
-        '''
-        try:
-            self._logger.debug("(%s) Acquiring lock...", managed_thread.name)
-            with self._thr_lock:
-                self._logger.debug("(%s) Lock acquired", managed_thread.name)
-                self._active_threads.remove(managed_thread)
-        except ValueError:
-            self._logger.warning("Thread not found in the active list.")
-
-        self._logger.debug("Thread %s removed from active thread list.", managed_thread.name)
+        self._active_threads.add(wrapped_object)
 
     def shutdown_all_threads(self):
         '''
@@ -84,7 +63,7 @@ class ThreadDispatcher(emews.base.basedispatcher.BaseDispatcher):
         '''
         self._logger.info("%d running thread(s) to shutdown.", self._thr_state.count)
 
-        self.dispatch('stop_thread')  # tells all subscribers (ManagedThread) to shutdown
+        self.dispatch('stop_thread')  # tells all subscribers to shutdown
 
         for active_thread in self._thr_state.active_threads:
             # Wait for each service to shutdown.  We put this in a separate loop so each service

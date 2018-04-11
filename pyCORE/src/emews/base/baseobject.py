@@ -12,15 +12,11 @@ class BaseObject(object):
     '''
     classdocs
     '''
-    __current_object_id = 0  # each object has a unique id assigned
-
     def __init__(self, config):
         '''
         config is the Config required, which contains the logger and configuration
         (system configuration, object configuration...)
         '''
-        self._name = self.__class__.__name__ + "-%d" % BaseObject.__current_thread_id
-        BaseObject.__current_thread_id += 1
         self._config = config
         self._logger = self._config.logger  # logger is a property of Configuration
 
@@ -37,10 +33,3 @@ class BaseObject(object):
         returns the configuration object
         '''
         return self._config
-
-    @property
-    def name(self):
-        '''
-        returns a given name for the object
-        '''
-        return self._name

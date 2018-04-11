@@ -18,6 +18,8 @@ Created on Apr 8, 2018
 
 @author: Brian Ricks
 '''
+from weakref import WeakSet
+
 import emews.base.baseobject
 
 class BaseDispatcher(emews.base.baseobject.BaseObject):
@@ -49,8 +51,8 @@ class BaseDispatcher(emews.base.baseobject.BaseObject):
         Registers (subscribes) the passed callback to the given event.
         '''
         if not event in self._subscribed_callbacks:
-            # create the event list
-            self._subscribed_callbacks[event] = set()
+            # Create the event list.  When a subscriber dies, it is removed from here.
+            self._subscribed_callbacks[event] = WeakSet()
 
         self._subscribed_callbacks[event].add(callback)
         self.logger.debug("Callback %s subscribed to event %s.", callback.__name__, event)

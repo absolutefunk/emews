@@ -1,5 +1,5 @@
 '''
-Interface for pyCORE services.
+Interface for emews services.
 Concrete class should inherit BaseClass or a subclass of it.  This interface is mainly to properly
 support service decorator classes.
 
@@ -9,7 +9,9 @@ Created on Mar 30, 2018
 '''
 from abc import ABCMeta, abstractmethod, abstractproperty
 
-class IService(object):
+import emews.base.irunnable
+
+class IService(emews.base.irunnable.IRunnable):
     '''
     classdocs
     '''

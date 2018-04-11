@@ -10,10 +10,11 @@ Created on Mar 27, 2018
 import select
 import socket
 
-from emews.base.basethread import BaseThread
+import emews.base.baseobject
 import emews.base.commandhandler
+import emews.base.irunnable
 
-class ConnectionThread(BaseThread):
+class ClientSession(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunnable):
     '''
     classdocs
     '''
@@ -21,7 +22,7 @@ class ConnectionThread(BaseThread):
         '''
         Constructor
         '''
-        super(ConnectionThread, self).__init__(self, sys_config)
+        super(ClientSession, self).__init__(self, sys_config)
 
         # currently supported acks
         self._ACK_MSG = {
@@ -45,16 +46,16 @@ class ConnectionThread(BaseThread):
 
     def stop(self):
         '''
-        @Override of BaseThread stop().
+        @Override from IRunnable
         We call socket shutdown as that will close the session and unblock the select.
         '''
         self.logger.info("Stop request received.  Shutting down.")
         self._interrupted = True
         self._sock.shutdown(socket.SHUT_RDWR)
 
-    def run_thread(self):
+    def start(self):
         '''
-        @Override from BaseThread
+        @Override from IRunnable
         '''
         self.__listen()
 
