@@ -19,7 +19,7 @@ listener:
   command_delimiter: ' '  # delimit commands using this
 
 logging:
-  base_logger: &base_logger emews.base
+  base_logger: emews.base
   log_conf:
     version: 1
     formatters:
@@ -32,10 +32,12 @@ logging:
         level: DEBUG
         stream: 'ext://sys.stdout'
     loggers:
-        root:
-          handlers:
-          - console
-          level: DEBUG
-        *base_logger:
-            level: DEBUG  # change this to INFO for production
-            propagate: True
+      root:
+        handlers:
+        - console
+        level: DEBUG
+      emews.base:
+        handlers:
+        - console
+        level: DEBUG  # change this to INFO for production
+        propagate: True

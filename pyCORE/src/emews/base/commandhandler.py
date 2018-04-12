@@ -1,6 +1,6 @@
 '''
 Handles client command processing and service spawning.  Instantiations of this class invoked by
-a ConnectionThread, which itself handles the communication between emews and a client.
+a ClientSession, which itself handles the communication between emews and a client.
 
 Created on Apr 6, 2018
 
@@ -72,15 +72,15 @@ class CommandHandler(object):
             service_instance = service_builder.result
         except StandardError:
             # We still return true so other commands can be processed
-            self.logger.error("Could not build service %s from client input.", service_str)
-
-        self._thread_dispatcher.dispatch_thread(service_instance)
+            self.logger.error("Could not build service '%s' from client input.", service_str)
+        else:
+            self._thread_dispatcher.dispatch_thread(service_instance)
 
         return True
 
     def __do_exit(self, arg_str):
         '''
-        Exits the underlying ConnectionThread (terminate connection with client).
+        Exits the underlying ClientSession (terminate connection with client).
         '''
         self.logger.debug("Exit command processed.")
         return False

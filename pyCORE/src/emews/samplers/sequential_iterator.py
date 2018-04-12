@@ -7,9 +7,9 @@ Created on Feb 26, 2018
 @author: Brian Ricks
 '''
 
-import emews.common.value_sampler
+import emews.samplers.value_sampler
 
-class SequentualIterator(emews.common.value_sampler.ValueSampler):
+class SequentualIterator(emews.samplers.value_sampler.ValueSampler):
     '''
     classdocs
     '''

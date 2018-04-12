@@ -7,6 +7,28 @@ Created on Apr 9, 2018
 
 @author: Brian Ricks
 '''
+import logging
+
+class ThreadLoggerAdapter(logging.LoggerAdapter):
+    '''
+    Updates the thread name from the default one (<main>) to the name of this thread.
+    '''
+    def __init__(self, logger_instance, thr_name, extra=None):
+        '''
+        Constructor
+        '''
+        super(ThreadLoggerAdapter, self).__init__(logger_instance, extra)
+        self._logkw_thread_name = thr_name
+
+    def process(self, msg, kwargs):
+        '''
+        @Override of logging.LoggerAdapter process() method.
+        Replaces the value of 'threadname' with the name of thread passed (in 'extra').
+        '''
+        if 'threadname' in kwargs:
+            kwargs['threadname'] = self._logkw_thread_name
+
+        return msg, kwargs
 
 class BaseObject(object):
     '''
@@ -18,9 +40,8 @@ class BaseObject(object):
         (system configuration, object configuration...)
         '''
         self._config = config
-        self._logger = self._config.logger  # logger is a property of Configuration
-
-        self._context_name = self._config.get('context_name')
+        # base logger is instantiated in the config object
+        self._logger = ThreadLoggerAdapter(self.config.logger, self._config.context_name)
 
     @property
     def logger(self):
@@ -36,7 +57,9 @@ class BaseObject(object):
         '''
         return self._config
 
-    @context_name.setter
     def context_name(self, context):
         '''
-        Updates the context name of the object.  Usually refers to name of active thread.
+        Updates the context name of the object.  Usually refers to name of active thread in which
+        this object belongs.
+        '''
+        self._config = self._config.clone_with_context(context)

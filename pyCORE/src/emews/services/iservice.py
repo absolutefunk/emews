@@ -18,20 +18,6 @@ class IService(emews.base.irunnable.IRunnable):
     __metaclass__ = ABCMeta
 
     @abstractproperty
-    def config(self):
-        '''
-        Returns the service config object.
-        '''
-        pass
-
-    @abstractproperty
-    def logger(self):
-        '''
-        Returns the service logger object.
-        '''
-        pass
-
-    @abstractproperty
     def interrupted(self):
         '''
         Returns true if the service has been interrupted (requested to stop)
@@ -56,15 +42,5 @@ class IService(emews.base.irunnable.IRunnable):
     def stop(self):
         '''
         Gracefully exit service.
-        '''
-        pass
-
-    @abstractmethod
-    def importclass(self, class_name, module_path):
-        '''
-        Import a class, given the class name and module path.  Use emews naming
-        conventions, in that the class to import will have the same name as the module (class name
-        converted to lower case automatically for module).  This method calls the same method from
-        the recipient_service.
         '''
         pass

@@ -18,36 +18,20 @@ from abc import abstractmethod
 import importlib
 from threading import Event
 
+import emews.base.baseobject
 import emews.base.config
 import emews.services.iservice
 
-class BaseService(emews.services.iservice.IService):
+class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.IService):
     '''
     classdocs
     '''
-    def __init__(self, service_config):
+    def __init__(self, config):
         '''
         Constructor
-        The service_config contains system config information (such as logging), and any service
-        specific configuration information.
         '''
-        self._config = service_config
-        self._logger = self.config.logger
+        super(BaseService, self).__init__(config)
         self._service_interrupt_event = Event()  # used to interrupt Event.wait() on stop()
-
-    @property
-    def config(self):
-        '''
-        @Override Returns the service config object.
-        '''
-        return self._config
-
-    @property
-    def logger(self):
-        '''
-        @Override Returns the logging object.
-        '''
-        return self._logger
 
     @property
     def interrupted(self):
@@ -83,28 +67,3 @@ class BaseService(emews.services.iservice.IService):
         '''
         self._logger.info("Service stopping.")
         self._service_interrupt_event.set()
-
-    def importclass(self, class_name, module_path):
-        '''
-        @Override Import a class, given the class name and module path.  Use emews naming
-        conventions, in that the class to import will have the same name as the module (class name
-        converted to lower case automatically for module).  This method calls the same method from
-        the recipient_service.
-        '''
-        try:
-            i_module = importlib.import_module(class_name.lowercase(), module_path)
-        except ImportError as ex:
-            self.logger.error("Module (class) name '%s' could not be resolved to a module.",
-                              class_name.lowercase())
-            self.logger.debug(ex)
-            raise
-
-        try:
-            i_class = getattr(i_module, class_name)
-        except AttributeError as ex:
-            self.logger.error("Module (class) name '%s' could not be resolved into a class.",
-                              class_name)
-            self.logger.debug(ex)
-            raise
-
-        return i_class

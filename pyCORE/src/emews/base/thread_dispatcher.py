@@ -42,7 +42,6 @@ class ThreadDispatcher(emews.base.basedispatcher.BaseDispatcher):
         '''
         return len(self._active_threads)
 
-
     def dispatch_thread(self, object_instance):
         '''
         Creates and dispatches a new ThreadWrapper.  object_instance is the object that we want to
@@ -55,6 +54,9 @@ class ThreadDispatcher(emews.base.basedispatcher.BaseDispatcher):
         # we also need to store the thread reference itself, so shutting down all threads we can
         # join each thread
         self._active_threads.add(wrapped_object)
+
+        self.logger.info("Spawned service '%s' under thread %s.", object_instance,
+                         object_instance.context_name)
 
     def shutdown_all_threads(self):
         '''

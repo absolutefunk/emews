@@ -3,25 +3,21 @@ Created on Feb 23, 2018
 
 @author: Brian Ricks
 '''
-
-import ConfigParser
 import random
-from threading import Event
 
 from pexpect import pxssh
-import emews.common.sequential_iterator as default_sampler
-from emews.services.baseservice import BaseService
+import emews.samplers.sequential_iterator as default_sampler
+import emews.services.baseservice
 
-class AutoSSH(BaseService):
+class AutoSSH(emews.services.baseservice.BaseService):
     '''
     classdocs
     '''
-
-    def __init__(self):
+    def __init__(self, config):
         '''
         Constructor
         '''
-
+        super(AutoSSH, self).__init__(config)
         # class attributes
         self._s = pxssh.pxssh()
 
@@ -35,91 +31,10 @@ class AutoSSH(BaseService):
         self._command_count = None  # number of commands to execute before terminating
         self._command_list = None  # list of commands to execute
 
-        self._event = Event()  # used for sleep (interuptable)
-
-    def set_host(self, host):
+    def run_service(self):
         '''
-        sets the host of the ssh server
-        '''
-        self._host = host
-
-    def set_port(self, port):
-        '''
-        sets the port of the ssh server
-        '''
-        self._port = port
-
-    def set_username(self, username):
-        '''
-        sets the username to use for ssh login
-        '''
-        self._username = username
-
-    def set_password(self, password):
-        '''
-        sets the password to use for ssh login
-        '''
-        self._password = password
-
-    def set_command_distribution(self, distribution):
-        '''
-        sets the distribution used to sample command indices from
-        '''
-
-        self._list_distribution = distribution
-
-    def set_command_count(self, command_count):
-        '''
-        sets the distribution used to sample command indices from
-        '''
-
-        self._command_count = command_count
-
-    def set_command_list(self, command_list):
-        '''
-        sets list with commands which we will use for ssh sessions
-        '''
-
-        self._command_list = command_list
-    def stop(self):
-        '''
-        Alerts the service that it has been called to stop.
-        '''
-        # interupt the event blocking
-        self._event.set()
-
-    def needs_config(self):
-        '''
-        returns true as this service needs a config file
-        '''
-        return True
-
-    def configure(self, config_file=None):
-        '''
-        sets up the service for running, which means parsing a config file
-        '''
-        config = ConfigParser.RawConfigParser()
-        config.read(config_file)
-
-        self.set_host(config.get('Server', 'host'))
-        self.set_port(int(config.get('Server', 'port')))
-        self.set_username(config.get('Server', 'username'))
-        self.set_password(config.get('Server', 'password'))
-        self.set_command_count(config.get('Options', 'command_count'))
-
-        command_list_raw = config.items('Commands')
-        command_list = []
-
-        # populate the commmand_list frin the conf file
-        for _, val_cmd in command_list_raw:
-            command_list.append(val_cmd)
-
-        self.set_command_list(config.COMMAND_LIST)
-
-    def start(self):
-        '''
-        attempts to connect and login to the ssh server given with the
-        credentials given
+        @Override Attempts to connect and login to the ssh server given with the
+        credentials given.
         '''
 
         if self._host is None:

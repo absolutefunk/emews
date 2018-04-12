@@ -42,8 +42,6 @@ def main():
     logger.debug("conf path: %s", emews.config.prepend_path(sys.argv[2]))
     logger.info("emews %s", __version__)
 
-    # TODO: Add a base class for all classes which use the logger/config, and pass the sys_config
-    # to its constructor, with properties for logger and config
     connection_manager = ConnectionManager(config)
     connection_manager.start()
 

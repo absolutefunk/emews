@@ -47,30 +47,34 @@ class ServiceBuilder(object):
         '''
         return self._sys_config
 
-    @service.setter
     def service(self, val_service_name):
         '''
         Sets the service.  We do parsing of the service name to the module and class here so they
         will be cached on build calls.
         '''
+        # TODO: generalize for decorator services and others
         # Attempt to resolve the module.  If using emews naming, then service should also resolve.
+        module_name = val_service_name.lower()
+        module_path = self.config.get_sys('paths', 'emews_pkg_services_path')
+        #because services are in a subfolder that is the same as their name, concatenate the module
+        # name to the module_path.  Also, as we are passing the module name as part of the path,
+        # concatenate the module name again.
+        module_path += "." + module_name + "." + module_name
         try:
-            service_module = importlib.import_module(
-                val_service_name.lowercase(), self.config.get_sys(
-                    'paths', 'emews_pkg_services_path'))
+            service_module = importlib.import_module(module_path)
         except ImportError as ex:
-            self.logger.error("Service name could not be resolved into a module.")
+            self.logger.error("Module name '%s' could not be resolved into a module.", module_name)
             self.logger.debug(ex)
             raise
 
         try:
             self._service_class = getattr(service_module, val_service_name)
         except AttributeError as ex:
-            self.logger.error("Service name could not be resolved into a class.")
+            self.logger.error("Service name '%s' could not be resolved into a class.",
+                              val_service_name)
             self.logger.debug(ex)
             raise
 
-    @config.setter
     def config_path(self, val_config_path):
         '''
         Sets the configuration component for the service.  Parsing of the config path is done
@@ -79,13 +83,25 @@ class ServiceBuilder(object):
         if val_config_path is None:
             return
 
+        config_try_again = False
         try:
-            config_dict = emews.base.config.parse(emews.config.prepend_path(val_config_path))
-        except ConfigParser.Error as ex:
-            self.logger.error("Service configuration could not be parsed.")
+            config_dict = emews.base.config.parse(emews.base.config.prepend_path(val_config_path))
+        except IOError as ex:
+            # config file only may be given, try to prepend path to same folder as service module
+            self.logger.warning("Service configuration could not be loaded, trying service path...")
             self.logger.debug(ex)
-            raise
+            config_try_again = True
 
+        if config_try_again:
+            try:
+                config_dict = emews.base.config.parse(emews.base.config.prepend_path(
+                    "../services/" + self._service_class.__name__.lower() + "/" + val_config_path))
+            except IOError as ex:
+                self.logger.error("Service configuration '%s' could not be loaded.",
+                                  val_config_path)
+                self.logger.debug(ex)
+                raise
+        self.logger.info("Service configuration '%s' loaded.", val_config_path)
         self._config_component = ConfigComponent(config_dict)
 
     def __build_service(self):

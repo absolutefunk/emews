@@ -28,7 +28,7 @@ class ServiceDecorator(emews.services.iservice.IService):
     @property
     def config(self):
         '''
-        @Override Returns the decorator specific config options, if exists.
+        Returns the decorator specific config options, if exists.
         Convenience property as the config options exist in the service config and can be
         obtained from self.config.
         '''
@@ -37,7 +37,7 @@ class ServiceDecorator(emews.services.iservice.IService):
     @property
     def logger(self):
         '''
-        @Override Returns the logger object used with the recipient_service.
+        Returns the logger object used with the recipient_service.
         '''
         return self._recipient_service.logger
 

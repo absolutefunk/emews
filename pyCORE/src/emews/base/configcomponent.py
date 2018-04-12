@@ -22,7 +22,7 @@ class ConfigComponent(object):
         '''
         config = self._config
         for key in keys:
-            config = config[key]
+            config = config.get(key)
 
         return config
 
