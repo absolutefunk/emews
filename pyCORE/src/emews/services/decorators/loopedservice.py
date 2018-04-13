@@ -21,6 +21,7 @@ class LoopedService(ServiceDecorator):
         super(LoopedService, self).__init__(recipient_service)
 
         try:
+            # instantiate the sampler
             self._sampler = emews.base.importclass.import_class(
                 self.config.get('sampler', 'class'),
                 self.config.get_sys('paths', 'emews_pkg_samplers_path'))()

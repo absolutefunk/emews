@@ -47,7 +47,6 @@ def main():
         raise
         return
 
-    service_instance(sys_config)
     service_instance.start()
 
 if __name__ == '__main__':

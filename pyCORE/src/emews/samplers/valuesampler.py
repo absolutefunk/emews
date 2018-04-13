@@ -18,7 +18,7 @@ class ValueSampler(object):
         Returns the next value.
         Required to be implemented in a child class.
         '''
-        raise NotImplementedError("Must implement in subclass.")
+        pass
 
     def reset(self):
         '''
