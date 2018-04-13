@@ -7,6 +7,7 @@ Created on Mar 5, 2018
 
 @author: Brian Ricks
 '''
+import emews.base.importclass
 from emews.services.decorators.servicedecorator import ServiceDecorator
 
 class LoopedService(ServiceDecorator):
@@ -20,9 +21,9 @@ class LoopedService(ServiceDecorator):
         super(LoopedService, self).__init__(recipient_service)
 
         try:
-            self._sampler = self.importclass(
+            self._sampler = emews.base.importclass.import_class(
                 self.config.get('sampler', 'class'),
-                self.service_config.get('paths', 'emews_pkg_samplers_path'))()
+                self.config.get_sys('paths', 'emews_pkg_samplers_path'))()
         except KeyError as ex:
             self.logger.error("(A key is missing from the config): %s", ex)
             raise

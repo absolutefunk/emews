@@ -18,12 +18,14 @@ class ServiceDecorator(emews.services.iservice.IService):
         Constructor
         '''
         self._recipient_service = recipient_service
-        # cache a reference to the decorator config, if it exists
-        self._decorator_config = self._recipient_service.config.extract_with_key(
-            'decorators', self.__class.__name__)
-
-        self.logger.info("Added decorator '%s' to %s.", self.__class__.__name__,
-                         recipient_service.__class__.__name__)
+        # cache a reference to the decorator config, if it exists.
+        decorator_configcomponent = self._recipient_service.config.extract_with_key(
+            'decorators', self.__class__.__name__)
+        if decorator_configcomponent is not None:
+            self._decorator_config = self._recipient_service.config.clone_with_config(
+                decorator_configcomponent)
+        else:
+            self._decorator_config = None
 
     @property
     def config(self):

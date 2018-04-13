@@ -6,9 +6,9 @@ Created on Feb 26, 2018
 
 import random
 
-from emews.common.value_sampler import ValueSampler
+import emews.samplers.valuesampler
 
-class UniformSampler(ValueSampler):
+class UniformSampler(emews.samplers.valuesampler.ValueSampler):
     '''
     classdocs
     '''

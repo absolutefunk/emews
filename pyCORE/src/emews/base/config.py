@@ -109,7 +109,7 @@ class Config(object):
         cloned_config and self, so we comment out the warning locally.
         '''
         cloned_config = copy.copy(self)  # shallow copy
-        cloned_config._component_config = emews.configcomponent.ConfigComponent(  # pylint: disable=W0212
+        cloned_config._component_config = emews.base.configcomponent.ConfigComponent(  # pylint: disable=W0212
             parse(prepend_path(component_config_path)))
 
         return cloned_config
@@ -135,11 +135,11 @@ class Config(object):
             return None
 
         try:
-            extracted_dct = self._component_config.get(keys)
+            extracted_dct = self._component_config.get(*keys)
         except KeyError:
             return None
 
-        return emews.configcomponent.ConfigComponent(extracted_dct)
+        return emews.base.configcomponent.ConfigComponent(extracted_dct)
 
     def get(self, *keys):
         '''

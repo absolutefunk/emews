@@ -6,7 +6,7 @@ Created on Feb 23, 2018
 import random
 
 from pexpect import pxssh
-import emews.samplers.sequential_iterator as default_sampler
+import emews.samplers.sequentialiterator as default_sampler
 import emews.services.baseservice
 
 class AutoSSH(emews.services.baseservice.BaseService):

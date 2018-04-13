@@ -12,7 +12,7 @@ paths:
   emews_base_pkg_path: emews.base
   emews_pkg_services_path: emews.services
   emews_pkg_service_decorators_path: emews.services.decorators
-  emews_pkg_samplers_path: emews.common.samplers
+  emews_pkg_samplers_path: emews.samplers
 
 listener:
   receive_buffer: 128     # buffer for incoming characters from a emews client

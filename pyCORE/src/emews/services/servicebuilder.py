@@ -5,11 +5,9 @@ Created on Apr 2, 2018
 
 @author: Brian Ricks
 '''
-import ConfigParser
-import importlib
-
 import emews.base.config
 from emews.base.configcomponent import ConfigComponent
+import emews.base.importclass
 
 class ServiceBuilder(object):
     '''
@@ -52,23 +50,19 @@ class ServiceBuilder(object):
         Sets the service.  We do parsing of the service name to the module and class here so they
         will be cached on build calls.
         '''
-        # TODO: generalize for decorator services and others
         # Attempt to resolve the module.  If using emews naming, then service should also resolve.
         module_name = val_service_name.lower()
         module_path = self.config.get_sys('paths', 'emews_pkg_services_path')
         #because services are in a subfolder that is the same as their name, concatenate the module
         # name to the module_path.  Also, as we are passing the module name as part of the path,
         # concatenate the module name again.
-        module_path += "." + module_name + "." + module_name
+        module_path += "." + module_name
         try:
-            service_module = importlib.import_module(module_path)
+            self._service_class = emews.base.importclass.import_class(val_service_name, module_path)
         except ImportError as ex:
-            self.logger.error("Module name '%s' could not be resolved into a module.", module_name)
-            self.logger.debug(ex)
+            self.logger.error("Module name '%s' could not be resolved into a module: %s",
+                              module_name, ex)
             raise
-
-        try:
-            self._service_class = getattr(service_module, val_service_name)
         except AttributeError as ex:
             self.logger.error("Service name '%s' could not be resolved into a class.",
                               val_service_name)
@@ -126,15 +120,28 @@ class ServiceBuilder(object):
         # ['decorators'] --> [<DecoratorClass>] --> (config dict/list/etc for DecoratorClass)
         # If no config_path for the service was given, then this section is skipped.
         if 'decorators' in service_config.component_config:
+            decorator_class_path = self.config.get_sys(
+                'paths', 'emews_pkg_service_decorators_path')
+            self.logger.debug("Decorator module path: %s", decorator_class_path)
             for service_decorator in service_config.get('decorators'):
+                self.logger.debug("Resolving decorator '%s' for %s.",
+                                  service_decorator, service_instantiation.__class__.__name__)
                 try:
-                    service_decorator_class = service_instantiation.importclass(
-                        service_decorator, self.config.get_sys(
-                            'paths', 'emews_pkg_service_decorators_path'))
+                    current_instantiation = emews.base.importclass.import_class(
+                        service_decorator, decorator_class_path)(current_instantiation)
                 except KeyError as ex:
                     self.logger.error("(A key is missing from the config): %s", ex)
                     raise
-
-                current_instantiation = service_decorator_class(current_instantiation)
+                except ImportError as ex:
+                    self.logger.error("Module name '%s' could not be resolved into a module: %s",
+                                      service_decorator.lower(), ex)
+                    raise
+                except AttributeError as ex:
+                    self.logger.error("Decorator name '%s' could not be resolved into a class.",
+                                      service_decorator)
+                    self.logger.debug(ex)
+                    raise
+                self.logger.debug("Decorator '%s' applied to %s.",
+                                  service_decorator, service_instantiation.__class__.__name__)
 
         return current_instantiation

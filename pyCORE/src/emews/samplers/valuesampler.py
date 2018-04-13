@@ -6,14 +6,12 @@ Created on Feb 26, 2018
 
 @author: Brian Ricks
 '''
-
 from abc import abstractmethod
 
 class ValueSampler(object):
     '''
     classdocs
     '''
-
     @abstractmethod
     def next_value(self):
         '''
