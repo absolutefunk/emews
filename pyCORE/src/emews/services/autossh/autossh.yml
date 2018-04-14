@@ -1,30 +1,35 @@
 # Configuration file for AutoSSH
 # YAML 1.2 compliant
 
-server:
-  host: 10.176.149.20
-  port: 2252
-  username: coreuser
-  password: P28c7RtO0
+config:  # service configuration
+  server:
+    host: 10.176.149.20
+    port: 2252
+    username: coreuser
+    password: P28c7RtO0
+  command:
+    command_count: 5  #how many commands to execute from the list
+    command_list:
+    - uptime
+    - ps aux
+    - df -m
+    - pwd
+    - ls -al
 
-command:
-  sampler:
+dependencies:  # additional classes that this service requires
+  command_sampler: # unique name to describe the dependency
     class: UniformSampler  # distribution to sample commands from
-    parameters:
-    - lower_bound: 1  # lower bound (sec)
-    - upper_bound: 5  # upper bound (sec)
-  command_count: 5  #how many commands to execute from the list
-  command_list:
-  - uptime
-  - ps aux
-  - df -m
-  - pwd
-  - ls -al
+    module: samplers.uniformsampler
+    config:
+      lower_bound: 1  # lower bound (sec)
+      upper_bound: 5  # upper bound (sec)
 
 decorators:  # any decorators required need to be defined here
-  LoopedService:  # LoopedService decorator
-    sampler:
-      class: UniformSampler  # distribution to sample service loop start time from
-      parameters:
-      - lower_bound: 120  # lower bound (sec)
-      - upper_bound: 3600  # upper bound (sec)
+- LoopedService:  # LoopedService decorator
+    dependencies:  # additional classes that this decorator requires
+      loop_sampler: # unique name to describe the dependency
+        class: UniformSampler  # distribution to sample service loop start time from
+        module: samplers.uniformsampler
+        config:
+          lower_bound: 120  # lower bound (sec)
+          upper_bound: 3600  # upper bound (sec)

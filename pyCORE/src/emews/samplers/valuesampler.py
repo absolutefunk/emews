@@ -6,31 +6,35 @@ Created on Feb 26, 2018
 
 @author: Brian Ricks
 '''
-from abc import abstractmethod
+from abc import abstractmethod, abstractproperty
 
-class ValueSampler(object):
+import emews.base.baseobject
+
+class ValueSampler(emews.base.baseobject.BaseObject):
     '''
     classdocs
     '''
-    @abstractmethod
+    def __init_(self, config):
+        super(ValueSampler, self).__init(config)
+
+    @abstractproperty
     def next_value(self):
         '''
         Returns the next value.
-        Required to be implemented in a child class.
         '''
         pass
 
+    @abstractmethod
     def reset(self):
         '''
         Resets the sampler.
-        This method should be overridden in a child class if required.
         '''
         pass
 
+    @abstractmethod
     def update_parameters(self, *args):
         '''
         Updates parameters for use with sampling.  Provides a way to do this
         after object instantiation.
-        This method should be overridden in a child class if required.
         '''
         pass

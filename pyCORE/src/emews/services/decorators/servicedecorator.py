@@ -27,6 +27,13 @@ class ServiceDecorator(emews.services.iservice.IService):
         else:
             self._decorator_config = None
 
+        # instantiate any dependencies
+        if 'dependencies' in self._decorator_config:
+            self._dependencies = self._recipient_service.instantiate_dependencies(
+                self._decorator_config['dependencies'])
+        else:
+            self._dependencies = None
+
     @property
     def config(self):
         '''
@@ -44,19 +51,26 @@ class ServiceDecorator(emews.services.iservice.IService):
         return self._recipient_service.logger
 
     @property
-    def interrupted(self):
-        '''
-        Returns true if the service has been interrupted (requested to stop).  Use implementaton
-        from recipient_service.
-        '''
-        return self._recipient_service.interrupted
-
-    @property
     def service_config(self):
         '''
         Returns the recipient_service config.  Convenience property.
         '''
         return self._recipient_service.config
+
+    @property
+    def dependencies(self):
+        '''
+        @Override returns the dependencies of this decorator, or None if none are defined
+        '''
+        return self._dependencies
+
+    @property
+    def interrupted(self):
+        '''
+        @Override Returns true if the service has been interrupted (requested to stop).
+        Use implementaton from recipient_service.
+        '''
+        return self._recipient_service.interrupted
 
     def sleep(self, time):
         '''
@@ -75,12 +89,3 @@ class ServiceDecorator(emews.services.iservice.IService):
         @Override Gracefully exit service
         '''
         self._recipient_service.stop()
-
-    def importclass(self, class_name, module_path):
-        '''
-        @Override Import a class, given the class name and module path.  Use emews naming
-        conventions, in that the class to import will have the same name as the module (class name
-        converted to lower case automatically for module).  This method calls the same method from
-        the recipient_service.
-        '''
-        return self._recipient_service.importclass(class_name, module_path)

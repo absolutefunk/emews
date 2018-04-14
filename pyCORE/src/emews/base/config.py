@@ -126,6 +126,19 @@ class Config(object):
         cloned_config._component_config = component_config  # pylint: disable=W0212
         return cloned_config
 
+    def clone_with_dict(self, component_dict):
+        '''
+        Creates a new Config object with the given dictionary and shared system
+        configuration.
+        Note, pylint flags the line where we assign directly to the protected member
+        self._component_config.  This is okay in our case as the class is the same for both
+        cloned_config and self, so we comment out the warning locally.
+        '''
+        cloned_config = copy.copy(self)  # shallow copy
+        cloned_config._component_config = emews.base.configcomponent.ConfigComponent(  # pylint: disable=W0212
+            component_dict)
+        return cloned_config
+
     def extract_with_key(self, *keys):
         '''
         Creates a new ConfigComponent object using the key as the root for the new object.

@@ -15,7 +15,6 @@ Created on Mar 5, 2018
 '''
 
 from abc import abstractmethod
-import importlib
 from threading import Event
 
 import emews.base.baseobject
@@ -32,6 +31,19 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
         '''
         super(BaseService, self).__init__(config)
         self._service_interrupt_event = Event()  # used to interrupt Event.wait() on stop()
+
+        # instantiate any dependencies
+        if 'dependencies' in self.config:
+            self._dependencies = self.instantiate_dependencies(self.config['dependencies'])
+        else:
+            self._dependencies = None
+
+    @property
+    def dependencies(self):
+        '''
+        @Override returns the dependencies of this decorator, or None if none are defined
+        '''
+        return self._dependencies
 
     @property
     def interrupted(self):
