@@ -81,7 +81,8 @@ class BaseObject(object):
                                   dep_name, ex)
                 raise
             try:
-                class_object = emews.base.importclass.import_class(class_name, class_path)
+                class_object = emews.base.importclass.import_class_from_module(
+                    class_name, class_path)
             except ImportError as ex:
                 self.logger.error("Could not import dependency '%s': %s",
                                   dep_name, ex)

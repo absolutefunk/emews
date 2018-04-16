@@ -33,8 +33,8 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
         self._service_interrupt_event = Event()  # used to interrupt Event.wait() on stop()
 
         # instantiate any dependencies
-        if 'dependencies' in self.config:
-            self._dependencies = self.instantiate_dependencies(self.config['dependencies'])
+        if 'dependencies' in self.config.component_config:
+            self._dependencies = self.instantiate_dependencies(self.config.get('dependencies'))
         else:
             self._dependencies = None
 

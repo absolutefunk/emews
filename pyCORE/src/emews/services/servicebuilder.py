@@ -123,25 +123,25 @@ class ServiceBuilder(object):
             decorator_class_path = self.config.get_sys(
                 'paths', 'emews_pkg_service_decorators_path')
             self.logger.debug("Decorator module path: %s", decorator_class_path)
-            for service_decorator in service_config.get('decorators'):
+            for decorator_name, _ in service_config.get('decorators').iteritems():
                 self.logger.debug("Resolving decorator '%s' for %s.",
-                                  service_decorator, service_instantiation.__class__.__name__)
+                                  decorator_name, service_instantiation.__class__.__name__)
                 try:
                     current_instantiation = emews.base.importclass.import_class(
-                        service_decorator, decorator_class_path)(current_instantiation)
+                        decorator_name, decorator_class_path)(current_instantiation)
                 except KeyError as ex:
                     self.logger.error("(A key is missing from the config): %s", ex)
                     raise
                 except ImportError as ex:
                     self.logger.error("Module name '%s' could not be resolved into a module: %s",
-                                      service_decorator.lower(), ex)
+                                      decorator_name.lower(), ex)
                     raise
                 except AttributeError as ex:
                     self.logger.error("Decorator name '%s' could not be resolved into a class.",
-                                      service_decorator)
+                                      decorator_name)
                     self.logger.debug(ex)
                     raise
                 self.logger.debug("Decorator '%s' applied to %s.",
-                                  service_decorator, service_instantiation.__class__.__name__)
+                                  decorator_name, service_instantiation.__class__.__name__)
 
         return current_instantiation

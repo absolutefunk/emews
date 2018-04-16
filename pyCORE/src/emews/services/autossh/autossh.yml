@@ -19,17 +19,17 @@ config:  # service configuration
 dependencies:  # additional classes that this service requires
   command_sampler: # unique name to describe the dependency
     class: UniformSampler  # distribution to sample commands from
-    module: samplers.uniformsampler
+    module: emews.samplers.uniformsampler
     config:
       lower_bound: 1  # lower bound (sec)
       upper_bound: 5  # upper bound (sec)
 
 decorators:  # any decorators required need to be defined here
-- LoopedService:  # LoopedService decorator
+  LoopedService:  # LoopedService decorator
     dependencies:  # additional classes that this decorator requires
       loop_sampler: # unique name to describe the dependency
         class: UniformSampler  # distribution to sample service loop start time from
-        module: samplers.uniformsampler
+        module: emews.samplers.uniformsampler
         config:
           lower_bound: 120  # lower bound (sec)
           upper_bound: 3600  # upper bound (sec)
