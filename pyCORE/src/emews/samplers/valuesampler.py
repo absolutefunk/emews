@@ -3,7 +3,6 @@ ValueSampler: Abstract class for samplers.  These are classes which usually
 represent some distribution in which we can sample values from.
 
 Created on Feb 26, 2018
-
 @author: Brian Ricks
 '''
 from abc import abstractmethod, abstractproperty

@@ -1,9 +1,9 @@
 '''
-Created on Feb 26, 2018
+Samples from a unform distribution, given a lower and upper bound.
 
+Created on Feb 26, 2018
 @author: Brian Ricks
 '''
-
 import random
 
 import emews.samplers.valuesampler
@@ -12,7 +12,6 @@ class UniformSampler(emews.samplers.valuesampler.ValueSampler):
     '''
     classdocs
     '''
-
     def __init__(self, config):
         '''
         Constructor
@@ -39,12 +38,11 @@ class UniformSampler(emews.samplers.valuesampler.ValueSampler):
         args[1]=self._upper_bound
         '''
 
-        self._upper_bound = args[0]
-        self._upper_bound = args[1]
+        self._lower_bound = int(args[0])
+        self._upper_bound = int(args[1])
 
     def reset(self):
         '''
         Resets the sampler.  Here we reset the parameters to what they were on instantiation.
         '''
-        self._lower_bound = self.config.get('lower_bound')
-        self._upper_bound = self.config.get('upper_bound')
+        self.update_parameters(self.config.get('lower_bound'), self.config.get('upper_bound'))

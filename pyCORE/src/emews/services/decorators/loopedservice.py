@@ -4,10 +4,8 @@ This implies that the core functionality of the service itself is not infinite i
 but that its behavior needs to be looped for the service duration to be infinite.
 
 Created on Mar 5, 2018
-
 @author: Brian Ricks
 '''
-import emews.base.importclass
 from emews.services.decorators.servicedecorator import ServiceDecorator
 
 class LoopedService(ServiceDecorator):
@@ -19,15 +17,7 @@ class LoopedService(ServiceDecorator):
         Constructor
         '''
         super(LoopedService, self).__init__(recipient_service)
-
-        try:
-            # instantiate the sampler
-            self._sampler = emews.base.importclass.import_class(
-                self.config.get('sampler', 'class'),
-                self.config.get_sys('paths', 'emews_pkg_samplers_path'))()
-        except KeyError as ex:
-            self.logger.error("(A key is missing from the config): %s", ex)
-            raise
+        self._sampler = self.dependencies['loop_sampler']
 
     def start(self):
         '''
@@ -39,7 +29,6 @@ class LoopedService(ServiceDecorator):
         '''
         Runs the service in a loop based on the sampler
         '''
-
         while True:
             self.sleep(self._sampler.next_value())
 
@@ -54,7 +43,6 @@ class LoopedService(ServiceDecorator):
                 '''
                 self.logger.debug("Caught shutdown request...")
                 break
-            self.logger.debug("Starting service %s", super(LoopedService, self).__class__.__name__)
             super(LoopedService, self).start()
 
         self.logger.info("Exiting...")

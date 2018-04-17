@@ -1,12 +1,14 @@
 '''
-Created on Feb 23, 2018
+AutoSSH: Automates the process of a user logging into an SSH server, executing some commands, and
+logging out.  SSH server login rate and command execution rate are controlled by samplers set
+in the config.
 
+Created on Feb 23, 2018
 @author: Brian Ricks
 '''
 import random
 
 from pexpect import pxssh
-import emews.samplers.sequentialiterator as default_sampler
 import emews.services.baseservice
 
 class AutoSSH(emews.services.baseservice.BaseService):
@@ -18,63 +20,73 @@ class AutoSSH(emews.services.baseservice.BaseService):
         Constructor
         '''
         super(AutoSSH, self).__init__(config)
-        # class attributes
-        self._s = pxssh.pxssh()
 
-        self._host = None  # hostname of ssh server
-        self._port = None  # port of ssh server
+        # parameter checks
+        if self.config.get('server', 'host') is None:
+            self.logger.error("In config: server-->host cannot be empty")
+            raise ValueError("Configuration value is missing or invalid")
+        if self.config.get('server', 'port') is None or \
+            not 0 <= self.config.get('server', 'port') <= 65535:
+            self.logger.error("In config: server-->port must be an integer between [0-65535], "\
+                "%d given", self.config.get('server', 'port'))
+            raise ValueError("Configuration value is missing or invalid")
+        if self.config.get('server', 'username') is None:
+            self.logger.error("In config: server-->username cannot be empty")
+            raise ValueError("Configuration value is missing or invalid")
+        if self.config.get('server', 'password') is None:
+            self.logger.error("In config: server-->password cannot be empty")
+            raise ValueError("Configuration value is missing or invalid")
+        if self.config.get('command', 'command_count') is None or \
+            self.config.get('command', 'command_count') < 0:
+            self.logger.error("In config: command-->command_count must be a positive integer, "\
+                "%d given.", self.config.get('command', 'command_count'))
+            raise ValueError("Configuration value is missing or invalid")
+        if self.config.get('command', 'command_list') is None or \
+            not isinstance(self.config.get('command', 'command_list'), list):
+            self.logger.error("In config: command-->command_list must be a list")
+            raise ValueError("Configuration value is missing or invalid")
 
-        self._username = None  # username for ssh login
-        self._password = None  # password for ssh login
+        self._host = self.config.get('server', 'host')  # hostname of ssh server
+        self._port = self.config.get('server', 'port')  # port of ssh server
+        self._username = self.config.get('server', 'username')  # username for ssh login
+        self._password = self.config.get('server', 'password')  # password for ssh login
 
-        self._list_distribution = None  # distribution to sample list indices
-        self._command_count = None  # number of commands to execute before terminating
-        self._command_list = None  # list of commands to execute
+        # distribution to sample list indices
+        self._list_distribution = self.dependencies.get('command_sampler')
+        # number of commands to execute before terminating
+        self._command_count = self.config.get('command', 'command_count')
+        # list of commands to execute
+        self._command_list = self.config.get('command', 'command_list')
 
     def run_service(self):
         '''
         @Override Attempts to connect and login to the ssh server given with the
         credentials given.
         '''
+        try:
+            ssh_client = pxssh.pxssh()
+            ssh_client.login(self._host, self._username, password=self._password, port=self._port)
 
-        if self._host is None:
-            raise ValueError("[AutoSSH]: Host cannot be empty")
-        if self._port is None or not isinstance(self._port, int) or \
-                not 0 <= self._port <= 65535:
-            raise ValueError("[AutoSSH]: Port must be an integer between [0-65535]")
-        if self._username is None:
-            raise ValueError("[AutoSSH]: Username cannot be empty")
-        if self._password is None:
-            raise ValueError("[AutoSSH]: Password cannot be empty")
-        if self._command_count is None or not isinstance(self._command_count, int) or \
-                self._command_count < 0:
-            raise ValueError("[AutoSSH]: Command count must be a positive integer")
-        if self._command_list is None or not isinstance(self._command_list, list):
-            raise ValueError("[AutoSSH]: Command list must be a list")
+            # loop until command count reached
+            for _ in range(self._command_count - 1):
+                # check for event state first
+                if self._event.is_set():
+                    self.logger.debug("Caught stop request.")
+                    break
 
-        self._s.login(self._host, self._username, password=self._password, port=self._port)
+                next_command = self._command_list[self._list_distribution.next_value()]
+                self.logger.debug("Next Command: %s", next_command)
 
-        if self._list_distribution is None:
-            self._list_distribution = default_sampler.SequentualIterator(
-                0, len(self._command_list))
+                ssh_client.sendline(next_command)
+                ssh_client.prompt()
+                print ssh_client.before
 
-        # loop until command count reached
-        for _ in range(self._command_count - 1):
-            # check for event state first
-            if self._event.is_set():
-                print "[AutoSSH]: caught stop request"
-                break
+                # introduce a delay to simulate user looking at results before
+                # typing next command
+                self._event.wait(random.randint(1, 8))
 
-            next_command = self._command_list[self._list_distribution.next_value()]
-            print "[AutoSSH]: Next Command: " + next_command
-
-            self._s.sendline(next_command)
-            self._s.prompt()
-            print self._s.before
-
-            # introduce a delay to simulate user looking at results before
-            # typing next command
-            self._event.wait(random.randint(1, 8))
-
-        print "[AutoSSH]: Done executing commands, logging out..."
-        self._s.logout()
+            self.logger.debug("Done executing commands, logging out...")
+            ssh_client.logout()
+        except pxssh.ExceptionPxssh as ex:
+            self.logger.warning("Exception with pxssh: %s", ex)
+            return

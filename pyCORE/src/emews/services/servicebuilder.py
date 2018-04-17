@@ -2,14 +2,14 @@
 Builder for services.  Handles things such as configuration and which service to actually build.
 
 Created on Apr 2, 2018
-
 @author: Brian Ricks
 '''
+import emews.base.baseobject
 import emews.base.config
 from emews.base.configcomponent import ConfigComponent
 import emews.base.importclass
 
-class ServiceBuilder(object):
+class ServiceBuilder(emews.base.baseobject.BaseObject):
     '''
     classdocs
     '''
@@ -17,9 +17,9 @@ class ServiceBuilder(object):
         '''
         Constructor
         '''
-        self._sys_config = sys_config
-        self._logger = self._sys_config.logger
+        super(ServiceBuilder, self).__init__(sys_config)
 
+        self._is_interrupted = False
         self._config_component = None
         self._service_config = None
         self._service_class = None
@@ -31,19 +31,12 @@ class ServiceBuilder(object):
         '''
         return self.__build_service()
 
-    @property
-    def logger(self):
+    def stop(self):
         '''
-        returns the logger object
+        Sets a stop flag.  Only useful if builder is instantiating decorators in a loop.
         '''
-        return self._logger
-
-    @property
-    def config(self):
-        '''
-        returns the system configuration object
-        '''
-        return self._sys_config
+        self.logger.debug("Stop flag set.")
+        self._is_interrupted = True
 
     def service(self, val_service_name):
         '''
@@ -114,6 +107,8 @@ class ServiceBuilder(object):
             self.logger.debug(ex)
             raise
 
+        self.logger.debug("Service class '%s' instantiated.",
+                          service_instantiation.__class__.__name__)
         current_instantiation = service_instantiation
         # Check config for decorators, and add any found.  Note, the structure in the config in
         # regards to decorators needs to follow a specific ordering:
@@ -124,6 +119,9 @@ class ServiceBuilder(object):
                 'paths', 'emews_pkg_service_decorators_path')
             self.logger.debug("Decorator module path: %s", decorator_class_path)
             for decorator_name, _ in service_config.get('decorators').iteritems():
+                if self._is_interrupted:
+                    return None
+
                 self.logger.debug("Resolving decorator '%s' for %s.",
                                   decorator_name, service_instantiation.__class__.__name__)
                 try:
@@ -133,11 +131,11 @@ class ServiceBuilder(object):
                     self.logger.error("(A key is missing from the config): %s", ex)
                     raise
                 except ImportError as ex:
-                    self.logger.error("Module name '%s' could not be resolved into a module: %s",
+                    self.logger.error("Module '%s' could not be resolved into a module: %s",
                                       decorator_name.lower(), ex)
                     raise
                 except AttributeError as ex:
-                    self.logger.error("Decorator name '%s' could not be resolved into a class.",
+                    self.logger.error("Decorator '%s' could not be resolved into a class.",
                                       decorator_name)
                     self.logger.debug(ex)
                     raise

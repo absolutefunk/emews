@@ -8,6 +8,7 @@ Created on Apr 11, 2018
 @author: Brian Ricks
 '''
 import argparse
+import signal
 
 import emews.base.config
 import emews.services.servicebuilder
@@ -22,6 +23,29 @@ def main():
     parser.add_argument("-c", "--service_config", help="path of the service config file")
     parser.add_argument("service", help="name of the service class to load")
     args = parser.parse_args()
+
+    service_instance = None
+    def shutdown_signal_handler(signum, frame):
+        '''
+        Called when a registered signal is caught (ctrl-c for example).
+        Relays to running service to gracefully shutdown.
+        '''
+        if service_builder is None:
+            # interrupt occurred before servicebuilder instantiation
+            print "Caught signal %s, shutting down." % signum
+            return
+        elif service_instance is None:
+            # interrupt occurred before service instantiation
+            print "Caught signal %s, shutting down." % signum
+            service_builder.stop()
+            return
+
+        service_instance.logger.info("Caught signal %s, shutting down service.", signum)
+        service_instance.stop()
+
+    # register signals (this is done in ConnectionManager if running the emews daemon)
+    signal.signal(signal.SIGHUP, shutdown_signal_handler)
+    signal.signal(signal.SIGINT, shutdown_signal_handler)
 
     sys_config_path = "../system.yml" if args.sys_config is None else args.sys_config
     service_config_path = "../services/" + args.service.lower() + "/" + \
@@ -44,9 +68,9 @@ def main():
         service_instance = service_builder.result
     except StandardError as ex:
         print ex
-        raise
         return
 
+    service_instance.logger.info("Starting service '%s'.", service_instance.__class__.__name__)
     service_instance.start()
 
 if __name__ == '__main__':

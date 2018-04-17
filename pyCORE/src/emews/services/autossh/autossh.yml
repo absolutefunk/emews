@@ -31,5 +31,5 @@ decorators:  # any decorators required need to be defined here
         class: UniformSampler  # distribution to sample service loop start time from
         module: emews.samplers.uniformsampler
         config:
-          lower_bound: 120  # lower bound (sec)
-          upper_bound: 3600  # upper bound (sec)
+          lower_bound: 3  # lower bound (sec)
+          upper_bound: 6  # upper bound (sec)

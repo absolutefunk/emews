@@ -2,7 +2,6 @@
 Individual component configuration.
 
 Created on Mar 30, 2018
-
 @author: Brian Ricks
 '''
 
@@ -20,6 +19,9 @@ class ConfigComponent(object):
         '''
         Returns a value from the config dictionay.
         '''
+        if self._config is None:
+            return None
+
         config = self._config
         for key in keys:
             config = config.get(key)

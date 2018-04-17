@@ -158,7 +158,12 @@ class Config(object):
         '''
         returns a value given the keys from the component config
         '''
-        return self._component_config.get(*keys)
+        try:
+            ret_val = self._component_config.get(*keys)
+        except KeyError:
+            return None
+
+        return ret_val
 
     def get_sys(self, *keys):
         '''

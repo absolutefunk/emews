@@ -43,7 +43,7 @@ class BaseObject(object):
         '''
         self._config = config
         # base logger is instantiated in the config object
-        self._logger = ThreadLoggerAdapter(self.config.logger, self._config.context_name)
+        self._logger = ThreadLoggerAdapter(self._config.logger, self._config.context_name)
 
     @property
     def logger(self):
@@ -90,7 +90,7 @@ class BaseObject(object):
 
             # if the dependency has config options, then clone a new config object with it
             if 'config' in dependency:
-                dep_config = self.config.clone_with_dict(dependency['config'])
+                dep_config = self._config.clone_with_dict(dependency['config'])
                 self.logger.debug("Found config information for '%s'.", dep_name)
             else:
                 dep_config = None

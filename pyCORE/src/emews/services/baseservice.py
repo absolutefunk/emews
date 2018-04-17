@@ -31,12 +31,30 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
         '''
         super(BaseService, self).__init__(config)
         self._service_interrupt_event = Event()  # used to interrupt Event.wait() on stop()
+        self._interrupted = False  # set to true on stop()
 
         # instantiate any dependencies
-        if 'dependencies' in self.config.component_config:
-            self._dependencies = self.instantiate_dependencies(self.config.get('dependencies'))
+        if 'dependencies' in self.base_config.component_config:
+            self._dependencies = self.instantiate_dependencies(
+                self.base_config.get('dependencies'))
         else:
             self._dependencies = None
+
+        self._service_config = self.base_config.extract_with_key('config')
+
+    @property
+    def config(self):
+        '''
+        @Override Returns the service key of the config as a ConfigComponent.
+        '''
+        return self._service_config
+
+    @property
+    def base_config(self):
+        '''
+        returns the entire config
+        '''
+        return super(BaseService, self).config
 
     @property
     def dependencies(self):
@@ -50,7 +68,7 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
         '''
         Returns true if the service has been interrupted (requested to stop).  Uses events.
         '''
-        return self._service_interrupt_event.is_set
+        return self._interrupted
 
     def sleep(self, time):
         '''
@@ -70,12 +88,14 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
         '''
         @Override Starts the service.
         '''
-        self._logger.info("Service starting.")
+        self.logger.info("Service starting.")
         self.run_service()
+        self.logger.info("Service stopping.")
 
     def stop(self):
         '''
         @Override Gracefully exit service
         '''
-        self._logger.info("Service stopping.")
+        self.logger.debug("Stop request received.")
         self._service_interrupt_event.set()
+        self._interrupted = True
