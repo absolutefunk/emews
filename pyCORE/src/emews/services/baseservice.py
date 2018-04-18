@@ -90,12 +90,14 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
         '''
         self.logger.info("Service starting.")
         self.run_service()
-        self.logger.info("Service stopping.")
+        if self._interrupted:
+            self.logger.debug("Service stopping (requested)...")
+        else:
+            self.logger.debug("Service stopping (finished)...")
 
     def stop(self):
         '''
         @Override Gracefully exit service
         '''
-        self.logger.debug("Stop request received.")
         self._service_interrupt_event.set()
         self._interrupted = True

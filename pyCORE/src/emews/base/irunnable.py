@@ -26,6 +26,6 @@ class IRunnable(object):
     @abstractmethod
     def start(self):
         '''
-        Called by ThreadWrapper as the target.
+        Called to start execution of implementing task.
         '''
         pass

@@ -24,7 +24,7 @@ logging:
     version: 1
     formatters:
       default:
-        format: '[%(asctime)s] %(nodename)-12.12s | %(threadname)-12.12s [%(levelname)-8.8s | %(module)-16.16s | %(funcName)-16.16s]: %(message)s'
+        format: '[%(asctime)s] %(nodename)-12.12s | %(threadName)-16.16s [%(levelname)-8.8s | %(module)-16.16s | %(funcName)-16.16s]: %(message)s'
     handlers:
       console:
         class: logging.StreamHandler

@@ -2,7 +2,6 @@
 Wraps an object to provide threading support.
 
 Created on Mar 26, 2018
-
 @author: Brian Ricks
 '''
 import threading
@@ -19,10 +18,11 @@ class ThreadWrapper(emews.base.irunnable.IRunnable):
         '''
         Constructor
         '''
-        self._thread_name = self.__class__.__name__ + "-%d" % ThreadWrapper.__current_thread_id
-        self._wrapped_object = wrapped_object
+        self._thread_name = wrapped_object.__class__.__name__ + "-%d" % \
+            ThreadWrapper.__current_thread_id
+        ThreadWrapper.__current_thread_id += 1
 
-        # Target is outside the class.  We pass this instance to it.
+        self._wrapped_object = wrapped_object
         self._thread = threading.Thread(name=self._thread_name, target=self.run_thread)
 
         if autostart:
@@ -37,9 +37,8 @@ class ThreadWrapper(emews.base.irunnable.IRunnable):
 
     def start(self):
         '''
-        starts the thread
+        @Override starts the thread
         '''
-        self._wrapped_object.context_name(self._thread_name)
         self._thread.start()
 
     def run_thread(self):
@@ -50,6 +49,12 @@ class ThreadWrapper(emews.base.irunnable.IRunnable):
 
     def stop(self):
         '''
-        Should enable graceful shutdown of this thread.
+        @Override Should enable graceful shutdown of this thread.
         '''
         self._wrapped_object.stop()
+
+    def join(self):
+        '''
+        Invokes the join method of threading.Thread.
+        '''
+        self._thread.join()

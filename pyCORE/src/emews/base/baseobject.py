@@ -11,27 +11,6 @@ import logging
 
 import emews.base.importclass
 
-class ThreadLoggerAdapter(logging.LoggerAdapter):
-    '''
-    Updates the thread name from the default one (<main>) to the name of this thread.
-    '''
-    def __init__(self, logger_instance, thr_name, extra=None):
-        '''
-        Constructor
-        '''
-        super(ThreadLoggerAdapter, self).__init__(logger_instance, extra)
-        self._logkw_thread_name = thr_name
-
-    def process(self, msg, kwargs):
-        '''
-        @Override of logging.LoggerAdapter process() method.
-        Replaces the value of 'threadname' with the name of thread passed (in 'extra').
-        '''
-        if 'threadname' in kwargs:
-            kwargs['threadname'] = self._logkw_thread_name
-
-        return msg, kwargs
-
 class BaseObject(object):
     '''
     classdocs
@@ -42,8 +21,8 @@ class BaseObject(object):
         (system configuration, object configuration...)
         '''
         self._config = config
-        # base logger is instantiated in the config object
-        self._logger = ThreadLoggerAdapter(self._config.logger, self._config.context_name)
+        self._logger = logging.LoggerAdapter(logging.getLogger(
+            self._config.get_sys('logging', 'base_logger')), {'nodename': self._config.nodename})
 
     @property
     def logger(self):
@@ -58,13 +37,6 @@ class BaseObject(object):
         returns the configuration object
         '''
         return self._config
-
-    def context_name(self, context):
-        '''
-        Updates the context name of the object.  Usually refers to name of active thread in which
-        this object belongs.
-        '''
-        self._config = self._config.clone_with_context(context)
 
     def instantiate_dependencies(self, deps_config):
         '''

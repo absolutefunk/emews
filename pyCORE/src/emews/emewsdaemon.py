@@ -13,7 +13,7 @@ Created on Mar 24, 2018
 
 @author: Brian Ricks
 '''
-import sys
+import argparse
 
 import emews.base.config
 from emews.base.connectionmanager import ConnectionManager
@@ -23,29 +23,27 @@ def main():
     '''
     main function
     '''
-    # Get the config file path
-    # argv[1] = node name
-    # argv[2] = conf file path (including filename)
-    if len(sys.argv) != 3:
-        print "Usage: %s <node_name> <config_file>\nwhere <config_file> is the path "\
-              "(including filename) of the emews daemon config file." % sys.argv[0]
-        return
+    parser = argparse.ArgumentParser(description='emews network node daemon')
+    parser.add_argument("-s", "--sys_config", help="path of the emews system config file "\
+    "(default: emews root)")
+    parser.add_argument("node_name", help="name of the node this daemon launches under")
+    args = parser.parse_args()
+
+    sys_config_path = "../system.yml" if args.sys_config is None else args.sys_config
+
+    print "emews %s" % __version__
+    print "  Using system config path: " + sys_config_path
 
     try:
-        config = emews.config.Config(sys.argv[1], sys.argv[2])
+        config = emews.base.config.Config(args.node_name, sys_config_path)
     except StandardError as ex:
         print ex
         return
 
-    logger = config.logger
-
-    logger.debug("conf path: %s", emews.config.prepend_path(sys.argv[2]))
-    logger.info("emews %s", __version__)
-
     connection_manager = ConnectionManager(config)
     connection_manager.start()
 
-    logger.info("emews shutdown")
+    print "emews shutdown"
 
 if __name__ == '__main__':
     main()

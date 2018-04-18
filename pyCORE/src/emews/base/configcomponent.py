@@ -4,6 +4,21 @@ Individual component configuration.
 Created on Mar 30, 2018
 @author: Brian Ricks
 '''
+import numbers
+
+def keychain_str(target_key, *keys):
+    '''
+    returns the keychain string
+    '''
+    key_chain = []
+    for key in keys:
+        if key is target_key:
+            key_chain.append(key)
+            break
+        key_chain.append(key)
+
+    return "-->".join(key_chain)
+
 
 class ConfigComponent(object):
     '''
@@ -19,12 +34,17 @@ class ConfigComponent(object):
         '''
         Returns a value from the config dictionay.
         '''
-        if self._config is None:
-            return None
-
         config = self._config
         for key in keys:
-            config = config.get(key)
+            if config is None or isinstance(config, (basestring, numbers.Number)):
+                # Implies that 'config is actually a value (we use ValueError instead of KeyError
+                # due to KeyError quoting the message, and also to consolidate this with ValueError
+                # exceptions often raised when checking parameters originating from here).
+                raise ValueError(
+                    "keychain '%s': reached value '%s' before using key '%s' (key doesn't exist)."
+                    % (keychain_str(key, *keys), config, key))
+
+            config = config[key]
 
         return config
 

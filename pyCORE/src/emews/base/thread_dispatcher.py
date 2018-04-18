@@ -2,13 +2,12 @@
 Handles thread management.  Acts as a dispatcher for threads.
 
 Created on Mar 30, 2018
-
 @author: Brian Ricks
 '''
 import threading
 from weakref import WeakSet
 
-import emews.base.basedispatcher
+import emews.base.baseobject
 from emews.base.threadwrapper import ThreadWrapper
 
 def thread_names_str():
@@ -21,11 +20,9 @@ def thread_names_str():
 
     return ", ".join(thread_names)
 
-class ThreadDispatcher(emews.base.basedispatcher.BaseDispatcher):
+class ThreadDispatcher(emews.base.baseobject.BaseObject):
     '''
-    Dispatches and manages active threads (ManagedThread).
-    The following events are used:
-    stop_thread: called when subscribing threads need to shut down
+    Dispatches and manages active threads.
     '''
     def __init__(self, config):
         '''
@@ -48,26 +45,26 @@ class ThreadDispatcher(emews.base.basedispatcher.BaseDispatcher):
         wrap around ThreadWrapper.
         '''
         wrapped_object = ThreadWrapper(object_instance)
-
-        # subscribe wrapped_object to our 'stop_thread' event
-        self.subscribe('stop_thread', wrapped_object.stop)
         # we also need to store the thread reference itself, so shutting down all threads we can
         # join each thread
         self._active_threads.add(wrapped_object)
 
-        self.logger.info("Spawned service '%s' under thread %s.", object_instance,
-                         object_instance.context_name)
+        self.logger.info("Spawned service '%s' under thread %s.",
+                         object_instance.__class__.__name__, wrapped_object.name)
+        self.logger.debug("Active dispatched thread count: %d", self.count)
+        self.logger.debug("Active threads: %s", thread_names_str())
 
     def shutdown_all_threads(self):
         '''
-        Shuts down all the running threads.
-        Called from a dispatcher which signals that it's time to shutdown everything.
+        Shuts down all the running threads.  Called to signal that it's time to shutdown everything.
         '''
-        self._logger.info("%d running thread(s) to shutdown.", self._thr_state.count)
+        self._logger.info("%d dispatched thread(s) to shutdown.", self.count)
 
-        self.dispatch('stop_thread')  # tells all subscribers to shutdown
+        if self.count > 0:
+            for active_thread in self._active_threads:
+                active_thread.stop()
 
-        for active_thread in self._thr_state.active_threads:
-            # Wait for each service to shutdown.  We put this in a separate loop so each service
-            # will get the shutdown request first, and can shutdown concurrently.
-            active_thread.join()
+            for active_thread in self._active_threads:
+                # Wait for each service to shutdown.  We put this in a separate loop so each service
+                # will get the shutdown request first, and can shutdown concurrently.
+                active_thread.join()

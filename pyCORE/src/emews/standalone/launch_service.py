@@ -17,7 +17,7 @@ def main():
     '''
     main function
     '''
-    parser = argparse.ArgumentParser(description='Emews standalone service launcher.')
+    parser = argparse.ArgumentParser(description='emews standalone service launcher')
     parser.add_argument("-s", "--sys_config", help="path of the emews system config file "\
     "(default: emews root)")
     parser.add_argument("-c", "--service_config", help="path of the service config file")

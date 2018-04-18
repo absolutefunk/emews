@@ -6,6 +6,7 @@ Created on Apr 6, 2018
 
 @author: Brian Ricks
 '''
+import emews.base.baseobject
 from emews.services.servicebuilder import ServiceBuilder
 
 class CommandException(Exception):
@@ -14,37 +15,22 @@ class CommandException(Exception):
     '''
     pass
 
-class CommandHandler(object):
+class CommandHandler(emews.base.baseobject.BaseObject):
     '''
     classdocs
     '''
-    def __init__(self, sys_config, thread_dispatcher):
+    def __init__(self, config, thread_dispatcher):
         '''
         Constructor
         '''
+        super(CommandHandler, self).__init__(config)
         # currently supported commands
         self._COMMAND_MAPPING = {
             'S': self.__do_makeservice,  # add a service
             'E': self.__do_exit,         # exit
         }
 
-        self._sys_config = sys_config
-        self._logger = self.config.logger
         self._thread_dispatcher = thread_dispatcher
-
-    @property
-    def logger(self):
-        '''
-        returns the logger object
-        '''
-        return self._logger
-
-    @property
-    def config(self):
-        '''
-        returns the system configuration object
-        '''
-        return self._sys_config
 
     def process(self, cmd_tuple):
         '''
@@ -55,8 +41,8 @@ class CommandHandler(object):
         self.logger.debug("Command: %s, Arg: %s", cmd_tuple[0], cmd_tuple[1])
 
         if not cmd_tuple[0] in self._COMMAND_MAPPING:
-            self.logger.warning("Command %s not recognized.", cmd_tuple[0])
-            raise CommandException("Command %s not recognized." % cmd_tuple[0])
+            self.logger.warning("Command '%s' not recognized.", cmd_tuple[0])
+            raise CommandException("Client command %s not recognized." % cmd_tuple[0])
 
         return self._COMMAND_MAPPING[cmd_tuple[0]](cmd_tuple[1])
 

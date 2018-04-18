@@ -22,7 +22,7 @@ class ClientSession(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunn
         '''
         Constructor
         '''
-        super(ClientSession, self).__init__(self, sys_config)
+        super(ClientSession, self).__init__(sys_config)
 
         # currently supported acks
         self._ACK_MSG = {
@@ -41,18 +41,9 @@ class ClientSession(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunn
         self._interrupted = False  # true if stop() invoked (used to make sure shutdown called once)
 
         # CommandHandler (handles command processing, service spawning, etc...)
-        self._command_handler = emews.base.commmandhandler.CommandHandler(
+        self._command_handler = emews.base.commandhandler.CommandHandler(
             self.config, thread_dispatcher)
         self._command_count = 0  # successful commands processed
-
-    def stop(self):
-        '''
-        @Override from IRunnable
-        We call socket shutdown as that will close the session and unblock the select.
-        '''
-        self.logger.info("Stop request received.  Shutting down.")
-        self._interrupted = True
-        self._sock.shutdown(socket.SHUT_RDWR)
 
     def start(self):
         '''
@@ -64,15 +55,15 @@ class ClientSession(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunn
             self._sock.shutdown(socket.SHUT_RDWR)
 
         self._sock.close()
-        self.logger.info("%d commands processed.", self._command_count)
+        self.logger.info("%d commands processed. Connection to client closed.", self._command_count)
 
-        if not self._interrupted:
-            # TODO: this is now handled in ManagedThread
-            # Remove self from active thread list in ConnectionManager.
-            # Note, if shutting down due to interrupt, then most likely triggered by the
-            # ServiceManager, so we don't want to delete the reference from its list as the
-            # ServiceManager is still using the list.
-            self._callback_exit(self)
+    def stop(self):
+        '''
+        @Override from IRunnable
+        We call socket shutdown as that will close the session and unblock the select.
+        '''
+        self._interrupted = True
+        self._sock.shutdown(socket.SHUT_RDWR)
 
     def __listen(self):
         '''
@@ -87,7 +78,9 @@ class ClientSession(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunn
                 # something happened or we were told to exit, time to exit
                 break
 
-        return
+        if self._interrupted:
+            # called here to reflect the proper threadName in the log
+            self.logger.debug("Stop request received.  Shutting down...")
 
     def get_line(self):
         '''
@@ -120,8 +113,6 @@ class ClientSession(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunn
             if not data:
                 if not self._interrupted:
                     self.logger.warning("Session abruptly closed.")
-                else:
-                    self.logger.debug("Session closed.")
                 return ""
 
             chunk_count += 1
@@ -179,9 +170,7 @@ class ClientSession(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunn
         # delegate to CommandHandler
         try:
             result_continue = self._command_handler.process(cmd_tuple)
-        except emews.base.commandhandler.CommandException as ex:
-            # bad command or arg, or some other issue occurred with command processing
-            self.logger.debug(ex)
+        except emews.base.commandhandler.CommandException:
             # If the ACK fails to send, then it's time to shut down the listener.
             return self.__send_ack(self._ACK_MSG['fail'])
 
