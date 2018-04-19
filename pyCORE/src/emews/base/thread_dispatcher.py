@@ -49,7 +49,7 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
         # join each thread
         self._active_threads.add(wrapped_object)
 
-        self.logger.info("Spawned service '%s' under thread %s.",
+        self.logger.info("Spawned service '%s' under thread '%s'.",
                          object_instance.__class__.__name__, wrapped_object.name)
         self.logger.debug("Active dispatched thread count: %d", self.count)
         self.logger.debug("Active threads: %s", thread_names_str())

@@ -9,9 +9,11 @@ Created on Apr 11, 2018
 '''
 import argparse
 import signal
+import os
 
 import emews.base.config
 import emews.services.servicebuilder
+import emews.version
 
 def main():
     '''
@@ -47,13 +49,16 @@ def main():
     signal.signal(signal.SIGHUP, shutdown_signal_handler)
     signal.signal(signal.SIGINT, shutdown_signal_handler)
 
-    sys_config_path = "../system.yml" if args.sys_config is None else args.sys_config
-    service_config_path = "../services/" + args.service.lower() + "/" + \
-                          args.service.lower() + ".yml"
+    sys_config_path = os.path.join(os.path.dirname(emews.version.__file__), "system.yml")\
+                                   if args.sys_config is None else args.sys_config
+    service_config_path = args.service_config  # if this is none, default will be attempted
 
     print "emews standalone service launcher"
     print "  Using system config path: " + sys_config_path
-    print "  Using service config path: " + service_config_path
+    if service_config_path is not None:
+        print "  Using service config path: " + service_config_path
+    else:
+        print "  Using service config path: <none>"
 
     try:
         sys_config = emews.base.config.Config('standalone', sys_config_path)

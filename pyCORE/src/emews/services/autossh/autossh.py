@@ -22,41 +22,25 @@ class AutoSSH(emews.services.baseservice.BaseService):
         super(AutoSSH, self).__init__(config)
 
         # parameter checks
-        if self.config.get('server', 'host') is None:
-            self.logger.error("In config: server-->host cannot be empty")
-            raise ValueError("Configuration value is missing or invalid")
-        if self.config.get('server', 'port') is None or \
-            not 0 <= self.config.get('server', 'port') <= 65535:
-            self.logger.error("In config: server-->port must be an integer between [0-65535], "\
-                "%d given", self.config.get('server', 'port'))
-            raise ValueError("Configuration value is missing or invalid")
-        if self.config.get('server', 'username') is None:
-            self.logger.error("In config: server-->username cannot be empty")
-            raise ValueError("Configuration value is missing or invalid")
-        if self.config.get('server', 'password') is None:
-            self.logger.error("In config: server-->password cannot be empty")
-            raise ValueError("Configuration value is missing or invalid")
-        if self.config.get('command', 'command_count') is None or \
-            self.config.get('command', 'command_count') < 0:
-            self.logger.error("In config: command-->command_count must be a positive integer, "\
-                "%d given.", self.config.get('command', 'command_count'))
-            raise ValueError("Configuration value is missing or invalid")
-        if self.config.get('command', 'command_list') is None or \
-            not isinstance(self.config.get('command', 'command_list'), list):
-            self.logger.error("In config: command-->command_list must be a list")
-            raise ValueError("Configuration value is missing or invalid")
+        if self.config is None:
+            self.logger.error("Service config is empty. Is a valid service config specified?")
+            raise ValueError("Service config is empty")
 
-        self._host = self.config.get('server', 'host')  # hostname of ssh server
-        self._port = self.config.get('server', 'port')  # port of ssh server
-        self._username = self.config.get('server', 'username')  # username for ssh login
-        self._password = self.config.get('server', 'password')  # password for ssh login
+        try:
+            self._host = self.config.get('server', 'host')  # hostname of ssh server
+            self._port = self.config.get('server', 'port')  # port of ssh server
+            self._username = self.config.get('server', 'username')  # username for ssh login
+            self._password = self.config.get('server', 'password')  # password for ssh login
 
-        # distribution to sample list indices
-        self._list_distribution = self.dependencies.get('command_sampler')
-        # number of commands to execute before terminating
-        self._command_count = self.config.get('command', 'command_count')
-        # list of commands to execute
-        self._command_list = self.config.get('command', 'command_list')
+            # distribution to sample list indices
+            self._list_distribution = self.dependencies.get('command_sampler')
+            # number of commands to execute before terminating
+            self._command_count = self.config.get('command', 'command_count')
+            # list of commands to execute
+            self._command_list = self.config.get('command', 'command_list')
+        except ValueError as ex:
+            self.logger.error(ex)
+            raise
 
     def run_service(self):
         '''

@@ -34,13 +34,15 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
         self._interrupted = False  # set to true on stop()
 
         # instantiate any dependencies
-        if 'dependencies' in self.base_config.component_config:
-            self._dependencies = self.instantiate_dependencies(
-                self.base_config.get('dependencies'))
+        if self.base_config.component_config is not None:
+            self._service_config = self.base_config.extract_with_key('config')
+            if 'dependencies' in self.base_config.component_config:
+                self._dependencies = self.instantiate_dependencies(
+                    self.base_config.get('dependencies'))
+            else:
+                self._dependencies = None
         else:
-            self._dependencies = None
-
-        self._service_config = self.base_config.extract_with_key('config')
+            self._service_config = None
 
     @property
     def config(self):
@@ -88,7 +90,7 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
         '''
         @Override Starts the service.
         '''
-        self.logger.info("Service starting.")
+        self.logger.debug("Service starting.")
         self.run_service()
         if self._interrupted:
             self.logger.debug("Service stopping (requested)...")

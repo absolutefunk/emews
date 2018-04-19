@@ -13,6 +13,7 @@ import os
 
 from ruamel.yaml import YAML
 
+import emews.version
 import emews.base.configcomponent
 
 def parse(filename):
@@ -46,9 +47,9 @@ class Config(object):
         Constructor
         '''
         self._nodename = nodename
+        self._project_root = os.path.dirname(emews.version.__file__)
 
-        self._sys_config = emews.base.configcomponent.ConfigComponent(
-            parse(prepend_path(sys_config_path)))
+        self._sys_config = emews.base.configcomponent.ConfigComponent(parse(sys_config_path))
 
         #configure logging
         logging.config.dictConfig(self._sys_config.get('logging', 'log_conf'))
@@ -68,6 +69,13 @@ class Config(object):
         returns the component config object
         '''
         return self._component_config
+
+    @property
+    def root_path(self):
+        '''
+        returns the root path (where __main__ is located)
+        '''
+        return self._project_root
 
     def clone_with_new(self, component_config_path):
         '''

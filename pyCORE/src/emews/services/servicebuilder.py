@@ -4,6 +4,8 @@ Builder for services.  Handles things such as configuration and which service to
 Created on Apr 2, 2018
 @author: Brian Ricks
 '''
+import os
+
 import emews.base.baseobject
 import emews.base.config
 from emews.base.configcomponent import ConfigComponent
@@ -67,12 +69,25 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         Sets the configuration component for the service.  Parsing of the config path is done
         now for caching.
         '''
-        if val_config_path is None:
+        if val_config_path is None and self._service_class is not None:
+            # attempt to resolve config file from default service config path and service class
+            service_config_path = os.path.join(self.config.root_path, "services",
+                                               self._service_class.__name__.lower(),
+                                               self._service_class.__name__.lower() + ".yml")
+            self.logger.info("No configuration file given, attempting to load default: %s",
+                             service_config_path)
+            try:
+                config_dict = emews.base.config.parse(service_config_path)
+            except IOError as ex:
+                self.logger.info("Could not load default configuration, continuing with none...")
+                return
+            self.logger.info("Loaded default configuration: %s", service_config_path)
+            self._config_component = ConfigComponent(config_dict)
             return
 
         config_try_again = False
         try:
-            config_dict = emews.base.config.parse(emews.base.config.prepend_path(val_config_path))
+            config_dict = emews.base.config.parse(val_config_path)
         except IOError as ex:
             # config file only may be given, try to prepend path to same folder as service module
             self.logger.warning("Service configuration could not be loaded, trying service path...")
@@ -81,8 +96,9 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
 
         if config_try_again:
             try:
-                config_dict = emews.base.config.parse(emews.base.config.prepend_path(
-                    "../services/" + self._service_class.__name__.lower() + "/" + val_config_path))
+                config_dict = emews.base.config.parse(os.path.join(
+                    self.config.root_path, "services", self._service_class.__name__.lower(),
+                    val_config_path))
             except IOError as ex:
                 self.logger.error("Service configuration '%s' could not be loaded.",
                                   val_config_path)
@@ -98,13 +114,12 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         if self._config_component is not None:
             service_config = self.config.clone_with_config(self._config_component)
         else:
-            service_config = self.config
+            service_config = self.config.clone_with_config(None)
 
         try:
             service_instantiation = self._service_class(service_config)
-        except StandardError as ex:
+        except StandardError:
             self.logger.error("Service class could not be instantiated.")
-            self.logger.debug(ex)
             raise
 
         self.logger.debug("Service class '%s' instantiated.",

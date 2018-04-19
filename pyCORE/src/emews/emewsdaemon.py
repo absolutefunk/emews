@@ -14,10 +14,11 @@ Created on Mar 24, 2018
 @author: Brian Ricks
 '''
 import argparse
+import os
 
 import emews.base.config
 from emews.base.connectionmanager import ConnectionManager
-from emews.version import __version__
+import emews.version
 
 def main():
     '''
@@ -29,9 +30,10 @@ def main():
     parser.add_argument("node_name", help="name of the node this daemon launches under")
     args = parser.parse_args()
 
-    sys_config_path = "../system.yml" if args.sys_config is None else args.sys_config
+    sys_config_path = os.path.join(os.path.dirname(emews.version.__file__), "system.yml")\
+        if args.sys_config is None else args.sys_config
 
-    print "emews %s" % __version__
+    print "emews %s" % emews.version.__version__
     print "  Using system config path: " + sys_config_path
 
     try:

@@ -10,6 +10,7 @@ Created on Apr 9, 2018
 import logging
 
 import emews.base.importclass
+import emews.base.configcomponent
 
 class BaseObject(object):
     '''
@@ -75,4 +76,4 @@ class BaseObject(object):
                 raise
             self.logger.debug("Dependency '%s' instantiated.", dep_name)
 
-        return dependency_instantiation_dict
+        return emews.base.configcomponent.ConfigComponent(dependency_instantiation_dict)

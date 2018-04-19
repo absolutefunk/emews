@@ -34,9 +34,14 @@ class ConfigComponent(object):
         '''
         Returns a value from the config dictionay.
         '''
+        if self._config is None:
+            # nothing to get
+            raise ValueError(
+                "keychain '%s': config dictionary is empty." % keychain_str(None, *keys))
+
         config = self._config
         for key in keys:
-            if config is None or isinstance(config, (basestring, numbers.Number)):
+            if isinstance(config, (basestring, numbers.Number)):
                 # Implies that 'config is actually a value (we use ValueError instead of KeyError
                 # due to KeyError quoting the message, and also to consolidate this with ValueError
                 # exceptions often raised when checking parameters originating from here).
@@ -44,7 +49,10 @@ class ConfigComponent(object):
                     "keychain '%s': reached value '%s' before using key '%s' (key doesn't exist)."
                     % (keychain_str(key, *keys), config, key))
 
-            config = config[key]
+            config = config.get(key)
+            if config is None:
+                raise ValueError("keychain '%s': key '%s' doesn't exist in config dictionary."
+                                 % (keychain_str(key, *keys), key))
 
         return config
 
