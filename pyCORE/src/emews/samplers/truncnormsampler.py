@@ -1,6 +1,8 @@
 '''
-Created on Feb 26, 2018
+Centered positive truncated normal sampler.  Mu is defined as the median in
+[lower_bound, upper_bound], and lower_bound = 0.
 
+Created on Feb 26, 2018
 @author: Brian Ricks
 '''
 
@@ -11,50 +13,43 @@ class TruncnormSampler(emews.samplers.valuesampler.ValueSampler):
     '''
     classdocs
     '''
-
-    def __init__(self, upper_bound, sigma):
+    def __init__(self, config):
         '''
         Constructor
         Class fields are declared here for readability
         '''
+        super(TruncnormSampler, self).__init__(config)
+
         self._lower_bound = 0
         self._upper_bound = None
-        self._mu = None
         self._sigma = None
 
-        self.update_parameters(upper_bound, sigma)
+        self._dist = None  # distribution to sample from
+
+        if self.config is None:
+            self.logger.debug("Config empty, update_parameters must be called before next_value.")
+            return
+
+        self.update_parameters(self.config.get('upper_bound'), self.config.get('sigma'))
 
     def next_value(self):
         '''
         samples using a truncated normal distribution
         '''
-        # print "Upper_bound: " + str(self._upper_bound) + " Mu: " + str(self._mu) + \
-        # " Sigma: " + str(self._sigma)
-
-        dist = truncnorm(
-            (self._lower_bound - self._mu) / self._sigma, \
-            (self._upper_bound - self._mu) / self._sigma, loc=self._mu, scale=self._sigma)
-
-        return int(round(dist.rvs(1)[0]))
+        return int(round(self._dist.rvs(1)[0]))
 
     def update_parameters(self, *args):
         '''
         updates parameters:
         args[0]=self._upper_bound
         args[1]=self._sigma
-        '''
-        if len(args) != 2:
-            raise IndexError("[TruncnormSampler - update_parameters]: args count must equal 2")
 
-        if args[0] is None or not isinstance(args[0], int) or args[0] < 0:
-            raise ValueError("[TruncnormSampler - update_parameters]: \
-                    upper_bound must be a positive int")
-        self._upper_bound = args[0]
-        if args[1] is None or \
-                (not isinstance(args[1], float) and not isinstance(args[1], int)) or \
-                args[1] < 0:
-            raise ValueError("[TruncnormSampler - update_parameters]: \
-                    sigma must be a positive int or float")
+        Distribution is instantiated with new parameters here and cached.
+        '''
         self._sigma = args[1]
 
-        self._mu = self._upper_bound / 2.0
+        mu = self._upper_bound / 2.0
+
+        self._dist = truncnorm(
+            (self._lower_bound - mu) / self._sigma, \
+            (self._upper_bound - mu) / self._sigma, loc=mu, scale=self._sigma)

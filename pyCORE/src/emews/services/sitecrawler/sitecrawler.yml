@@ -1,0 +1,37 @@
+# Configuration file for SiteCrawler
+# YAML 1.2 compliant
+
+config:  # service configuration
+  general:
+    user-agent: 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:57.0) Gecko/20100101 Firefox/57.0'
+    invalid_link_prefixes:  # prefix list for links which we should NOT visit
+    - java
+    - none
+    start_sites: # site address to start crawling from
+    - 'https://www.cmu.edu/silicon-valley'
+    - 'https://www.yahoo.com'
+  link_sampler:  # parameters for the link_sampler
+    std_deviation_first: 2.0  # std deviation of picking next link around mu (first iteration)
+    std_deviation: 0.5  # std deviation of picking next link around mu (> first iteration)
+  num_links_sampler:
+    std_deviation: 1.0
+
+dependencies:  # additional classes that this service requires
+site_sampler:  # sampler used to pick the site to crawl
+  class: UniformSampler
+  module: emews.samplers.uniformsampler
+  config:
+    lower_bound: 1
+    upper_bound: 2  # should match the list size of start_sites
+  num_links_sampler:  # sampler used to pick the number of links to crawl.  Dependent on first link
+      class: TruncnormSampler
+      module: emews.samplers.truncnormsampler
+  link_sampler:  # sampler used to pick the next link in a crawl
+    class: TruncnormSampler
+    module: emews.samplers.truncnormsampler
+  link_delay_sampler:  # sampler used to determine delay in crawling to next link
+    class: UniformSampler
+    module: emews.samplers.uniformsampler
+    config:
+      lower_bound: 2
+      upper_bound: 20

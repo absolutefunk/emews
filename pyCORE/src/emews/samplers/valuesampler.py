@@ -24,13 +24,6 @@ class ValueSampler(emews.base.baseobject.BaseObject):
         pass
 
     @abstractmethod
-    def reset(self):
-        '''
-        Resets the sampler.
-        '''
-        pass
-
-    @abstractmethod
     def update_parameters(self, *args):
         '''
         Updates parameters for use with sampling.  Provides a way to do this
