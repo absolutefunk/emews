@@ -6,7 +6,7 @@ Created on Feb 26, 2018
 '''
 import random
 
-from emews.base.config import MissingConfigException, KeychainException
+import emews.base.exceptions
 import emews.samplers.valuesampler
 
 class UniformSampler(emews.samplers.valuesampler.ValueSampler):
@@ -25,9 +25,9 @@ class UniformSampler(emews.samplers.valuesampler.ValueSampler):
 
         try:
             self.update_parameters(self.config.get('lower_bound'), self.config.get('upper_bound'))
-        except MissingConfigException:
+        except emews.base.exceptions.MissingConfigException:
             self.logger.debug("Config empty, update_parameters must be called before next_value.")
-        except KeychainException as ex:
+        except emews.base.exceptions.KeychainException as ex:
             self.logger.error(ex)
             raise
 

@@ -2,11 +2,9 @@
 Created on Jan 19, 2018
 @author: Brian Ricks
 '''
-import time
-
 import mechanize
 
-from emews.base.config import MissingConfigException, KeychainException
+import emews.base.exceptions
 import emews.services.baseservice
 
 class SiteCrawler(emews.services.baseservice.BaseService):
@@ -26,7 +24,7 @@ class SiteCrawler(emews.services.baseservice.BaseService):
         # parameter checks
         if self.config is None:
             self.logger.error("Service config is empty. Is a valid service config specified?")
-            raise MissingConfigException("No service config present.")
+            raise emews.base.exceptions.MissingConfigException("No service config present.")
 
         try:
             self._invalid_link_prefixes = self.config.get('general', 'invalid_link_prefixes')  #list
@@ -43,7 +41,7 @@ class SiteCrawler(emews.services.baseservice.BaseService):
 
             # set user agent string to something real-world
             self._br.addheaders = [('User-agent', self.config.get('general', 'user_agent'))]
-        except KeychainException as ex:
+        except emews.base.exceptions.KeychainException as ex:
             self.logger.error(ex)
             raise
 
@@ -60,7 +58,7 @@ class SiteCrawler(emews.services.baseservice.BaseService):
             # keep looping until a valid link is found
             # parameters updated here as removing links will change our upper_bound
             self._link_sampler.update_parameters(len(page_links) - 1, std_deviation)
-            selected_link_index = self._sampler.next_value()
+            selected_link_index = self._link_sampler.next_value()
 
             if self._checklink(page_links[selected_link_index]):
                 break
@@ -92,7 +90,7 @@ class SiteCrawler(emews.services.baseservice.BaseService):
         '''
         site_url = self._siteURLs[self._site_sampler.next_value()]
         self._br.open(site_url)
-        self.logger.info("Starting crawl at %s...", site_url)
+        self.logger.info("Starting crawl at %s ...", site_url)
 
         # Crawl to the first link.  This will allow us to set the link delay parameters correctly.
         page_links = list(self._br.links())
@@ -101,13 +99,14 @@ class SiteCrawler(emews.services.baseservice.BaseService):
             return
 
         next_link = page_links[selected_link_index]  # get next link from list
-        time.sleep(self._link_delay_sampler.next_value())  # wait a random amount of time
+        self.sleep(self._link_delay_sampler.next_value())  # wait a random amount of time
         self._br.follow_link(link=next_link)  # crawl to next link
 
         # Setup the total number of links to crawl.  As a heuristic, it uses the index of the
         # first link selected as the upper bound and selects a total crawl length based on this
         # index.
-        self._num_links_sampler.update_parameters(next_link, self._std_deviation_num_links)
+        self._num_links_sampler.update_parameters(
+            selected_link_index, self._std_deviation_num_links)
         num_links_to_crawl = self._num_links_sampler.next_value()
 
         self.logger.debug("link index (%d/%d): %s", selected_link_index, len(page_links),
@@ -115,6 +114,9 @@ class SiteCrawler(emews.services.baseservice.BaseService):
 
         # now crawl for (max) num_links_to_crawl
         for _ in range(num_links_to_crawl):
+            if self.interrupted:
+                return
+
             page_links = list(self._br.links())
             # use the std_deviation for > first iteration from now on
             selected_link_index = self._get_next_link_index(page_links, self._std_deviation)
@@ -122,7 +124,7 @@ class SiteCrawler(emews.services.baseservice.BaseService):
                 return
 
             next_link = page_links[selected_link_index]
-            time.sleep(self._link_delay_sampler.next_value())
+            self.sleep(self._link_delay_sampler.next_value())
 
             self.logger.debug("link index (%d/%d): %s", selected_link_index, len(page_links),
                               next_link.absolute_url)

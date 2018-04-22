@@ -53,6 +53,16 @@ class BaseObject(object):
                 self.logger.error("Required key missing from configuration for dependency '%s': %s",
                                   dep_name, ex)
                 raise
+
+            # check optional params
+            if 'instantiate' in dependency:
+                if not isinstance(dependency['instantiate'], bool):
+                    raise ValueError(
+                        "Key 'instantiate' must have a boolean value (given value: %s).",
+                        str(dependency['instantiate']))
+                else:
+                    is_instantiate = dependency['instantiate']
+
             try:
                 class_object = emews.base.importclass.import_class_from_module(
                     class_name, class_path)
@@ -70,11 +80,15 @@ class BaseObject(object):
                 dep_config = self._config.clone_with_config(None)
                 self.logger.debug("No config information found for '%s'.", dep_name)
 
-            try:
-                dependency_instantiation_dict[dep_name] = class_object(dep_config)
-            except AttributeError as ex:
-                self.logger.error("Dependency '%s' could not be instantiated: %s", dep_name, ex)
-                raise
-            self.logger.debug("Dependency '%s' instantiated.", dep_name)
+            if is_instantiate:
+                try:
+                    dependency_instantiation_dict[dep_name] = class_object(dep_config)
+                except AttributeError as ex:
+                    self.logger.error("Dependency '%s' could not be instantiated: %s", dep_name, ex)
+                    raise
+                self.logger.debug("Dependency '%s' instantiated.", dep_name)
+            else:
+                # instantiation not requested
+                dependency_instantiation_dict[dep_name] = class_object
 
         return emews.base.configcomponent.ConfigComponent(dependency_instantiation_dict)

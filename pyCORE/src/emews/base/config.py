@@ -15,6 +15,7 @@ from ruamel.yaml import YAML
 
 import emews.version
 import emews.base.configcomponent
+from emews.base.exceptions import MissingConfigException
 
 def parse(filename):
     '''
@@ -37,18 +38,6 @@ def prepend_path(filename):
     '''
     path = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
     return os.path.join(path, filename)
-
-class MissingConfigException(Exception):
-    '''
-    Raised when an operation is called on the component config, and it's None.
-    '''
-    pass
-
-class KeychainException(Exception):
-    '''
-    Raised when a key is missing along a keychain (ConfigComponent).
-    '''
-    pass
 
 class Config(object):
     '''

@@ -8,7 +8,7 @@ Created on Feb 26, 2018
 
 from scipy.stats import truncnorm
 
-from emews.base.config import MissingConfigException, KeychainException
+import emews.base.exceptions
 import emews.samplers.valuesampler
 
 class TruncnormSampler(emews.samplers.valuesampler.ValueSampler):
@@ -30,9 +30,9 @@ class TruncnormSampler(emews.samplers.valuesampler.ValueSampler):
 
         try:
             self.update_parameters(self.config.get('upper_bound'), self.config.get('sigma'))
-        except MissingConfigException:
+        except emews.base.exceptions.MissingConfigException:
             self.logger.debug("Config empty, update_parameters must be called before next_value.")
-        except KeychainException as ex:
+        except emews.base.exceptions.KeychainException as ex:
             self.logger.error(ex)
             raise
 
@@ -50,6 +50,7 @@ class TruncnormSampler(emews.samplers.valuesampler.ValueSampler):
 
         Distribution is instantiated with new parameters here and cached.
         '''
+        self._upper_bound = args[0]
         self._sigma = args[1]
 
         mu = self._upper_bound / 2.0

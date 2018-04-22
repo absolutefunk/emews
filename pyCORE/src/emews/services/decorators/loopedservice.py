@@ -48,6 +48,10 @@ class LoopedService(ServiceDecorator):
                 '''
                 self.logger.debug("Caught shutdown request...")
                 break
-            super(LoopedService, self).start()
+            try:
+                super(LoopedService, self).start()
+            except StandardError:
+                self.logger.error("Service raised exception.  Stopping loop ...")
+                raise
 
-        self.logger.info("Exiting...")
+        self.logger.info("Exiting loop ...")

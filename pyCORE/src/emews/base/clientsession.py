@@ -18,7 +18,7 @@ class ClientSession(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunn
     '''
     classdocs
     '''
-    def __init__(self, sys_config, thread_dispatcher, sock):
+    def __init__(self, sys_config, sock, thread_dispatcher):
         '''
         Constructor
         '''

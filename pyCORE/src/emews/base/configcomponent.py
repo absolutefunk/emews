@@ -6,7 +6,7 @@ Created on Mar 30, 2018
 '''
 import numbers
 
-from emews.base.config import KeychainException
+from emews.base.exceptions import KeychainException
 
 def keychain_str(target_key, *keys):
     '''
@@ -20,7 +20,6 @@ def keychain_str(target_key, *keys):
         key_chain.append(key)
 
     return "-->".join(key_chain)
-
 
 class ConfigComponent(object):
     '''

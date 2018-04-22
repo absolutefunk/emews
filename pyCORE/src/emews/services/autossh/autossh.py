@@ -10,7 +10,7 @@ import random
 
 from pexpect import pxssh
 
-from emews.base.config import MissingConfigException, KeychainException
+import emews.base.exceptions
 import emews.services.baseservice
 
 class AutoSSH(emews.services.baseservice.BaseService):
@@ -26,7 +26,7 @@ class AutoSSH(emews.services.baseservice.BaseService):
         # parameter checks
         if self.config is None:
             self.logger.error("Service config is empty. Is a valid service config specified?")
-            raise MissingConfigException("No service config present.")
+            raise emews.base.exceptions.MissingConfigException("No service config present.")
 
         try:
             self._host = self.config.get('server', 'host')  # hostname of ssh server
@@ -40,7 +40,7 @@ class AutoSSH(emews.services.baseservice.BaseService):
             self._command_count = self.config.get('command', 'command_count')
             # list of commands to execute
             self._command_list = self.config.get('command', 'command_list')
-        except KeychainException as ex:
+        except emews.base.exceptions.KeychainException as ex:
             self.logger.error(ex)
             raise
 
@@ -56,23 +56,17 @@ class AutoSSH(emews.services.baseservice.BaseService):
             # loop until command count reached
             for _ in range(self._command_count - 1):
                 # check for event state first
-                if self._event.is_set():
-                    self.logger.debug("Caught stop request.")
+                if self.interrupted:
                     break
 
                 next_command = self._command_list[self._list_distribution.next_value()]
                 self.logger.debug("Next Command: %s", next_command)
-
                 ssh_client.sendline(next_command)
                 ssh_client.prompt()
-                print ssh_client.before
 
-                # introduce a delay to simulate user looking at results before
-                # typing next command
-                self._event.wait(random.randint(1, 8))
+                self.sleep(random.randint(1, 8))
 
             self.logger.debug("Done executing commands, logging out...")
             ssh_client.logout()
         except pxssh.ExceptionPxssh as ex:
-            self.logger.warning("Exception with pxssh: %s", ex)
-            return
+            raise StandardError(ex)
