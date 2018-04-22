@@ -1,15 +1,15 @@
 '''
 Created on Jan 19, 2018
-
 @author: Brian Ricks
 '''
 import time
 
 import mechanize
 
-import emews.base.baseobject
+from emews.base.config import MissingConfigException, KeychainException
+import emews.services.baseservice
 
-class SiteCrawler(emews.base.baseobject.BaseObject):
+class SiteCrawler(emews.services.baseservice.BaseService):
     '''
     classdocs
     '''
@@ -26,7 +26,7 @@ class SiteCrawler(emews.base.baseobject.BaseObject):
         # parameter checks
         if self.config is None:
             self.logger.error("Service config is empty. Is a valid service config specified?")
-            raise ValueError("Service config is empty")
+            raise MissingConfigException("No service config present.")
 
         try:
             self._invalid_link_prefixes = self.config.get('general', 'invalid_link_prefixes')  #list
@@ -42,8 +42,8 @@ class SiteCrawler(emews.base.baseobject.BaseObject):
             self._link_delay_sampler = self.dependencies.get('link_delay_sampler')
 
             # set user agent string to something real-world
-            self._br.addheaders = [('User-agent', self.config.get('general', 'user-agent'))]
-        except ValueError as ex:
+            self._br.addheaders = [('User-agent', self.config.get('general', 'user_agent'))]
+        except KeychainException as ex:
             self.logger.error(ex)
             raise
 
@@ -85,9 +85,9 @@ class SiteCrawler(emews.base.baseobject.BaseObject):
 
         return True
 
-    def site_crawl(self):
+    def run_service(self):
         '''
-        crawls a web site, starting from the _siteURL, picking links from
+        @Override crawls a web site, starting from the _siteURL, picking links from
         each page visited
         '''
         site_url = self._siteURLs[self._site_sampler.next_value()]

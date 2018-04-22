@@ -61,12 +61,13 @@ class BaseObject(object):
                                   dep_name, ex)
                 raise
 
-            # if the dependency has config options, then clone a new config object with it
+            # If the dependency has config options, then clone a new config object with it,
+            # otherwise just clone with none.
             if 'config' in dependency:
                 dep_config = self._config.clone_with_dict(dependency['config'])
                 self.logger.debug("Found config information for '%s'.", dep_name)
             else:
-                dep_config = None
+                dep_config = self._config.clone_with_config(None)
                 self.logger.debug("No config information found for '%s'.", dep_name)
 
             try:

@@ -3,7 +3,7 @@
 
 config:  # service configuration
   general:
-    user-agent: 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:57.0) Gecko/20100101 Firefox/57.0'
+    user_agent: 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:57.0) Gecko/20100101 Firefox/57.0'
     invalid_link_prefixes:  # prefix list for links which we should NOT visit
     - java
     - none
@@ -17,12 +17,12 @@ config:  # service configuration
     std_deviation: 1.0
 
 dependencies:  # additional classes that this service requires
-site_sampler:  # sampler used to pick the site to crawl
-  class: UniformSampler
-  module: emews.samplers.uniformsampler
-  config:
-    lower_bound: 1
-    upper_bound: 2  # should match the list size of start_sites
+  site_sampler:  # sampler used to pick the site to crawl
+    class: UniformSampler
+    module: emews.samplers.uniformsampler
+    config:
+      lower_bound: 1
+      upper_bound: 2  # should match the list size of start_sites
   num_links_sampler:  # sampler used to pick the number of links to crawl.  Dependent on first link
       class: TruncnormSampler
       module: emews.samplers.truncnormsampler

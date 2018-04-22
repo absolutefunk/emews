@@ -9,6 +9,8 @@ Created on Feb 23, 2018
 import random
 
 from pexpect import pxssh
+
+from emews.base.config import MissingConfigException, KeychainException
 import emews.services.baseservice
 
 class AutoSSH(emews.services.baseservice.BaseService):
@@ -24,7 +26,7 @@ class AutoSSH(emews.services.baseservice.BaseService):
         # parameter checks
         if self.config is None:
             self.logger.error("Service config is empty. Is a valid service config specified?")
-            raise ValueError("Service config is empty")
+            raise MissingConfigException("No service config present.")
 
         try:
             self._host = self.config.get('server', 'host')  # hostname of ssh server
@@ -38,7 +40,7 @@ class AutoSSH(emews.services.baseservice.BaseService):
             self._command_count = self.config.get('command', 'command_count')
             # list of commands to execute
             self._command_list = self.config.get('command', 'command_list')
-        except ValueError as ex:
+        except KeychainException as ex:
             self.logger.error(ex)
             raise
 

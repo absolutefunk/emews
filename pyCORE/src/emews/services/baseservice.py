@@ -48,6 +48,9 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
     def config(self):
         '''
         @Override Returns the service key of the config as a ConfigComponent.
+        This is a deviation from classes which directly inherent BaseObject, in which all the
+        config is available.  This way service config is separated from other config categories
+        (such as sys_config, dependency configs, decorators).
         '''
         return self._service_config
 

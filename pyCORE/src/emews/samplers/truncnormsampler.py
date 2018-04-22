@@ -7,6 +7,8 @@ Created on Feb 26, 2018
 '''
 
 from scipy.stats import truncnorm
+
+from emews.base.config import MissingConfigException, KeychainException
 import emews.samplers.valuesampler
 
 class TruncnormSampler(emews.samplers.valuesampler.ValueSampler):
@@ -26,11 +28,13 @@ class TruncnormSampler(emews.samplers.valuesampler.ValueSampler):
 
         self._dist = None  # distribution to sample from
 
-        if self.config is None:
+        try:
+            self.update_parameters(self.config.get('upper_bound'), self.config.get('sigma'))
+        except MissingConfigException:
             self.logger.debug("Config empty, update_parameters must be called before next_value.")
-            return
-
-        self.update_parameters(self.config.get('upper_bound'), self.config.get('sigma'))
+        except KeychainException as ex:
+            self.logger.error(ex)
+            raise
 
     def next_value(self):
         '''

@@ -6,6 +6,8 @@ Created on Mar 30, 2018
 '''
 import numbers
 
+from emews.base.config import KeychainException
+
 def keychain_str(target_key, *keys):
     '''
     returns the keychain string
@@ -36,23 +38,22 @@ class ConfigComponent(object):
         '''
         if self._config is None:
             # nothing to get
-            raise ValueError(
-                "keychain '%s': config dictionary is empty." % keychain_str(None, *keys))
+            raise KeychainException(
+                "Keychain '%s': config dictionary is empty." % keychain_str(None, *keys))
 
         config = self._config
         for key in keys:
             if isinstance(config, (basestring, numbers.Number)):
-                # Implies that 'config is actually a value (we use ValueError instead of KeyError
-                # due to KeyError quoting the message, and also to consolidate this with ValueError
-                # exceptions often raised when checking parameters originating from here).
-                raise ValueError(
-                    "keychain '%s': reached value '%s' before using key '%s' (key doesn't exist)."
+                # Implies that 'config is actually a value.
+                raise KeychainException(
+                    "Keychain '%s': reached value '%s' before using key '%s' (key doesn't exist)."
                     % (keychain_str(key, *keys), config, key))
 
             config = config.get(key)
             if config is None:
-                raise ValueError("keychain '%s': key '%s' doesn't exist in config dictionary."
-                                 % (keychain_str(key, *keys), key))
+                raise KeychainException(
+                    "Keychain '%s': key '%s' doesn't exist in config dictionary."
+                    % (keychain_str(key, *keys), key))
 
         return config
 

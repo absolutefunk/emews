@@ -38,6 +38,18 @@ def prepend_path(filename):
     path = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
     return os.path.join(path, filename)
 
+class MissingConfigException(Exception):
+    '''
+    Raised when an operation is called on the component config, and it's None.
+    '''
+    pass
+
+class KeychainException(Exception):
+    '''
+    Raised when a key is missing along a keychain (ConfigComponent).
+    '''
+    pass
+
 class Config(object):
     '''
     classdocs
@@ -127,6 +139,9 @@ class Config(object):
         '''
         returns a value given the keys from the component config
         '''
+        if self._component_config is None:
+            raise MissingConfigException("No component configuration present.  "\
+                "Does this component require configuration options?")
         return self._component_config.get(*keys)
 
     def get_sys(self, *keys):
