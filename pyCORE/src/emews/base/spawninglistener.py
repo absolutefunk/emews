@@ -1,8 +1,8 @@
 '''
 Spawning listener, in which each accepted connection is spawned to its own thread.  The class to
 spawn is passed in to the constructor.  To pass custom arguments to the constructor once a
-connection is accepted, a callback method must be implemented in the child class which returns a
-list of arguments which will be passed to the spawned class.
+connection is accepted, override update_spawnclass_args(), which is a callback invoked right
+before spawn class instantiation.
 
 When requested to stop, a pipe is written to which unblocks select.select.  This way the listener
 does not have to be run in the main thread, and we don't have to resort to polling.
@@ -10,7 +10,6 @@ does not have to be run in the main thread, and we don't have to resort to polli
 Created on Apr 22, 2018
 @author: Brian Ricks
 '''
-from abc import abstractmethod
 import os
 import select
 import socket
@@ -30,6 +29,7 @@ class SpawningListener(emews.base.baselistener.BaseListener):
 
         self._spawn_class = spawn_cls
         self._interrupted = False  # sets to true when stop() invoked
+        self._default_args = []
 
         # handles thread spawning/management
         self._thread_dispatcher = emews.base.thread_dispatcher.ThreadDispatcher(self.config)
@@ -38,14 +38,13 @@ class SpawningListener(emews.base.baselistener.BaseListener):
         # is invoked.  This is necessary as only the main thread will receive signals.
         _, self._int_write_fd = os.pipe()
 
-    @abstractmethod
     def update_spawnclass_args(self):
         '''
         Provides a way to pass arguments to the constructor of the spawn class.  Return as a list
         the args that the spawn class requires.  Note that the first arg is the config, and second
-        arg the sock (don't return these).  If nothing to return, just return None.
+        arg the sock (don't return these).
         '''
-        pass
+        return self._default_args
 
     @property
     def interrupted(self):
@@ -86,8 +85,9 @@ class SpawningListener(emews.base.baselistener.BaseListener):
                 break
 
             self.logger.info("Connection established from %s", src_addr)
-            obj_args = self.update_spawnclass_args()  # returned value must be a list (or None)
-            self._thread_dispatcher.dispatch_thread(self._spawn_class(self.config, sock, *obj_args))
+            obj_args = [sock]
+            obj_args.extend(self.update_spawnclass_args())  # dump items from callback
+            self._thread_dispatcher.dispatch_thread(self._spawn_class(self.config, *obj_args))
 
         os.close(self._int_write_fd)  # close the pipe
 
