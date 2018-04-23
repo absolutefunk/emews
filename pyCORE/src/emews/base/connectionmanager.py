@@ -9,6 +9,7 @@ import signal
 
 import emews.base.clientsession
 import emews.base.spawninglistener
+import emews.base.thread_dispatcher
 
 class ConnectionManager(emews.base.spawninglistener.SpawningListener):
     '''
@@ -23,6 +24,9 @@ class ConnectionManager(emews.base.spawninglistener.SpawningListener):
         # register signals
         signal.signal(signal.SIGHUP, self.shutdown_signal_handler)
         signal.signal(signal.SIGINT, self.shutdown_signal_handler)
+
+        # handles thread spawning/management
+        self._thread_dispatcher = emews.base.thread_dispatcher.ThreadDispatcher(self.config)
 
     def shutdown_signal_handler(self, signum, frame):
         '''

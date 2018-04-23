@@ -1,8 +1,5 @@
 '''
-Spawning listener, in which each accepted connection is spawned to its own thread.  The class to
-spawn is passed in to the constructor.  To pass custom arguments to the constructor once a
-connection is accepted, override update_spawnclass_args(), which is a callback invoked right
-before spawn class instantiation.
+Spawning listener, in which each accepted connection is passed off to a handler method.
 
 When requested to stop, a pipe is written to which unblocks select.select.  This way the listener
 does not have to be run in the main thread, and we don't have to resort to polling.
@@ -15,7 +12,6 @@ import select
 import socket
 
 import emews.base.baselistener
-import emews.base.thread_dispatcher
 
 class SpawningListener(emews.base.baselistener.BaseListener):
     '''
@@ -30,9 +26,6 @@ class SpawningListener(emews.base.baselistener.BaseListener):
         self._spawn_class = spawn_cls
         self._interrupted = False  # sets to true when stop() invoked
         self._default_args = []
-
-        # handles thread spawning/management
-        self._thread_dispatcher = emews.base.thread_dispatcher.ThreadDispatcher(self.config)
 
         # We need to setup a pipe that we can write to for unblocking select.select when stop()
         # is invoked.  This is necessary as only the main thread will receive signals.
