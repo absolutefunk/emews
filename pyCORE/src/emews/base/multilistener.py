@@ -16,13 +16,13 @@ class MultiListener(emews.base.baselistener.BaseListener):
     '''
     classdocs
     '''
-    def __init__(self, config, connection_handler_cb):
+    def __init__(self, config, handler_listener):
         '''
         Constructor
         '''
         super(MultiListener, self).__init__(config)
-        # callback for providing handling of sockets spawned
-        self._connection_handler = connection_handler_cb
+        # callback class for providing listener handling
+        self._handler_listener = handler_listener
 
         self._interrupted = False  # sets to true when stop() invoked
 
@@ -46,7 +46,7 @@ class MultiListener(emews.base.baselistener.BaseListener):
                     self.logger.info("Listener no longer accepting incoming connections.")
                     break
                 else:
-                    self.logger.error("Select error while blocking on lister socket.")
+                    self.logger.error("Select error while blocking on listener socket.")
                     raise StandardError(ex)
 
             try:
@@ -58,9 +58,7 @@ class MultiListener(emews.base.baselistener.BaseListener):
 
             self.logger.info("Connection established from %s", src_addr)
             sock.setblocking(0)
-            self._connection_handler(sock)   # call connection handler
-
-        os.close(self._int_write_fd)  # close the pipe
+            self._handler_listener.handle_accepted_connection(sock)   # call connection handler
 
     def stop(self):
         '''

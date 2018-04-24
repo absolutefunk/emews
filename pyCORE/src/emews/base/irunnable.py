@@ -5,7 +5,6 @@ during coding to make sure that the programmer (me) is aware if they (me) forget
 method as part of this contract.
 
 Created on Apr 11, 2018
-
 @author: Brian Ricks
 '''
 from abc import ABCMeta, abstractmethod

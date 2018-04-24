@@ -80,14 +80,13 @@ class BaseListener(emews.base.baseobject.BaseObject):
 
         self.listen()
 
-        # once the listener is finished, then shutdown the socket
-        self._socket.shutdown(socket.SHUT_RDWR)
+        # once the listener is finished, then close the socket
         self._socket.close()
 
     @abstractmethod
     def listen(self):
         '''
-        Invokes the listenening procedure.
+        Invokes the listening procedure.
         '''
         pass
 

@@ -9,10 +9,12 @@ import signal
 
 import emews.base.baseobject
 import emews.base.clientsession
+import emews.base.ihandlerlistener
 import emews.base.multilistener
 import emews.base.thread_dispatcher
 
-class ConnectionManager(emews.base.baseobject.BaseObject):
+class ConnectionManager(emews.base.baseobject.BaseObject,
+                        emews.base.ihandlerlistener.IHandlerListener):
     '''
     classdocs
     '''
@@ -27,7 +29,7 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
         signal.signal(signal.SIGINT, self.shutdown_signal_handler)
 
         # listener
-        self._listener = emews.base.multilistener.MultiListener(self.config, self.handle_connection)
+        self._listener = emews.base.multilistener.MultiListener(self.config, self)
         # handles thread spawning/management
         self._thread_dispatcher = emews.base.thread_dispatcher.ThreadDispatcher(self.config)
 
@@ -49,9 +51,15 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
 
         self._thread_dispatcher.shutdown_all_threads()  # stop all dispatched threads
 
-    def handle_connection(self, sock):
+    def handle_accepted_connection(self, sock):
         '''
         @Override start a ClientSession with this socket
         '''
         self._thread_dispatcher.dispatch_thread(
             emews.base.clientsession.ClientSession(self.config, sock, self._thread_dispatcher))
+
+    def handle_readable_socket(self, sock):
+        '''
+        @Override not implemented due to listener not using this callback
+        '''
+        pass

@@ -19,7 +19,7 @@ listener:
   command_delimiter: ' '  # delimit commands using this
 
 logging:
-  base_logger: emews.base
+  main_logger: emews.distributed  # the primary logger to use
   log_conf:
     version: 1
     formatters:
@@ -31,6 +31,12 @@ logging:
         formatter: default
         level: DEBUG
         stream: 'ext://sys.stdout'
+      handlers:
+        network:
+          class: logging.handlers.SocketHandler
+          host: localhost
+          port: 32519
+          level: DEBUG
     loggers:
       root:
         handlers:
@@ -38,6 +44,12 @@ logging:
         level: DEBUG
       emews.base:
         handlers:
+        - network
+        level: DEBUG  # change this to INFO for production
+      emews.distributed:
+        handlers:
         - console
         level: DEBUG  # change this to INFO for production
-        propagate: True
+
+logserver:
+  destination_logger: emews.base  # the logger to handle received log entries

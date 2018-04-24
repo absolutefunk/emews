@@ -23,7 +23,7 @@ class BaseObject(object):
         '''
         self._config = config
         self._logger = logging.LoggerAdapter(logging.getLogger(
-            self._config.get_sys('logging', 'base_logger')), {'nodename': self._config.nodename})
+            self._config.get_sys('logging', 'main_logger')), {'nodename': self._config.nodename})
 
     @property
     def logger(self):
