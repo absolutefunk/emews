@@ -96,9 +96,9 @@ class LogServer(emews.services.baseservice.BaseService,
                 return
             self._sock_state[sock]['msg'] = self._sock_state[sock]['msg'] + chunk
 
-            if len(self._sock_state[sock]['msg']) == len(self._sock_state[sock]['slen']))
+            if len(self._sock_state[sock]['msg']) == len(self._sock_state[sock]['slen']):
                 # received the entire message
-                self.process_message(self._sock_state[sock]['msg']))  # handle the msg
+                self.process_message(self._sock_state[sock]['msg'])  # handle the msg
                 self._sock_state[sock]['stage'] = 0
                 self._sock_state[sock]['msg'] = ""
 
@@ -109,5 +109,5 @@ class LogServer(emews.services.baseservice.BaseService,
         # TODO: Instantiate another listener on a different port to listen for incoming logging
         # clients.  If any logging clients are connected, then route messages to the client
         # (no struct unpacking, no unpickle, just send struct and pickle directly).
-        log_record = record = logging.makeLogRecord(pickle.loads(msg))
+        log_record = logging.makeLogRecord(pickle.loads(msg))
         self._base_logger.handle(log_record)

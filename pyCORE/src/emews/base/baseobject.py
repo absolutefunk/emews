@@ -55,13 +55,14 @@ class BaseObject(object):
                 raise
 
             # check optional params
+            b_instantiate = True
             if 'instantiate' in dependency:
                 if not isinstance(dependency['instantiate'], bool):
                     raise ValueError(
-                        "Key 'instantiate' must have a boolean value (given value: %s).",
+                        "Key 'instantiate' must have a boolean value (given value: %s)." %
                         str(dependency['instantiate']))
                 else:
-                    is_instantiate = dependency['instantiate']
+                    b_instantiate = dependency['instantiate']
 
             try:
                 class_object = emews.base.importclass.import_class_from_module(
@@ -80,7 +81,7 @@ class BaseObject(object):
                 dep_config = self._config.clone_with_config(None)
                 self.logger.debug("No config information found for '%s'.", dep_name)
 
-            if is_instantiate:
+            if b_instantiate:
                 try:
                     dependency_instantiation_dict[dep_name] = class_object(dep_config)
                 except AttributeError as ex:

@@ -100,6 +100,10 @@ class SiteCrawler(emews.services.baseservice.BaseService):
 
         next_link = page_links[selected_link_index]  # get next link from list
         self.sleep(self._link_delay_sampler.next_value())  # wait a random amount of time
+        # we need to check if the end of sleep was due to being interrupted
+        if self.interrupted:
+            return
+
         self._br.follow_link(link=next_link)  # crawl to next link
 
         # Setup the total number of links to crawl.  As a heuristic, it uses the index of the
@@ -125,6 +129,9 @@ class SiteCrawler(emews.services.baseservice.BaseService):
 
             next_link = page_links[selected_link_index]
             self.sleep(self._link_delay_sampler.next_value())
+            # we need to check if the end of sleep was due to being interrupted
+            if self.interrupted:
+                return
 
             self.logger.debug("link index (%d/%d): %s", selected_link_index, len(page_links),
                               next_link.absolute_url)

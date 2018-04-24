@@ -60,20 +60,14 @@ def main():
     else:
         print "  Using service config path: <none>"
 
-    try:
-        sys_config = emews.base.config.Config('standalone', sys_config_path)
-    except StandardError as ex:
-        print ex
-        return
+    # setup logging
+    sys_config = emews.base.config.Config('standalone', sys_config_path)
 
-    try:
-        service_builder = emews.services.servicebuilder.ServiceBuilder(sys_config)
-        service_builder.service(args.service)
-        service_builder.config_path(service_config_path)
-        service_instance = service_builder.result
-    except StandardError as ex:
-        print ex
-        return
+    #configure service
+    service_builder = emews.services.servicebuilder.ServiceBuilder(sys_config)
+    service_builder.service(args.service)
+    service_builder.config_path(service_config_path)
+    service_instance = service_builder.result
 
     service_instance.logger.info("Starting service '%s'.", service_instance.__class__.__name__)
     service_instance.start()
