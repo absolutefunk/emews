@@ -8,6 +8,10 @@ When using distributed logging, the formatting configuration in system.yml would
 LogServer if LogServer is the final destination for the log entries.  If LogServer is acting as a
 collection and forward server, then no formatting is applied.
 
+Note:  For the node running the LogServer, when the listener is starting up, any log messages that
+are generated before the listener is running, will be dropped as the listener won't be running to
+receive them.  These should only be error messages which will raise exceptions anyway.
+
 Created on Apr 22, 2018
 @author: Brian Ricks
 '''
@@ -29,26 +33,32 @@ class LogServer(emews.services.baseservice.BaseService,
         '''
         Constructor
         '''
-        super(LogServer, self).__init__(config)
+        # The listener section in the config is under 'logserver' in the sys_config.  Extract it.
+        # This essentially creates an alias to the original 'listener' section.
+        listener_config = config.clone_with_dict(config.get_sys('logserver', 'listener'))
+        self._listener = emews.base.multiasynclistener.MultiASyncListener(listener_config, self)
 
-        self._listener = emews.base.multiasynclistener.MultiASyncListener(self)
+        # we call super after the listener so logging will work
+        super(LogServer, self).__init__(listener_config)
 
         self._sock_state = {}  # stores state related to individual sockets
         # destination logger to output log entries
         self._dest_logger = logging.LoggerAdapter(logging.getLogger(
-            self._config.get_sys('logserver', 'destination_logger')),
-                                 {'nodename': self._config.nodename})
-
-    def logger(self):
-        '''
-        @Override returns the logger assigned to the logserver (destination_logger)
-        '''
-        return self._dest_logger
+            self._config.get_sys(
+                'logserver', 'destination_logger')), {'nodename': self._config.nodename})
 
     def run_service(self):
         '''
-        @Override Called to start execution of implementing task.
+        @Override Called to start execution of implementing task.  As the listener starts on
+        instantiation, there is nothing to do here.
         '''
+        pass
+
+    def stop(self):
+        '''
+        @Override Stops the listener.
+        '''
+        self._listener.stop()
 
     def handle_accepted_connection(self, sock):
         '''
@@ -110,4 +120,4 @@ class LogServer(emews.services.baseservice.BaseService,
         # clients.  If any logging clients are connected, then route messages to the client
         # (no struct unpacking, no unpickle, just send struct and pickle directly).
         log_record = logging.makeLogRecord(pickle.loads(msg))
-        self._base_logger.handle(log_record)
+        self._dest_logger.handle(log_record)

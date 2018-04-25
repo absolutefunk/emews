@@ -22,13 +22,14 @@ class ConnectionManager(emews.base.baseobject.BaseObject,
         '''
         Constructor
         '''
-        super(ConnectionManager, self).__init__(config, emews.base.clientsession.ClientSession)
-
         # register signals
         signal.signal(signal.SIGHUP, self.shutdown_signal_handler)
         signal.signal(signal.SIGINT, self.shutdown_signal_handler)
 
-        # listener
+        # we pass the listener config upward as ClientSession also uses it
+        listener_config = config.clone_with_dict(config.get_sys('listener', 'config'))
+        super(ConnectionManager, self).__init__(listener_config)
+
         self._listener = emews.base.multilistener.MultiListener(self.config, self)
         # handles thread spawning/management
         self._thread_dispatcher = emews.base.thread_dispatcher.ThreadDispatcher(self.config)

@@ -63,6 +63,10 @@ def main():
     # setup logging
     sys_config = emews.base.config.Config('standalone', sys_config_path)
 
+    if sys_config.get_sys('logging', 'main_logger') == 'emews.distributed':
+        print "emews standalone service launcher does not support distributed logging"
+        return
+
     #configure service
     service_builder = emews.services.servicebuilder.ServiceBuilder(sys_config)
     service_builder.service(args.service)

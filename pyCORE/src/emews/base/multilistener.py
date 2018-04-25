@@ -6,7 +6,6 @@ When requested to stop, we shutdown the socket, which unblocks select.
 Created on Apr 22, 2018
 @author: Brian Ricks
 '''
-import os
 import select
 import socket
 
@@ -65,4 +64,4 @@ class MultiListener(emews.base.baselistener.BaseListener):
         @Override Invoked when it is time to shut down.
         '''
         self._interrupted = True
-        self.socket.shutdown()
+        self.socket.shutdown(socket.SHUT_RDWR)

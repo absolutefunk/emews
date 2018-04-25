@@ -41,7 +41,7 @@ class MultiASyncListener(emews.base.baselistener.BaseListener):
         @Override Invoked when it is time to shut down.
         '''
         self._interrupted = True
-        self.socket.shutdown()  # will unblock select()
+        self.socket.shutdown(socket.SHUT_RDWR)  # will unblock select()
 
     def listen(self):
         '''

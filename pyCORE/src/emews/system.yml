@@ -2,10 +2,6 @@
 # Note, some of the settings can break the system if changed.
 # YAML 1.2 compliant
 
-general:
-  host: localhost  # host to bind to (listening for incoming commands, etc...)
-  port: 32518      # port to use
-
 paths:
   # package paths for the emews system
   emews_pkg_path: emews
@@ -14,12 +10,15 @@ paths:
   emews_pkg_service_decorators_path: emews.services.decorators
   emews_pkg_samplers_path: emews.samplers
 
-listener:
-  receive_buffer: 128     # buffer for incoming characters from a emews client
-  command_delimiter: ' '  # delimit commands using this
+listener:  # emews client listener
+  config:
+    host: localhost  # host to bind to (should be localhost or 127.0.0.1, etc)
+    port: 32518      # port to use
+    receive_buffer: 128     # buffer for incoming characters from a emews client
+    command_delimiter: ' '  # delimit commands using this
 
 logging:
-  main_logger: emews.base  # the primary logger to use
+  main_logger: emews.distributed  # the primary logger to use
   log_conf:
     version: 1
     formatters:
@@ -33,8 +32,8 @@ logging:
         stream: 'ext://sys.stdout'
       network:
         class: logging.handlers.SocketHandler
-        host: localhost
-        port: 32519
+        host: localhost  # host or IP to send log entries to
+        port: 32519  # port on destination host to send log entries to
         level: DEBUG
     loggers:
       root:
@@ -50,5 +49,10 @@ logging:
         - network
         level: DEBUG  # change this to INFO for production
 
-logserver:
+logserver:  # configuration for the node which acts as the LogServer
+  node:  absolutefunk-UX32A  # must match the node name of the node running the LogServer
   destination_logger: emews.base  # the logger to handle received log entries
+  listener:
+    config:
+      host: localhost  # host to bind to (should be localhost or 127.0.0.1, etc)
+      port: 32519  # port to use (should match port under logging-->log_conf-->handler-->network)

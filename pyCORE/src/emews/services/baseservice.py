@@ -79,6 +79,9 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
         '''
         @Override Wraps the event.wait().  Convenience method.
         '''
+        if self._interrupted:
+            return
+
         self.logger.debug("Sleeping for %s seconds.", time)
         self._service_interrupt_event.wait(time)
 

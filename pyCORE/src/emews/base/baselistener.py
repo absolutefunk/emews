@@ -23,8 +23,8 @@ class BaseListener(emews.base.baseobject.BaseObject):
         super(BaseListener, self).__init__(config)
 
         try:
-            self._host = self.config.get_sys('general', 'host')
-            self._port = self.config.get_sys('general', 'port')
+            self._host = self.config.get('host')
+            self._port = self.config.get('port')
         except emews.base.exceptions.KeychainException as ex:
             self.logger.error(ex)
             raise
@@ -61,8 +61,6 @@ class BaseListener(emews.base.baseobject.BaseObject):
         '''
         starts the listener
         '''
-        self.logger.debug("Starting listener, given host: %s, port: %d", self._host, self._port)
-
         try:
             self._socket.bind((self._host, self._port))
         except socket.error as ex:
@@ -77,7 +75,6 @@ class BaseListener(emews.base.baseobject.BaseObject):
             raise
 
         self.logger.info("Listening on interface %s, port %d", self._host, self._port)
-
         self.listen()
 
         # once the listener is finished, then close the socket

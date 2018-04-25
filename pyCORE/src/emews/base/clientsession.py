@@ -30,8 +30,8 @@ class ClientSession(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunn
             'fail': "ERR\n"
         }
 
-        self._buf_size = self.config.get_sys('listener', 'receive_buffer')
-        self._command_delim = self.config.get_sys('listener', 'command_delimiter')
+        self._buf_size = self.config.get('receive_buffer')
+        self._command_delim = self.config.get('command_delimiter')
 
         self._sock = sock  # socket used to receive commands
         self._sock.setblocking(0)

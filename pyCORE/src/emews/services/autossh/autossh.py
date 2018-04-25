@@ -51,17 +51,22 @@ class AutoSSH(emews.services.baseservice.BaseService):
         '''
         try:
             ssh_client = pxssh.pxssh()
+            if self.interrupted:
+                return
+
             ssh_client.login(self._host, self._username, password=self._password, port=self._port)
 
             # loop until command count reached
             for _ in range(self._command_count - 1):
-                # check for event state first
                 if self.interrupted:
                     break
 
                 next_command = self._command_list[self._list_distribution.next_value()]
                 self.logger.debug("Next Command: %s", next_command)
                 ssh_client.sendline(next_command)
+                if self.interrupted:
+                    break
+
                 ssh_client.prompt()
 
                 self.sleep(random.randint(1, 8))
@@ -69,4 +74,4 @@ class AutoSSH(emews.services.baseservice.BaseService):
             self.logger.debug("Done executing commands, logging out...")
             ssh_client.logout()
         except pxssh.ExceptionPxssh as ex:
-            raise StandardError(ex)
+            self.logger.warning("pxssh raised exception: %s", ex)
