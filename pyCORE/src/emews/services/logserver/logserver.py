@@ -35,24 +35,30 @@ class LogServer(emews.services.baseservice.BaseService,
         '''
         # The listener section in the config is under 'logserver' in the sys_config.  Extract it.
         # This essentially creates an alias to the original 'listener' section.
-        listener_config = config.clone_with_dict(config.get_sys('logserver', 'listener'))
-        self._listener = emews.base.multiasynclistener.MultiASyncListener(listener_config, self)
+        listener_config = config.clone_with_dict(config.get_sys('logserver', 'listener', 'config'))
+        try:
+            self._listener = emews.base.multiasynclistener.MultiASyncListener(listener_config, self)
+        except socket.error as ex:
+            print "Could not instantiate LogServer Listener: " + ex
+            raise
 
-        # we call super after the listener so logging will work
+        # We call super after the listener so logging will work
+        # BaseService requires 'config' to be present in the dict, so we need to re-extract with
+        # the key present.  If not for the logging dependency, we could call super() first and then
+        # pass the service_config to the listener.
+        listener_config = config.clone_with_dict(config.get_sys('logserver', 'listener'))
         super(LogServer, self).__init__(listener_config)
 
         self._sock_state = {}  # stores state related to individual sockets
         # destination logger to output log entries
-        self._dest_logger = logging.LoggerAdapter(logging.getLogger(
-            self._config.get_sys(
-                'logserver', 'destination_logger')), {'nodename': self._config.nodename})
+        self._dest_logger = logging.getLogger(
+            self._config.get_sys('logserver', 'destination_logger'))
 
     def run_service(self):
         '''
-        @Override Called to start execution of implementing task.  As the listener starts on
-        instantiation, there is nothing to do here.
+        @Override Called to start execution of implementing task.  Start the listener.
         '''
-        pass
+        self._listener.start()
 
     def stop(self):
         '''
@@ -106,7 +112,7 @@ class LogServer(emews.services.baseservice.BaseService,
                 return
             self._sock_state[sock]['msg'] = self._sock_state[sock]['msg'] + chunk
 
-            if len(self._sock_state[sock]['msg']) == len(self._sock_state[sock]['slen']):
+            if len(self._sock_state[sock]['msg']) == self._sock_state[sock]['slen']:
                 # received the entire message
                 self.process_message(self._sock_state[sock]['msg'])  # handle the msg
                 self._sock_state[sock]['stage'] = 0

@@ -58,18 +58,17 @@ class MultiASyncListener(emews.base.baselistener.BaseListener):
                 else:
                     self.logger.error("Select error while blocking on managed sockets.")
                     raise StandardError(ex)
-
             for r_sock in r_socks:
                 if r_sock is self.socket:
                     # this is the listener socket
                     try:
-                        sock = r_sock.accept()
+                        sock, _ = r_sock.accept()
                     except socket.error as ex:
                         # ignore the exception, but dump the new connection
                         self.logger.warning("Socket exception while accepting connection: %s", ex)
                         continue  # continue the for loop for r_socks
 
-                    self._inputs.append(r_sock)
+                    self._inputs.append(sock)
                     self._handler_listener.handle_accepted_connection(sock)
                 else:
                     # some socket we are managing (not the listener socket)

@@ -49,6 +49,7 @@ class ConnectionManager(emews.base.baseobject.BaseObject,
             self._listener.start()
         except StandardError as ex:
             self.logger.error("Listener failed: %s", ex)
+            raise
 
         self._thread_dispatcher.shutdown_all_threads()  # stop all dispatched threads
 

@@ -44,10 +44,12 @@ logging:
         handlers:
         - console
         level: DEBUG  # change this to INFO for production
+        propagate: False
       emews.distributed:
         handlers:
         - network
         level: DEBUG  # change this to INFO for production
+        propagate: False
 
 logserver:  # configuration for the node which acts as the LogServer
   node:  absolutefunk-UX32A  # must match the node name of the node running the LogServer

@@ -14,9 +14,11 @@ Created on Mar 24, 2018
 @author: Brian Ricks
 '''
 import argparse
+import logging
 import os
 import socket
 import sys
+import threading
 
 import emews.base.config
 from emews.base.connectionmanager import ConnectionManager
@@ -62,6 +64,7 @@ def launch_logserver(config):
 
     return None
 
+
 def main():
     '''
     main function
@@ -83,7 +86,10 @@ def main():
 
     config = emews.base.config.Config(node_name, sys_config_path)
 
+    # When disabling, log messages are cached until logging is enabled again
+    logging.disable(logging.CRITICAL)  # disable all log levels
     log_server = launch_logserver(config)
+    logging.disable(logging.NOTSET)  # enable all log levels
 
     connection_manager = ConnectionManager(config)
     connection_manager.start()
