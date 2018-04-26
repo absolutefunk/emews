@@ -11,8 +11,9 @@ import socket
 
 import emews.base.baseobject
 import emews.base.exceptions
+import emews.base.inet
 
-class BaseListener(emews.base.baseobject.BaseObject):
+class BaseListener(emews.base.baseobject.BaseObject, emews.base.inet.INet):
     '''
     classdocs
     '''
@@ -21,6 +22,8 @@ class BaseListener(emews.base.baseobject.BaseObject):
         Constructor
         '''
         super(BaseListener, self).__init__(config)
+
+        self._interrupted = False  # sets to true when stop() invoked
 
         try:
             self._host = self.config.get('host')
@@ -44,7 +47,6 @@ class BaseListener(emews.base.baseobject.BaseObject):
 
         try:
             self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            # Using select to block may be a bit more efficient than using the socket to block
             self._socket.setblocking(0)
         except socket.error as ex:
             self.logger.error("Could not instantiate socket. %s", ex)
@@ -53,13 +55,20 @@ class BaseListener(emews.base.baseobject.BaseObject):
     @property
     def socket(self):
         '''
-        returns the listener socket
+        @Override returns the listener socket
         '''
         return self._socket
 
+    @property
+    def interrupted(self):
+        '''
+        @Override returns whether the net-based object has been requested to stop
+        '''
+        return self._interrupted
+
     def start(self):
         '''
-        starts the listener
+        @Override starts the listener
         '''
         try:
             self._socket.bind((self._host, self._port))
@@ -87,9 +96,8 @@ class BaseListener(emews.base.baseobject.BaseObject):
         '''
         pass
 
-    @abstractmethod
     def stop(self):
         '''
-        Requests the listener to stop.
+        @Override Requests the listener to stop.
         '''
         pass

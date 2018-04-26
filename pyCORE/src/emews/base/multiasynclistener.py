@@ -24,17 +24,8 @@ class MultiASyncListener(emews.base.baselistener.BaseListener):
         # callback class for providing listener handling
         self._handler_listener = handler_listener
 
-        self._interrupted = False
-
         # inputs (fds)
         self._inputs = [self.socket]
-
-    @property
-    def interrupted(self):
-        '''
-        returns whether the listener has been requested to stop
-        '''
-        return self._interrupted
 
     def stop(self):
         '''
@@ -47,7 +38,7 @@ class MultiASyncListener(emews.base.baselistener.BaseListener):
         '''
         @Override starts the listening loop for connections
         '''
-        while not self._interrupted:
+        while not self.interrupted:
             try:
                 r_socks, _, e_socks = select.select(self._inputs, [], self._inputs)
             except select.error as ex:

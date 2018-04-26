@@ -18,7 +18,7 @@ listener:  # emews client listener
     command_delimiter: ' '  # delimit commands using this
 
 logging:
-  main_logger: emews.distributed  # the primary logger to use
+  main_logger: emews.base  # the primary logger to use
   log_conf:
     version: 1
     formatters:

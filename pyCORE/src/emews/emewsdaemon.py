@@ -10,7 +10,6 @@ other aspects (such as logging and control of services) is shared among all
 service threads.
 
 Created on Mar 24, 2018
-
 @author: Brian Ricks
 '''
 import argparse
