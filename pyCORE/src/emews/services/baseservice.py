@@ -1,5 +1,5 @@
 '''
-Base class for pyCORE services.
+Base class for emews services.
 While this class is abstract, it still inherits the IService interface.  This is mainly to
 separate base service functionality from the service decorators, which would be redundant otherwise.
 Also instantiating decorators would be awkward if the base decorator had to call the BaseService
@@ -10,7 +10,6 @@ name can use upper camelCase - ServiceName for example).  This is so the string 
 build the appropriate service can also perform module lookup.
 
 Created on Mar 5, 2018
-
 @author: Brian Ricks
 '''
 

@@ -10,7 +10,6 @@ other aspects (such as logging and control of services) is shared among all
 service threads.
 
 Created on Mar 24, 2018
-
 @author: Brian Ricks
 '''
 import argparse
@@ -18,7 +17,6 @@ import logging
 import os
 import socket
 import sys
-import threading
 
 import emews.base.config
 from emews.base.connectionmanager import ConnectionManager
@@ -64,7 +62,6 @@ def launch_logserver(config):
 
     return None
 
-
 def main():
     '''
     main function
@@ -91,8 +88,14 @@ def main():
     log_server = launch_logserver(config)
     logging.disable(logging.NOTSET)  # enable all log levels
 
-    connection_manager = ConnectionManager(config)
-    connection_manager.start()
+    try:
+        connection_manager = ConnectionManager(config)
+        connection_manager.start()
+    except StandardError:
+        # shutdown LogServer if it is running
+        if log_server is not None:
+            log_server.stop()
+        raise
 
     if log_server is not None:
         log_server.stop()

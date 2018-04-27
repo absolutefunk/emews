@@ -1,6 +1,9 @@
 # Base configuration for the emews system
 # Note, some of the settings can break the system if changed.
 # YAML 1.2 compliant
+general:
+  # Delay to start services from emews daemon invocation.
+  service_start_delay: 30  # in seconds
 
 paths:
   # package paths for the emews system

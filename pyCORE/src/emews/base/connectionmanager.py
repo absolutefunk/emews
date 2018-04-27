@@ -33,6 +33,14 @@ class ConnectionManager(emews.base.baseobject.BaseObject,
         self._listener = emews.base.multilistener.MultiListener(self.config, self)
         # handles thread spawning/management
         self._thread_dispatcher = emews.base.thread_dispatcher.ThreadDispatcher(self.config)
+        # if we have a start delay, convey this to the dispatcher
+        if not isinstance(self.config.get_sys('general', 'service_start_delay'), int):
+            raise ValueError("In config: general-->service_start_delay must be an integer.")
+
+        if self.config.get_sys('general', 'service_start_delay') > 0:
+            start_delay = self.config.get_sys('general', 'service_start_delay')
+            self.logger.debug("Beginning service start delay of %d seconds.", start_delay)
+            self._thread_dispatcher.delay_dispatch(start_delay)
 
     def shutdown_signal_handler(self, signum, frame):
         '''
@@ -58,7 +66,8 @@ class ConnectionManager(emews.base.baseobject.BaseObject,
         @Override start a ClientSession with this socket
         '''
         self._thread_dispatcher.dispatch_thread(
-            emews.base.clientsession.ClientSession(self.config, sock, self._thread_dispatcher))
+            emews.base.clientsession.ClientSession(self.config, sock, self._thread_dispatcher),
+            force_start=True)
 
     def handle_readable_socket(self, sock):
         '''
