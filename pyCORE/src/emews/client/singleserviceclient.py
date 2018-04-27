@@ -31,6 +31,7 @@ class SingleServiceClient(emews.base.BaseObject, emews.base.ihandlerclient.IHand
         # required params
         try:
             self._recv_buf = client_config.get('receive_buffer')
+            self._command_delim = client_config.get('command_delimiter')
         except emews.base.exceptions.KeychainException as ex:
             self.logger.error(ex)
             raise
@@ -96,9 +97,9 @@ class SingleServiceClient(emews.base.BaseObject, emews.base.ihandlerclient.IHand
             self._netclient.stop()
             return
 
-        command_str = "S " + self._command_tuple[0]
+        command_str = "S" + self._command_delim + self._command_tuple[0]
         if self._command_tuple[1] is not None:
-            command_str += " " + self._command_tuple[1]
+            command_str += self._command_delim + self._command_tuple[1]
 
         sock.sendall(command_str)
 
