@@ -84,6 +84,8 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
         if self._deferred_threads > 0:
             self.logger.debug("Dispatched all deferred threads.")
             self._deferred_threads.clear()
+            self.logger.debug("Active dispatched thread count: %d", self.count)
+            self.logger.debug("Active threads: %s", thread_names_str())
         else:
             self.logger.debug("No deferred threads to dispatch.")
 

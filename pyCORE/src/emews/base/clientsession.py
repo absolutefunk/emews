@@ -12,6 +12,7 @@ import socket
 
 import emews.base.baseobject
 import emews.base.commandhandler
+import emews.base.exceptions
 import emews.base.irunnable
 
 class ClientSession(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunnable):
@@ -30,11 +31,14 @@ class ClientSession(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunn
             'fail': "ERR\n"
         }
 
-        self._buf_size = self.config.get('receive_buffer')
-        self._command_delim = self.config.get('command_delimiter')
+        try:
+            self._buf_size = self.config.get('receive_buffer')
+            self._command_delim = self.config.get('command_delimiter')
+        except emews.base.exceptions.KeychainException as ex:
+            self.logger.error(ex)
+            raise
 
         self._sock = sock  # socket used to receive commands
-        self._sock.setblocking(0)
 
         self.logger.debug("Buffer size: %d", self._buf_size)
 
@@ -49,6 +53,12 @@ class ClientSession(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunn
         '''
         @Override from IRunnable
         '''
+        # send ready to client
+        if not self.__send_ack(self._ACK_MSG['success']):
+            # issue when sending
+            self._sock.close()
+            return
+
         self.__listen()
 
         if not self._interrupted:

@@ -26,20 +26,16 @@ class NetClient(emews.base.baseobject.BaseObject, emews.base.inet.INet):
 
         # inputs (fds)
         self._inputs = [self.socket]
+        self._outputs = []
 
         # required params
         try:
             self._host = self.config.get('host')
             self._port = self.config.get('port')
+            self._recv_timeout = self.config.get('recv_timeout')
         except emews.base.exceptions.KeychainException as ex:
             self.logger.error(ex)
             raise
-
-        # optional params
-        self._recv_timeout = -1 if not 'timeout' in self.config.component_config else\
-            self.config.get('timeout')
-        self._send_first = True if not 'send_first' in self.config.component_config else\
-            self.config.get('send_first')
 
         # parameter checks
         if self._host == '':
@@ -61,22 +57,35 @@ class NetClient(emews.base.baseobject.BaseObject, emews.base.inet.INet):
     @property
     def socket(self):
         '''
-        Returns a socket (client socket if client, listener socket if listener).
+        @Override Returns a socket (client socket if client, listener socket if listener).
         '''
         return self._socket
 
     @property
     def interrupted(self):
         '''
-        returns whether the net-based object has been requested to stop
+        @Override returns whether the net-based object has been requested to stop
         '''
         return self._interrupted
+
+    def request_write(self, sock):
+        '''
+        @Override This is called when a socket is requested to be written to.
+        '''
+        if sock is not self.socket:
+            self.logger.error("passed socket is not our socket.")
+            raise StandardError("passed socket is not our socket.")
+
+        self._inputs.remove(sock)
+        self._outputs.append(sock)
+
 
     def start(self):
         '''
         Starts the net-based logic.
         '''
         self._socket.connect((self._host, self._port))
+        self._run()
 
     def _run(self):
         '''
@@ -84,7 +93,7 @@ class NetClient(emews.base.baseobject.BaseObject, emews.base.inet.INet):
         '''
         while not self.interrupted:
             try:
-                r_socks, w_socks, e_socks = select.select([self.socket], [], [])
+                r_socks, w_socks, e_socks = select.select(self._inputs, self._outputs, self._inputs)
             except select.error as ex:
                 # interrupted (most likely)
                 if self.interrupted:
@@ -95,10 +104,20 @@ class NetClient(emews.base.baseobject.BaseObject, emews.base.inet.INet):
                     raise StandardError(ex)
 
             for r_sock in r_socks:
+                # there should only be one sock
                 if r_sock is not self.socket:
                     self.logger.error("Unknown socket in select readable list.")
-                    raise StandardError(ex)
+                    raise StandardError("Unknown socket in select readable list.")
                 self._handler_listener.handle_readable_socket(r_sock)
+
+            for w_sock in w_socks:
+                # there should only be one sock
+                if w_sock is not self.socket:
+                    self.logger.error("Unknown socket in select writable list.")
+                    raise StandardError("Unknown socket in select writable list.")
+                self._outputs.remove(w_sock)
+                self._inputs.append(w_sock)
+                self._handler_listener.handle_writable_socket(w_sock)
 
     def stop(self):
         '''

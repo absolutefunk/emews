@@ -13,12 +13,13 @@ paths:
   emews_pkg_service_decorators_path: emews.services.decorators
   emews_pkg_samplers_path: emews.samplers
 
-listener:  # emews client listener
+listener:  # emews client listener (emews clients also use this for their own configuration)
   config:
     host: localhost  # host to bind to (should be localhost or 127.0.0.1, etc)
     port: 32518      # port to use
     receive_buffer: 128     # buffer for incoming characters from a emews client
     command_delimiter: ' '  # delimit commands using this
+    recv_timeout: 10  # in seconds - wait this long for a timeout in expected response
 
 logging:
   main_logger: emews.base  # the primary logger to use

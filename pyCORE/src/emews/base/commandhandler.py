@@ -57,11 +57,11 @@ class CommandHandler(emews.base.baseobject.BaseObject):
             service_builder.config_path(service_config_path)
             service_instance = service_builder.result
         except StandardError:
-            # We still return true so other commands can be processed
+            # throw exception so client knows this failed
             self.logger.error("Could not build service '%s' from client input.", service_str)
-        else:
-            self._thread_dispatcher.dispatch_thread(service_instance)
+            raise CommandException("Could not build service '%s' from client input." % service_str)
 
+        self._thread_dispatcher.dispatch_thread(service_instance)
         return True
 
     def __do_exit(self, arg_str):

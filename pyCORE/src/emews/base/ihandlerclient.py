@@ -18,3 +18,10 @@ class IHandlerClient(object):
         Given a socket, read its contents.
         '''
         pass
+
+    @abstractmethod
+    def handle_writable_socket(self, sock):
+        '''
+        Given a socket, write something to it or perform some other action.
+        '''
+        pass

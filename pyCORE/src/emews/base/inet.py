@@ -27,6 +27,13 @@ class INet(object):
         pass
 
     @abstractmethod
+    def request_write(self, sock):
+        '''
+        This is called when a socket is requested to be written to.
+        '''
+        pass
+
+    @abstractmethod
     def start(self):
         '''
         Starts the net-based logic.

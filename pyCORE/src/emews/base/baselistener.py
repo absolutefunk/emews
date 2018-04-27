@@ -66,6 +66,13 @@ class BaseListener(emews.base.baseobject.BaseObject, emews.base.inet.INet):
         '''
         return self._interrupted
 
+    def request_write(self, sock):
+        '''
+        @Override This is called when a socket is requested to be written to.
+        Not used in listeners, but part of the INet contract.
+        '''
+        pass
+
     def start(self):
         '''
         @Override starts the listener
