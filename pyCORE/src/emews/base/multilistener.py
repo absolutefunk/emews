@@ -23,20 +23,11 @@ class MultiListener(emews.base.baselistener.BaseListener):
         # callback class for providing listener handling
         self._handler_listener = handler_listener
 
-        self._interrupted = False  # sets to true when stop() invoked
-
-    @property
-    def interrupted(self):
-        '''
-        returns whether the listener has been requested to stop
-        '''
-        return self._interrupted
-
     def listen(self):
         '''
         @Override starts the listening loop for connections
         '''
-        while not self._interrupted:
+        while not self.interrupted:
             try:
                 select.select([self.socket], [], [])
             except select.error as ex:
