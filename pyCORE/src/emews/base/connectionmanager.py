@@ -2,7 +2,6 @@
 Listens for new client connections and spawns ClientSessions when appropriate.
 
 Created on Mar 24, 2018
-
 @author: Brian Ricks
 '''
 import signal
