@@ -85,16 +85,21 @@ class LogServer(emews.services.baseservice.BaseService,
                 chunk = sock.recv(4)
             except socket.error as ex:
                 self.logger.warning("Socket error when receiving message length: %s", ex)
+                self._listener.request_close(sock)
                 return
 
             if len(chunk) < 4:
-                # doesn't look like the message length
+                #  Most likely because the connection was closed
+                # at the client end.  This is expected as after a message is fully received, the
+                # stage resets back to 0
+                self._listener.request_close(sock)
                 return
 
             try:
                 slen = struct.unpack('>L', chunk)[0]
             except struct.error as ex:
                 self.logger.warning("Struct error when unpacking log message length: %s", ex)
+                self._listener.request_close(sock)
                 return
 
             self._sock_state[sock]['slen'] = slen
@@ -109,7 +114,16 @@ class LogServer(emews.services.baseservice.BaseService,
                 self.logger.warning("Socket error when receiving log message: %s", ex)
                 self._sock_state[sock]['stage'] = 0
                 self._sock_state[sock]['msg'] = ""
+                self._listener.request_close(sock)
                 return
+
+            if not chunk:
+                # This is unexpected.  Could be a connection problem.
+                self.logger.warning("Socket read buffer is empty when expecting logging data.  "\
+                    "Closing socket ...")
+                self._listener.request_close(sock)
+                return
+
             self._sock_state[sock]['msg'] = self._sock_state[sock]['msg'] + chunk
 
             if len(self._sock_state[sock]['msg']) == self._sock_state[sock]['slen']:

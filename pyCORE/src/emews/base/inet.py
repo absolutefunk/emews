@@ -34,6 +34,13 @@ class INet(object):
         pass
 
     @abstractmethod
+    def request_close(self, sock):
+        '''
+        This is called when a socket needs to be closed.
+        '''
+        pass
+
+    @abstractmethod
     def start(self):
         '''
         Starts the net-based logic.

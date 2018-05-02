@@ -31,6 +31,7 @@ class UniformSampler(emews.samplers.valuesampler.ValueSampler):
             self.logger.error(ex)
             raise
 
+    @property
     def next_value(self):
         '''
         @Override samples using a bounded uniform distribution

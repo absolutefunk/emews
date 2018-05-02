@@ -62,7 +62,10 @@ class ClientSession(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunn
         self.__listen()
 
         if not self._interrupted:
-            self._sock.shutdown(socket.SHUT_RDWR)
+            try:
+                self._sock.shutdown(socket.SHUT_RDWR)
+            except socket.error as ex:
+                self.logger.warning("Could not call shutdown() on socket: %s", ex)
 
         self._sock.close()
         self.logger.info("%d commands processed. Connection to client closed.", self._command_count)
@@ -121,8 +124,7 @@ class ClientSession(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunn
                 return ""
 
             if not data:
-                if not self._interrupted:
-                    self.logger.warning("Session abruptly closed.")
+                # most likely client closed connection
                 return ""
 
             chunk_count += 1
@@ -155,7 +157,21 @@ class ClientSession(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunn
             return False
 
         try:
-            self._sock.sendall(ack_msg)
+            # TODO: refactor this
+            bytes_sent = self._sock.send(ack_msg)
+            while bytes_sent < len(ack_msg):
+                try:
+                    select.select([], [self._sock], [])
+                except select.error as ex:
+                    if not self._interrupted:
+                        self.logger.warning("Select error on socket during active client session "\
+                        "(ACK to send: %s, - during send of chunked data).", ack_msg)
+                    else:
+                        self.logger.debug(ex)
+                    return False
+
+                bytes_sent = self._sock.send(ack_msg[bytes_sent:])
+
         except socket.error as ex:
             if not self._interrupted:
                 self.logger.warning("Socket error during active client session "\

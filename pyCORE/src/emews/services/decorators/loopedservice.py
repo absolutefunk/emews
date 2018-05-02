@@ -35,7 +35,7 @@ class LoopedService(ServiceDecorator):
         Runs the service in a loop based on the sampler
         '''
         while True:
-            self.sleep(self._sampler.next_value())
+            self.sleep(self._sampler.next_value)
 
             if self.interrupted:
                 '''

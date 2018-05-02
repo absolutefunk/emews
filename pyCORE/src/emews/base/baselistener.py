@@ -68,8 +68,15 @@ class BaseListener(emews.base.baseobject.BaseObject, emews.base.inet.INet):
 
     def request_write(self, sock):
         '''
-        @Override This is called when a socket is requested to be written to.
+        @Override (INet) This is called when a socket is requested to be written to.
         Not used in listeners, but part of the INet contract.
+        '''
+        pass
+
+    def request_close(self, sock):
+        '''
+        @Override (INet) This is called when a socket needs to be closed.
+        Needs to be implemented in concrete listeners that manage accepted sockets.
         '''
         pass
 

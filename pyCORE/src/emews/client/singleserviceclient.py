@@ -5,6 +5,7 @@ Created on Apr 26, 2018
 @author: Brian Ricks
 '''
 import argparse
+import logging
 import os
 import signal
 import socket
@@ -15,7 +16,8 @@ import emews.base.exceptions
 import emews.base.ihandlerclient
 import emews.base.netclient
 
-class SingleServiceClient(emews.base.BaseObject, emews.base.ihandlerclient.IHandlerClient):
+class SingleServiceClient(emews.base.baseobject.BaseObject,
+                          emews.base.ihandlerclient.IHandlerClient):
     '''
     classdocs
     '''
@@ -24,7 +26,9 @@ class SingleServiceClient(emews.base.BaseObject, emews.base.ihandlerclient.IHand
         Constructor
         command_tuple contains the service name and possible service config path
         '''
-        client_config = config.clone_with_dict(config.extract_with_key('listener', 'config'))
+        super(SingleServiceClient, self).__init__(config)
+
+        client_config = config.clone_with_dict(config.get_sys('listener', 'config'))
         self._netclient = emews.base.netclient.NetClient(client_config, self)
         self._command_tuple = command_tuple  # contains service name / service config path
 
@@ -37,12 +41,19 @@ class SingleServiceClient(emews.base.BaseObject, emews.base.ihandlerclient.IHand
             raise
 
         self._stage = 0  # keeps track of where we are in the flow
+        self._write_buf = None  # when not None, means we still have stuff to send out
 
     def start(self):
         '''
         Starts the client.
         '''
         self._netclient.start()
+
+    def stop(self):
+        '''
+        Stops the client.
+        '''
+        self._netclient.stop()
 
     def handle_readable_socket(self, sock):
         '''
@@ -59,7 +70,8 @@ class SingleServiceClient(emews.base.BaseObject, emews.base.ihandlerclient.IHand
             self._netclient.stop()
             return
 
-        if chunk == 'OK\n':
+        chunk = "".join(chunk.split())
+        if chunk == 'OK':
             if self._stage == 0:
                 # initial response from emews daemon
                 self._netclient.request_write(sock)
@@ -70,7 +82,7 @@ class SingleServiceClient(emews.base.BaseObject, emews.base.ihandlerclient.IHand
                 self.logger.info("Service '%s': spawn command successful.", self._command_tuple[0])
                 self._netclient.stop()
                 return
-        elif chunk == 'ERR\n':
+        elif chunk == 'ERR':
             if self._stage == 0:
                 # initial response from emews daemon
                 self.logger.error("Service '%s': initial response from emews daemon was ERR.",
@@ -97,11 +109,27 @@ class SingleServiceClient(emews.base.BaseObject, emews.base.ihandlerclient.IHand
             self._netclient.stop()
             return
 
-        command_str = "S" + self._command_delim + self._command_tuple[0]
-        if self._command_tuple[1] is not None:
-            command_str += self._command_delim + self._command_tuple[1]
+        if self._write_buf is None:
+            command_str = "S" + self._command_delim + self._command_tuple[0]
+            if self._command_tuple[1] is not None:
+                command_str += self._command_delim + self._command_tuple[1]
+            command_str += "\n"
+        else:
+            command_str = self._write_buf
 
-        sock.sendall(command_str)
+        try:
+            bytes_sent = sock.send(command_str)
+        except socket.error as ex:
+            self.logger.error("Service '%s': socket error on writable socket: %s", ex)
+            self._netclient.stop()
+            return
+
+        if bytes_sent < len(command_str):
+            # must request writabe socket again and keep sending what we have
+            self._write_buf = command_str[bytes_sent:]
+            self._netclient.request_write(sock)
+        else:
+            self._write_buf = None
 
 def main():
     '''
@@ -115,14 +143,17 @@ def main():
     parser.add_argument("service", help="name of the service class to load")
     args = parser.parse_args()
 
+    client = None
     logger = None
     def shutdown_signal_handler(signum, frame):
         '''
         Called when a registered signal is caught (ctrl-c for example).
         Relays to running service to gracefully shutdown.
         '''
-
-        logger.info("Caught signal %s, shutting down service.", signum)
+        if logger is not None:
+            logger.debug("Caught signal %s, shutting down client.", signum)
+        if client is not None:
+            client.stop()
 
     # register signals (this is done in ConnectionManager if running the emews daemon)
     signal.signal(signal.SIGHUP, shutdown_signal_handler)
@@ -132,7 +163,13 @@ def main():
                                    if args.sys_config is None else args.sys_config
     service_config_path = args.service_config  # if this is none, default will be attempted
 
-    config = emews.base.config.Config('<none>', sys_config_path)  # node name not needed
+    config = emews.base.config.Config('<Client>', sys_config_path)  # node name not needed
 
     client = SingleServiceClient(config, (args.service, service_config_path))
+    logger = client.logger
     client.start()
+
+    logging.shutdown()
+
+if __name__ == '__main__':
+    main()

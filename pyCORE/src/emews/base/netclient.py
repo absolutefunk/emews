@@ -24,10 +24,6 @@ class NetClient(emews.base.baseobject.BaseObject, emews.base.inet.INet):
 
         self._interrupted = False  # sets to true when stop() invoked
 
-        # inputs (fds)
-        self._inputs = [self.socket]
-        self._outputs = []
-
         # required params
         try:
             self._host = self.config.get('host')
@@ -49,15 +45,18 @@ class NetClient(emews.base.baseobject.BaseObject, emews.base.inet.INet):
 
         try:
             self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self._socket.setblocking(0)
         except socket.error as ex:
             self.logger.error("Could not instantiate socket. %s", ex)
             raise
 
+        # inputs (fds)
+        self._inputs = [self._socket]
+        self._outputs = []
+
     @property
     def socket(self):
         '''
-        @Override Returns a socket (client socket if client, listener socket if listener).
+        @Override Returns the client socket.
         '''
         return self._socket
 
@@ -72,20 +71,39 @@ class NetClient(emews.base.baseobject.BaseObject, emews.base.inet.INet):
         '''
         @Override This is called when a socket is requested to be written to.
         '''
-        if sock is not self.socket:
+        if sock is not self._socket:
             self.logger.error("passed socket is not our socket.")
             raise StandardError("passed socket is not our socket.")
 
         self._inputs.remove(sock)
         self._outputs.append(sock)
 
+    def request_close(self, sock):
+        '''
+        This is called when we need to shutdown.
+        '''
+        if sock is not self._socket:
+            self.logger.warning("Given socket is not the client socket.  Ignoring ...")
+            return
+
+        self.stop()
 
     def start(self):
         '''
         Starts the net-based logic.
         '''
         self._socket.connect((self._host, self._port))
+        self._socket.setblocking(0)
         self._run()
+
+        self._socket.close()
+
+    def stop(self):
+        '''
+        @Override Invoked when it is time to shut down.
+        '''
+        self._interrupted = True
+        self._socket.shutdown(socket.SHUT_RDWR)
 
     def _run(self):
         '''
@@ -97,7 +115,7 @@ class NetClient(emews.base.baseobject.BaseObject, emews.base.inet.INet):
             except select.error as ex:
                 # interrupted (most likely)
                 if self.interrupted:
-                    self.logger.info("Net client shutting down ...")
+                    self.logger.debug("Net client shutting down ...")
                     break
                 else:
                     self.logger.error("Select error while blocking on client socket.")
@@ -105,23 +123,25 @@ class NetClient(emews.base.baseobject.BaseObject, emews.base.inet.INet):
 
             for r_sock in r_socks:
                 # there should only be one sock
-                if r_sock is not self.socket:
+                if r_sock is not self._socket:
                     self.logger.error("Unknown socket in select readable list.")
                     raise StandardError("Unknown socket in select readable list.")
-                self._handler_listener.handle_readable_socket(r_sock)
+                self._handler_client.handle_readable_socket(r_sock)
 
             for w_sock in w_socks:
                 # there should only be one sock
-                if w_sock is not self.socket:
+                if w_sock is not self._socket:
                     self.logger.error("Unknown socket in select writable list.")
                     raise StandardError("Unknown socket in select writable list.")
                 self._outputs.remove(w_sock)
                 self._inputs.append(w_sock)
-                self._handler_listener.handle_writable_socket(w_sock)
+                self._handler_client.handle_writable_socket(w_sock)
 
-    def stop(self):
-        '''
-        @Override Invoked when it is time to shut down.
-        '''
-        self._interrupted = True
-        self.socket.shutdown(socket.SHUT_RDWR)
+            for e_sock in e_socks:
+                # well, this sucks...
+                if e_sock is not self._socket:
+                    self.logger.error("Unknown socket in select exceptional list.")
+                    raise StandardError("Unknown socket in select exceptional list.")
+                self.logger.warning("Socket in exceptional state.  Removing ...")
+                self._inputs.remove(e_sock)
+                raise StandardError("Socket in exceptional state.")

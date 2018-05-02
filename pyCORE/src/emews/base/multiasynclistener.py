@@ -34,6 +34,34 @@ class MultiASyncListener(emews.base.baselistener.BaseListener):
         self._interrupted = True
         self.socket.shutdown(socket.SHUT_RDWR)  # will unblock select()
 
+        self._shutdown()
+
+    def _shutdown(self):
+        '''
+        shuts down sockets
+        '''
+        for sock in self._inputs:
+            # self.socket is closed in BaseListener
+            if sock is not self.socket:
+                sock.close()
+
+    def request_close(self, sock):
+        '''
+        This is called when a socket needs to be closed.
+        Note, this is veryr important for this type of listener.  Be sure to recognize when a
+        readable socket needs to be closed (when socket.recv() returns no data).  Not checking
+        for this and simply returning could result in an infinite loop as the socket will never
+        block on read.
+        '''
+        if not sock in self._inputs:
+            self.logger.warning("Given socket not in inputs list.  Ignoring ...")
+            return
+
+        self._inputs.remove(sock)
+        sock.close()
+
+        self.logger.debug("Closed and removed accepted socket.")
+
     def listen(self):
         '''
         @Override starts the listening loop for connections
@@ -49,21 +77,24 @@ class MultiASyncListener(emews.base.baselistener.BaseListener):
                 else:
                     self.logger.error("Select error while blocking on managed sockets.")
                     raise StandardError(ex)
+
             for r_sock in r_socks:
                 if r_sock is self.socket:
                     # this is the listener socket
                     try:
-                        sock, _ = r_sock.accept()
+                        acc_sock, src_addr = r_sock.accept()
+                        acc_sock.setblocking(0)
                     except socket.error as ex:
                         # ignore the exception, but dump the new connection
                         self.logger.warning("Socket exception while accepting connection: %s", ex)
                         continue  # continue the for loop for r_socks
 
-                    self._inputs.append(sock)
-                    self._handler_listener.handle_accepted_connection(sock)
+                    self.logger.info("Connection established from %s", src_addr)
+                    self._inputs.append(acc_sock)
+                    self._handler_listener.handle_accepted_connection(acc_sock)
                 else:
                     # some socket we are managing (not the listener socket)
-                    self._handler_listener.handle_readable_socket(sock)
+                    self._handler_listener.handle_readable_socket(r_sock)
 
             for e_sock in e_socks:
                 # well, this sucks...

@@ -43,14 +43,34 @@ class Config(object):
     '''
     classdocs
     '''
-    def __init__(self, nodename, sys_config_path):
+    def __init__(self, nodename, sys_config_path, node_config_path=None):
         '''
         Constructor
         '''
-        self._nodename = nodename
+        sys_config_dict = parse(sys_config_path)
+        if node_config_path is not None:
+            # parse the per node config
+            node_config_dict = parse(node_config_path)
+            if not 'general' in node_config_dict:
+                print "node_config: key 'general' is missing (section)."
+                raise ValueError("node_config: key 'general' is missing (section).")
+            if not 'node_name' in node_config_dict['general']:
+                print "node_config: key 'general-->node_name' is missing."
+                raise ValueError("node_config: key 'general-->node_name' is missing.")
+
+            node_config_key = str(node_config_dict['general']['node_name']) + "_config"
+            if node_config_key in sys_config_dict:
+                print "system_config: key '%s' is present.  Please delete or rename."
+                raise ValueError("system_config: key '%s' is present.  Please delete or rename.")
+
+            sys_config_dict[node_config_key] = node_config_dict
+
+
+        self._nodename = nodename if node_config_path is None else\
+            node_config_dict['general']['node_name']
         self._project_root = os.path.dirname(emews.version.__file__)
 
-        self._sys_config = emews.base.configcomponent.ConfigComponent(parse(sys_config_path))
+        self._sys_config = emews.base.configcomponent.ConfigComponent(sys_config_dict)
 
         #configure logging
         logging.config.dictConfig(self._sys_config.get('logging', 'log_conf'))

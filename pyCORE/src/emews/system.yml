@@ -3,7 +3,7 @@
 # YAML 1.2 compliant
 general:
   # Delay to start services from emews daemon invocation.
-  service_start_delay: 30  # in seconds
+  service_start_delay: 45  # in seconds
 
 paths:
   # package paths for the emews system
@@ -22,7 +22,7 @@ listener:  # emews client listener (emews clients also use this for their own co
     recv_timeout: 10  # in seconds - wait this long for a timeout in expected response
 
 logging:
-  main_logger: emews.base  # the primary logger to use
+  main_logger: emews.distributed  # the primary logger to use
   log_conf:
     version: 1
     formatters:

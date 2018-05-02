@@ -36,6 +36,7 @@ class TruncnormSampler(emews.samplers.valuesampler.ValueSampler):
             self.logger.error(ex)
             raise
 
+    @property
     def next_value(self):
         '''
         samples using a truncated normal distribution

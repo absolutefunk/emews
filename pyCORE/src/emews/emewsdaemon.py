@@ -69,8 +69,10 @@ def main():
     parser = argparse.ArgumentParser(description='emews network node daemon')
     parser.add_argument("-s", "--sys_config", help="path of the emews system config file "\
     "(default: emews root)")
+    parser.add_argument("-c", "--node_config", help="path of the emews node-based config file "\
+    "(default: <none>)")
     parser.add_argument("-n", "--node_name", help="name of the node this daemon launches under "\
-    "(default: system host name)")
+    "(default: system host name, if --node_config not given)")
     args = parser.parse_args()
 
     sys_config_path = os.path.join(os.path.dirname(emews.version.__file__), "system.yml")\
@@ -79,9 +81,10 @@ def main():
 
     print "emews %s" % emews.version.__version__
     print "  Using system config path: " + sys_config_path
-    print "  Using node name: " + node_name
 
     config = emews.base.config.Config(node_name, sys_config_path)
+
+    print "  Using node name: " + node_name
 
     # When disabling, log messages are cached until logging is enabled again
     logging.disable(logging.CRITICAL)  # disable all log levels

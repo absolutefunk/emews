@@ -21,7 +21,7 @@ dependencies:  # additional classes that this service requires
     class: UniformSampler
     module: emews.samplers.uniformsampler
     config:
-      lower_bound: 0
+      lower_bound: 0  # index 0
       upper_bound: 1  # should match the list size of start_sites -1 (index starts at zero)
   num_links_sampler:  # sampler used to pick the number of links to crawl.  Dependent on first link
       class: TruncnormSampler
@@ -33,5 +33,15 @@ dependencies:  # additional classes that this service requires
     class: UniformSampler
     module: emews.samplers.uniformsampler
     config:
-      lower_bound: 2
-      upper_bound: 20
+      lower_bound: 2  # lower bound (sec) -a_4
+      upper_bound: 10  # upper bound (sec) -b_4
+
+  decorators:  # any decorators required need to be defined here
+    LoopedService:  # LoopedService decorator
+      dependencies:  # additional classes that this decorator requires
+        loop_sampler: # unique name to describe the dependency
+          class: UniformSampler  # distribution to sample service loop start time from
+          module: emews.samplers.uniformsampler
+          config:
+            lower_bound: 5  # lower bound (sec) - a_3
+            upper_bound: 12  # upper bound (sec) - b_3
