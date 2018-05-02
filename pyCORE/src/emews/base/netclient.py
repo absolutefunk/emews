@@ -92,7 +92,13 @@ class NetClient(emews.base.baseobject.BaseObject, emews.base.inet.INet):
         '''
         Starts the net-based logic.
         '''
-        self._socket.connect((self._host, self._port))
+        try:
+            self._socket.connect((self._host, self._port))
+        except socket.error as ex:
+            self.logger.error("Could not connect to eMews daemon: %s", ex)
+            self._socket.close()
+            return
+
         self._socket.setblocking(0)
         self._run()
 

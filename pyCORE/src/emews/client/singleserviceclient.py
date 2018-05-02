@@ -9,12 +9,14 @@ import logging
 import os
 import signal
 import socket
+import threading
 
 import emews.base.baseobject
 import emews.base.config
 import emews.base.exceptions
 import emews.base.ihandlerclient
 import emews.base.netclient
+import emews.samplers.uniformsampler
 
 class SingleServiceClient(emews.base.baseobject.BaseObject,
                           emews.base.ihandlerclient.IHandlerClient):
@@ -140,16 +142,21 @@ def main():
     "(default: emews root)")
     parser.add_argument("-c", "--service_config", help="path of the service config file"\
     "(default: standard path and name)")
+    parser.add_argument("-n", "--node_name", help="name of the node hosting client"\
+    "(default: <none>)")
     parser.add_argument("service", help="name of the service class to load")
     args = parser.parse_args()
 
     client = None
     logger = None
+    client_wait = threading.Event()
+
     def shutdown_signal_handler(signum, frame):
         '''
         Called when a registered signal is caught (ctrl-c for example).
         Relays to running service to gracefully shutdown.
         '''
+        client_wait.set()
         if logger is not None:
             logger.debug("Caught signal %s, shutting down client.", signum)
         if client is not None:
@@ -159,14 +166,29 @@ def main():
     signal.signal(signal.SIGHUP, shutdown_signal_handler)
     signal.signal(signal.SIGINT, shutdown_signal_handler)
 
+    node_name = args.node_name if args.node_name is not None else '<client>'
+
     sys_config_path = os.path.join(os.path.dirname(emews.version.__file__), "system.yml")\
                                    if args.sys_config is None else args.sys_config
     service_config_path = args.service_config  # if this is none, default will be attempted
 
-    config = emews.base.config.Config('<Client>', sys_config_path)  # node name not needed
+    config = emews.base.config.Config(node_name, sys_config_path)  # node name not needed
 
     client = SingleServiceClient(config, (args.service, service_config_path))
     logger = client.logger
+    # wait a bit before trying to connect (give the daemon some time to start up)
+    try:
+        delay_config = config.clone_with_dict(
+            config.get_sys('general', 'client_start_delay', 'config'))
+    except emews.base.exceptions.KeychainException as ex:
+        logger.error(ex)
+        return
+    delay_sampler = emews.samplers.uniformsampler.UniformSampler(delay_config)
+    delay_value = delay_sampler.next_value
+    logger.debug("Waiting %d seconds to request launch of service: %s.",
+                 delay_value, args.service)
+    client_wait.wait(delay_value)
+
     client.start()
 
     logging.shutdown()
