@@ -13,13 +13,13 @@ class AutoSSH(CoreService):
     '''
     CORE Service class for the eMews daemon
     '''
-    _name = "AutoSSH_1"
+    _name = "AutoSSH_2"
     _group = "eMews"
 
-    _configs = ("autossh_1.sh",)
+    _configs = ("autossh_2.sh",)
     _startindex = 50  # make sure this is higher than the emews daemon CoreService
     _dirs = ()
-    _startup = ("sh autossh_1.sh",)
+    _startup = ("sh autossh_2.sh",)
     _shutdown = ()
     _validate = ()
 
@@ -31,5 +31,5 @@ class AutoSSH(CoreService):
         return """\
 #!/bin/sh
 export PYTHONPATH=/home/absolutefunk/school/research/CORE/coremews/pyCORE/src/
-python /home/absolutefunk/school/research/CORE/coremews/pyCORE/src/emews/client/singleserviceclient.py -n %s -c autossh-1.yml AutoSSH
+python /home/absolutefunk/school/research/CORE/coremews/pyCORE/src/emews/client/singleserviceclient.py -n %s -c autossh-2.yml AutoSSH
 """ % (node.name)

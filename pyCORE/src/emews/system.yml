@@ -3,7 +3,7 @@
 # YAML 1.2 compliant
 general:
   # Delay to start services from emews daemon invocation.
-  service_start_delay: 45  # in seconds
+  service_start_delay: 55  # in seconds
   # Delay to start client connection to eMews daemon.
   client_start_delay:
     config:
