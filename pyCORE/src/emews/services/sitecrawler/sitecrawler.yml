@@ -31,6 +31,10 @@ config:  # service configuration
     - 'http://10.0.69.10'
     - 'http://10.0.73.10'
     - 'http://10.0.73.11'
+    - 'http://10.0.96.10'  # exp 4
+    - 'http://10.0.94.10'
+    - 'http://10.0.94.11'
+    - 'http://10.0.90.10'
   link_sampler:  # parameters for the link_sampler
     std_deviation_first: 16.0  # std deviation of picking next link around mu (first iteration)
     std_deviation: 1.0  # std deviation of picking next link around mu (> first iteration)
@@ -43,7 +47,7 @@ dependencies:  # additional classes that this service requires
     module: emews.samplers.uniformsampler
     config:
       lower_bound: 0  # index 0
-      upper_bound: 22  # should match the list size of start_sites -1 (index starts at zero)
+      upper_bound: 26  # should match the list size of start_sites -1 (index starts at zero)
   num_links_sampler:  # sampler used to pick the number of links to crawl.  Dependent on first link
       class: TruncnormSampler
       module: emews.samplers.truncnormsampler
