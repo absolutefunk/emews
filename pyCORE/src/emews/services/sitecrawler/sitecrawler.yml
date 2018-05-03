@@ -24,6 +24,13 @@ config:  # service configuration
     - 'http://10.0.52.10'
     - 'http://10.0.52.11'
     - 'http://10.0.52.12'
+    - 'http://10.0.75.10'  # exp 3
+    - 'http://10.0.79.10'
+    - 'http://10.0.79.11'
+    - 'http://10.0.79.12'
+    - 'http://10.0.69.10'
+    - 'http://10.0.73.10'
+    - 'http://10.0.73.11'
   link_sampler:  # parameters for the link_sampler
     std_deviation_first: 16.0  # std deviation of picking next link around mu (first iteration)
     std_deviation: 1.0  # std deviation of picking next link around mu (> first iteration)
