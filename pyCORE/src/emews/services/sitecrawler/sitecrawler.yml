@@ -16,7 +16,6 @@ config:  # service configuration
     - 'http://10.0.24.10'
     - 'http://10.0.24.11'
     - 'http://10.0.24.12'
-    #- 'http://localhost'
   link_sampler:  # parameters for the link_sampler
     std_deviation_first: 16.0  # std deviation of picking next link around mu (first iteration)
     std_deviation: 1.0  # std deviation of picking next link around mu (> first iteration)

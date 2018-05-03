@@ -113,7 +113,11 @@ class SiteCrawler(emews.services.baseservice.BaseService):
         if self.interrupted:
             return
 
-        self._br.follow_link(link=next_link)  # crawl to next link
+        try:
+            self._br.follow_link(link=next_link)  # crawl to next link
+        except Exception as ex:
+            self.logger.warning("On follow_link: %s, (server: %s)", ex, site_url)
+            return
 
         # Setup the total number of links to crawl.  As a heuristic, it uses the index of the
         # first link selected as the upper bound and selects a total crawl length based on this
@@ -145,6 +149,10 @@ class SiteCrawler(emews.services.baseservice.BaseService):
             self.logger.debug("link index (%d/%d): %s", selected_link_index, len(page_links),
                               next_link.absolute_url)
 
-            self._br.follow_link(link=next_link)
+            try:
+                self._br.follow_link(link=next_link)
+            except Exception as ex:
+                self.logger.warning("On follow_link: %s, (server: %s)", ex, site_url)
+                return
 
         self.logger.debug("Reached max links to crawl (%d).", num_links_to_crawl)
