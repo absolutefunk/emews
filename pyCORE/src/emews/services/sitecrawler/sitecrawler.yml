@@ -8,7 +8,7 @@ config:  # service configuration
     - java
     - none
     start_sites: # site address to start crawling from
-    - 'http://10.0.14.10'
+    - 'http://10.0.14.10'  # exp 1
     - 'http://10.0.0.11'
     - 'http://10.0.19.10'
     - 'http://10.0.19.11'
@@ -16,6 +16,14 @@ config:  # service configuration
     - 'http://10.0.24.10'
     - 'http://10.0.24.11'
     - 'http://10.0.24.12'
+    - 'http://10.0.27.11'  # exp 2
+    - 'http://10.0.42.10'
+    - 'http://10.0.46.10'
+    - 'http://10.0.46.11'
+    - 'http://10.0.48.10'
+    - 'http://10.0.52.10'
+    - 'http://10.0.52.11'
+    - 'http://10.0.52.12'
   link_sampler:  # parameters for the link_sampler
     std_deviation_first: 16.0  # std deviation of picking next link around mu (first iteration)
     std_deviation: 1.0  # std deviation of picking next link around mu (> first iteration)
