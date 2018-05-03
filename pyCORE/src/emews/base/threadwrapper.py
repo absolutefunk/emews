@@ -45,7 +45,13 @@ class ThreadWrapper(emews.base.irunnable.IRunnable):
         '''
         Invokes the start() method on the wrapped_object (in a separate thread).
         '''
-        self._wrapped_object.start()
+        try:
+            # catch any exception that makes it here, and log it before throwing again
+            self._wrapped_object.start()
+        except Exception as ex:  # pylint: disable=W0703
+            self._wrapped_object.logger.error("Service '%s' failed: %s",
+                                              self._wrapped_object.__class__.__name__, ex)
+            raise
 
     def stop(self):
         '''

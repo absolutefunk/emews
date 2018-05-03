@@ -79,7 +79,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
             try:
                 config_dict = emews.base.config.parse(service_config_path)
             except IOError as ex:
-                self.logger.info("Could not load default configuration, continuing with none...")
+                self.logger.warning("Could not load default configuration, continuing with none...")
                 return
             self.logger.info("Loaded default configuration: %s", service_config_path)
             self._config_component = ConfigComponent(config_dict)
@@ -88,10 +88,9 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         config_try_again = False
         try:
             config_dict = emews.base.config.parse(val_config_path)
-        except IOError as ex:
+        except IOError:
             # config file only may be given, try to prepend path to same folder as service module
-            self.logger.warning("Service configuration could not be loaded, trying service path...")
-            self.logger.debug(ex)
+            self.logger.info("Service configuration could not be loaded, trying service path ...")
             config_try_again = True
 
         if config_try_again:

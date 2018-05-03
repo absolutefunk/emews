@@ -8,13 +8,20 @@ config:  # service configuration
     - java
     - none
     start_sites: # site address to start crawling from
-    - 'https://www.cmu.edu/silicon-valley'
-    - 'https://www.yahoo.com'
+    - 'http://10.0.14.10'
+    - 'http://10.0.0.11'
+    - 'http://10.0.19.10'
+    - 'http://10.0.19.11'
+    - 'http://10.0.17.10'
+    - 'http://10.0.24.10'
+    - 'http://10.0.24.11'
+    - 'http://10.0.24.12'
+    #- 'http://localhost'
   link_sampler:  # parameters for the link_sampler
-    std_deviation_first: 2.0  # std deviation of picking next link around mu (first iteration)
-    std_deviation: 0.5  # std deviation of picking next link around mu (> first iteration)
+    std_deviation_first: 16.0  # std deviation of picking next link around mu (first iteration)
+    std_deviation: 1.0  # std deviation of picking next link around mu (> first iteration)
   num_links_sampler:
-    std_deviation: 1.0
+    std_deviation: 2.0
 
 dependencies:  # additional classes that this service requires
   site_sampler:  # sampler used to pick the site to crawl
@@ -22,7 +29,7 @@ dependencies:  # additional classes that this service requires
     module: emews.samplers.uniformsampler
     config:
       lower_bound: 0  # index 0
-      upper_bound: 1  # should match the list size of start_sites -1 (index starts at zero)
+      upper_bound: 7  # should match the list size of start_sites -1 (index starts at zero)
   num_links_sampler:  # sampler used to pick the number of links to crawl.  Dependent on first link
       class: TruncnormSampler
       module: emews.samplers.truncnormsampler
@@ -33,15 +40,15 @@ dependencies:  # additional classes that this service requires
     class: UniformSampler
     module: emews.samplers.uniformsampler
     config:
-      lower_bound: 2  # lower bound (sec) -a_4
-      upper_bound: 10  # upper bound (sec) -b_4
+      lower_bound: 2  # lower bound (sec) - a_4
+      upper_bound: 10  # upper bound (sec) - b_4
 
-  decorators:  # any decorators required need to be defined here
-    LoopedService:  # LoopedService decorator
-      dependencies:  # additional classes that this decorator requires
-        loop_sampler: # unique name to describe the dependency
-          class: UniformSampler  # distribution to sample service loop start time from
-          module: emews.samplers.uniformsampler
-          config:
-            lower_bound: 5  # lower bound (sec) - a_3
-            upper_bound: 12  # upper bound (sec) - b_3
+decorators:  # any decorators required need to be defined here
+  LoopedService:  # LoopedService decorator
+    dependencies:  # additional classes that this decorator requires
+      loop_sampler: # unique name to describe the dependency
+        class: UniformSampler  # distribution to sample service loop start time from
+        module: emews.samplers.uniformsampler
+        config:
+          lower_bound: 5  # lower bound (sec) - a_3
+          upper_bound: 16  # upper bound (sec) - b_3

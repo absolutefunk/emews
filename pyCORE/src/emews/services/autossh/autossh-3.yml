@@ -2,7 +2,7 @@
 # YAML 1.2 compliant
 config:  # service configuration
   server:
-    host: 10.0.0.10
+    host: 10.0.23.10
     port: 22
     username: coreuser
     password: Mikesolo7!

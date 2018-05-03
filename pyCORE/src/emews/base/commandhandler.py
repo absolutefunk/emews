@@ -38,13 +38,15 @@ class CommandHandler(emews.base.baseobject.BaseObject):
         true, otherwise false.
         '''
         #TODO: generalize (commands) to services with cmdline args
-        self.logger.debug("Command: %s, Arg: %s", cmd_tuple[0], cmd_tuple[1])
+        service_arg = None if len(cmd_tuple) == 2 else cmd_tuple[2]
+        service_cfg_str = "<none>" if service_arg == None else cmd_tuple[2]
+        self.logger.debug("Command: %s, Arg: %s, %s", cmd_tuple[0], cmd_tuple[1], service_cfg_str)
 
         if not cmd_tuple[0] in self._COMMAND_MAPPING:
             self.logger.warning("Command '%s' not recognized.", cmd_tuple[0])
             raise CommandException("Client command %s not recognized." % cmd_tuple[0])
 
-        return self._COMMAND_MAPPING[cmd_tuple[0]](cmd_tuple[1])
+        return self._COMMAND_MAPPING[cmd_tuple[0]](cmd_tuple[1], service_config_path=service_arg)
 
     def __do_makeservice(self, service_str, service_config_path=None):
         '''
