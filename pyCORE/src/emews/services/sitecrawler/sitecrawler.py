@@ -96,7 +96,11 @@ class SiteCrawler(emews.services.baseservice.BaseService):
         each page visited
         '''
         site_url = self._siteURLs[self._site_sampler.next_value]
-        self._br.open(site_url)
+        try:
+            self._br.open(site_url)
+        except Exception as ex:
+            self.logger.warning("On site open: %s, (server: %s)", ex, site_url)
+            return
         # Forces output to be considered HTML (output usually is).
         self._br._factory.is_html = True  # pylint: disable=W0212
         self.logger.info("Starting crawl at %s ...", site_url)
