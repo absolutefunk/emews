@@ -66,10 +66,10 @@ def main():
     '''
     main function
     '''
-    parser = argparse.ArgumentParser(description='emews network node daemon')
-    parser.add_argument("-s", "--sys_config", help="path of the emews system config file "\
-    "(default: emews root)")
-    parser.add_argument("-c", "--node_config", help="path of the emews node-based config file "\
+    parser = argparse.ArgumentParser(description='eMews network node daemon')
+    parser.add_argument("-s", "--sys_config", help="path of the eMews system config file "\
+    "(default: eMews root)")
+    parser.add_argument("-c", "--node_config", help="path of the eMews node-based config file "\
     "(default: <none>)")
     parser.add_argument("-n", "--node_name", help="name of the node this daemon launches under "\
     "(default: system host name, if --node_config not given)")
@@ -79,7 +79,7 @@ def main():
         if args.sys_config is None else args.sys_config
     node_name = socket.gethostname() if args.node_name is None else args.node_name
 
-    print "emews %s" % emews.version.__version__
+    print "eMews %s" % emews.version.__version__
     print "  Using system config path: " + sys_config_path
 
     config = emews.base.config.Config(node_name, sys_config_path)
@@ -102,9 +102,12 @@ def main():
 
     if log_server is not None:
         log_server.stop()
-        log_server.join()
+        log_shutdown_delay = config.get_sys('logserver', 'shutdown_wait')
+        if log_shutdown_delay < 0:
+            log_shutdown_delay = None
+        log_server.join(log_shutdown_delay)
 
-    print "emews shutdown"
+    print "eMews shutdown"
 
 if __name__ == '__main__':
     main()

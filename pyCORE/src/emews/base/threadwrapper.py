@@ -14,7 +14,7 @@ class ThreadWrapper(emews.base.irunnable.IRunnable):
     '''
     __current_thread_id = 0  # each thread has a unique id assigned (for logging)
 
-    def __init__(self, wrapped_object, autostart=True):
+    def __init__(self, wrapped_object, autostart=True, daemon=True):
         '''
         Constructor
         '''
@@ -24,6 +24,8 @@ class ThreadWrapper(emews.base.irunnable.IRunnable):
 
         self._wrapped_object = wrapped_object
         self._thread = threading.Thread(name=self._thread_name, target=self.run_thread)
+
+        self._thread.setDaemon(daemon)
 
         if autostart:
             self.start()
@@ -45,13 +47,8 @@ class ThreadWrapper(emews.base.irunnable.IRunnable):
         '''
         Invokes the start() method on the wrapped_object (in a separate thread).
         '''
-        try:
-            # catch any exception that makes it here, and log it before throwing again
-            self._wrapped_object.start()
-        except Exception as ex:  # pylint: disable=W0703
-            self._wrapped_object.logger.error("Service '%s' failed: %s",
-                                              self._wrapped_object.__class__.__name__, ex)
-            raise
+        # catch any exception that makes it here, and log it before throwing again
+        self._wrapped_object.start()
 
     def stop(self):
         '''
@@ -59,8 +56,8 @@ class ThreadWrapper(emews.base.irunnable.IRunnable):
         '''
         self._wrapped_object.stop()
 
-    def join(self):
+    def join(self, timeout=None):
         '''
         Invokes the join method of threading.Thread.
         '''
-        self._thread.join()
+        self._thread.join(timeout)

@@ -46,7 +46,7 @@ class LoopedService(ServiceDecorator):
                 interrupted (event.set()), then sleep will immediately return on future
                 calls.
                 '''
-                self.logger.debug("Caught shutdown request...")
+                self.logger.debug("Caught shutdown request ...")
                 break
             try:
                 super(LoopedService, self).start()

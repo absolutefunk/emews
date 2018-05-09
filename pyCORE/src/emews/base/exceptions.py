@@ -17,3 +17,10 @@ class MissingConfigException(Exception):
     None.
     '''
     pass
+
+class ServiceShutdownException(Exception):
+    '''
+    Raised when a service has passed the timeout period to shutdown gracefully.  If catching this,
+    shutdown should be immediate, otherwise a potentially long, unanticipated wait could ensue.
+    '''
+    pass

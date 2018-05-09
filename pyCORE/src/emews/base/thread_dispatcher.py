@@ -8,6 +8,7 @@ import threading
 from weakref import WeakSet
 
 import emews.base.baseobject
+from emews.base.exceptions import KeychainException
 from emews.base.threadwrapper import ThreadWrapper
 
 def thread_names_str():
@@ -31,6 +32,16 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
         Constructor
         '''
         super(ThreadDispatcher, self).__init__(config)
+
+        try:
+            self._thread_shutdown_timeout = self.config.get_sys('general', 'thread_shutdown_wait')
+        except KeychainException as ex:
+            self.logger.error(ex)
+            raise
+
+        if self._thread_shutdown_timeout < 0:
+            self._thread_shutdown_timeout = None
+
         # When a thread dies, it is automatically removed from the _active_threads set.
         self._active_threads = WeakSet()
         self._deferred_threads = set()
@@ -119,7 +130,7 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
         # and invoking cancel().
         with self._delay_lock:
             if self._delay_timer is not None:
-                self._logger.debug("Timer is active, cancelling ...")
+                self._logger.debug("Delay dispatch timer is active, cancelling ...")
                 self._delay_timer.cancel()
                 self._delay_timer.join()
 
@@ -129,7 +140,24 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
             for active_thread in self._active_threads:
                 active_thread.stop()
 
+            if self._thread_shutdown_timeout is not None:
+                self.logger.info("Will wait a maximum of %d seconds for threads to shutdown.",
+                                 self._thread_shutdown_timeout)
+            else:
+                self.logger.info("No thread join timeout set.  Will wait until all running "\
+                    "threads shut down ...")
             for active_thread in self._active_threads:
                 # Wait for each service to shutdown.  We put this in a separate loop so each service
                 # will get the shutdown request first, and can shutdown concurrently.
-                active_thread.join()
+                active_thread.join(timeout=self._thread_shutdown_timeout)
+
+            # check if any threads are still running
+            if self._thread_shutdown_timeout is not None and self.count > 0:
+                thread_names = []
+                for thr in self._active_threads:
+                    thread_names.append(thr.name)
+
+                thr_names_str = ", ".join(thread_names)
+                self.logger.warning("The following threads did not shut down within the timeout "\
+                    "period: %s", thr_names_str)
+                self.logger.info("Shutdown proceeding ...")

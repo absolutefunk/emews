@@ -33,11 +33,10 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
         self._interrupted = False  # set to true on stop()
 
         # instantiate any dependencies
-        if self.base_config.component_config is not None:
-            self._service_config = self.base_config.extract_with_key('config')
-            if 'dependencies' in self.base_config.component_config:
-                self._dependencies = self.instantiate_dependencies(
-                    self.base_config.get('dependencies'))
+        if config.component_config is not None:
+            self._service_config = config.clone_with_config(config.extract_with_key('config'))
+            if 'dependencies' in config.component_config:
+                self._dependencies = self.instantiate_dependencies(config.get('dependencies'))
             else:
                 self._dependencies = None
         else:
@@ -49,14 +48,14 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
         @Override Returns the service key of the config as a ConfigComponent.
         This is a deviation from classes which directly inherent BaseObject, in which all the
         config is available.  This way service config is separated from other config categories
-        (such as sys_config, dependency configs, decorators).
+        (dependency configs, decorators, etc).
         '''
         return self._service_config
 
     @property
     def base_config(self):
         '''
-        returns the entire config
+        Returns the entire service config, including dependency configs, decorator configs, etc...
         '''
         return super(BaseService, self).config
 
@@ -97,10 +96,11 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
         '''
         self.logger.debug("Service starting.")
         self.run_service()
-        if self._interrupted:
-            self.logger.debug("Service stopping (requested)...")
-        else:
+
+        if not self._interrupted:
             self.logger.debug("Service stopping (finished)...")
+        else:
+            self.logger.debug("Service stopping (requested) ...")
 
     def stop(self):
         '''
