@@ -3,14 +3,14 @@
 # YAML 1.2 compliant
 general:
   # Delay to start services from emews daemon invocation.
-  service_start_delay: 30  # in seconds
+  service_start_delay: 300  # in seconds
   # Delay to wait for 'graceful' thread shutdown.  After this wait, continue shut down.
-  thread_shutdown_wait: 3  # in seconds (-1 = disable)
+  thread_shutdown_wait: 5  # in seconds (-1 = disable)
   # Delay to start client connection to eMews daemon.
   client_start_delay:
     config:
-      lower_bound: 5
-      upper_bound: 10
+      lower_bound: 180
+      upper_bound: 240
 
 paths:
   # package paths for the emews system
@@ -43,12 +43,12 @@ logging:
         stream: 'ext://sys.stdout'
       network:
         class: logging.handlers.SocketHandler
-        host: localhost  # host or IP to send log entries to
+        host: 10.0.0.21  # host or IP to send log entries to
         port: 32519  # port on destination host to send log entries to
         level: DEBUG
       file:
         class: logging.FileHandler
-        filename: emews_log.txt
+        filename: emews.log
         mode: a
         delay: True
         formatter: default
@@ -74,11 +74,11 @@ logging:
         propagate: False
 
 logserver:  # configuration for the node which acts as the LogServer
-  node:  absolutefunk-UX32A  # must match the node name of the node running the LogServer
-  destination_logger: emews.base  # the logger to handle received log entries
+  node:  n1  # must match the node name of the node running the LogServer
+  destination_logger: emews.file  # the logger to handle received log entries
   # Delay to wait for 'graceful' log server shut down.  After this wait, continue shut down.
-  shutdown_wait: 1  # in seconds (-1 = disable)
+  shutdown_wait: 2  # in seconds (-1 = disable)
   listener:
     config:
-      host: localhost  # host to bind to
+      host: 10.0.0.21  # host to bind to
       port: 32519  # port to use (should match port under logging-->log_conf-->handler-->network)

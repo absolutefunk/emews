@@ -30,6 +30,6 @@ class AutoSSH(CoreService):
         '''
         return """\
 #!/bin/sh
-export PYTHONPATH=/home/absolutefunk/school/research/CORE/coremews/pyCORE/src/
-python /home/absolutefunk/school/research/CORE/coremews/pyCORE/src/emews/client/singleserviceclient.py -n %s -c autossh-3.yml AutoSSH
+export PYTHONPATH=/home/coreuser/
+python /home/coreuser/emews/client/singleserviceclient.py -n %s -c autossh-3.yml AutoSSH
 """ % (node.name)

@@ -13,13 +13,13 @@ class AutoSSH(CoreService):
     '''
     CORE Service class for the eMews daemon
     '''
-    _name = "AutoSSH"
+    _name = "AutoSSH_4"
     _group = "eMews"
 
-    _configs = ("autossh.sh",)
+    _configs = ("autossh_4.sh",)
     _startindex = 50  # make sure this is higher than the emews daemon CoreService
     _dirs = ()
-    _startup = ("sh autossh.sh",)
+    _startup = ("sh autossh_4.sh",)
     _shutdown = ()
     _validate = ()
 
@@ -31,5 +31,5 @@ class AutoSSH(CoreService):
         return """\
 #!/bin/sh
 export PYTHONPATH=/home/coreuser/
-python /home/coreuser/emews/client/singleserviceclient.py -n %s AutoSSH
+python /home/coreuser/emews/client/singleserviceclient.py -n %s -c autossh-4.yml AutoSSH
 """ % (node.name)

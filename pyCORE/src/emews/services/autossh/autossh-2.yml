@@ -5,7 +5,7 @@ config:  # service configuration
     host: 10.0.17.10
     port: 22
     username: coreuser
-    password: Mikesolo7!
+    password: P28c7RtO0
   command:
     command_list:
     - uptime

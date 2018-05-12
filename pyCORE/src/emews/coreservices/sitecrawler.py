@@ -30,6 +30,6 @@ class SiteCrawler(CoreService):
         '''
         return """\
 #!/bin/sh
-export PYTHONPATH=/home/absolutefunk/school/research/CORE/coremews/pyCORE/src/
-python /home/absolutefunk/school/research/CORE/coremews/pyCORE/src/emews/client/singleserviceclient.py -n %s SiteCrawler
+export PYTHONPATH=/home/coreuser/
+python /home/coreuser/emews/client/singleserviceclient.py -n %s SiteCrawler
 """ % (node.name)

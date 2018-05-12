@@ -33,8 +33,8 @@ class EmewsDaemon(CoreService):
         if filename == "runemewsdaemon.sh":
             return """\
 #!/bin/sh
-export PYTHONPATH=/home/absolutefunk/school/research/CORE/coremews/pyCORE/src/
-python /home/absolutefunk/school/research/CORE/coremews/pyCORE/src/emews/emewsdaemon.py -c emewsconf.yml
+export PYTHONPATH=/home/coreuser/
+python /home/coreuser/emews/emewsdaemon.py -c emewsconf.yml
 """
         elif filename == "emewsconf.yml":
             return """\
