@@ -4,6 +4,8 @@ eMews web site crawler service.
 Created on Jan 19, 2018
 @author: Brian Ricks
 '''
+import ssl
+
 import mechanize
 
 import emews.base.exceptions
@@ -95,6 +97,18 @@ class SiteCrawler(emews.services.baseservice.BaseService):
         @Override crawls a web site, starting from the _siteURL, picking links from
         each page visited
         '''
+        # Disable SSL cert verification, as most likely we will be using self-signed certs (HTTPS)
+        # https://stackoverflow.com/questions/30551400/disable-ssl-certificate-validation-in-mechanize
+        # TODO: clean this up (maybe add a config option to enable SSL no-check-cert, or autodetect)
+        try:
+            _create_unverified_https_context = ssl._create_unverified_context  # pylint: disable=W0212
+        except AttributeError:
+            # Legacy Python that doesn't verify HTTPS certificates by default
+            pass
+        else:
+            # Handle target environment that doesn't support HTTPS verification
+            ssl._create_default_https_context = _create_unverified_https_context  # pylint: disable=W0212
+
         site_url = self._siteURLs[self._site_sampler.next_value]
         try:
             self._br.open(site_url)
