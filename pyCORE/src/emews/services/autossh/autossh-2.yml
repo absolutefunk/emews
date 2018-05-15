@@ -42,7 +42,7 @@ dependencies:  # additional classes that this service requires
     module: emews.samplers.uniformsampler
     config:
       lower_bound: 1  # lower bound (sec) - a_2
-      upper_bound: 5  # upper bound (sec) - b_2
+      upper_bound: 10  # upper bound (sec) - b_2
 
 decorators:  # any decorators required need to be defined here
   LoopedService:  # LoopedService decorator
@@ -52,4 +52,4 @@ decorators:  # any decorators required need to be defined here
         module: emews.samplers.uniformsampler
         config:
           lower_bound: 2  # lower bound (sec) - a_1
-          upper_bound: 5  # upper bound (sec) - b_1
+          upper_bound: 60  # upper bound (sec) - b_1

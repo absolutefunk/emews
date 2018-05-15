@@ -25,7 +25,7 @@ config:  # service configuration
     - ls -l
     - ps aux
   command_sampler:
-    std_deviation: 2.0
+    std_deviation: 1.8
 
 dependencies:  # additional classes that this service requires
   num_commands_sampler:  # number of commands to execute in an SSH session.
@@ -42,7 +42,7 @@ dependencies:  # additional classes that this service requires
     module: emews.samplers.uniformsampler
     config:
       lower_bound: 1  # lower bound (sec) - a_2
-      upper_bound: 18  # upper bound (sec) - b_2
+      upper_bound: 32  # upper bound (sec) - b_2
 
 decorators:  # any decorators required need to be defined here
   LoopedService:  # LoopedService decorator
