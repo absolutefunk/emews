@@ -8,7 +8,7 @@ config:  # service configuration
     - java
     - none
     start_sites: # site address to start crawling from
-    - 'https://10.0.14.10'
+    - 'https://10.0.14.10'  # exp 1
     - 'https://10.0.0.11'
     - 'https://10.0.19.10'
     - 'https://10.0.19.11'
@@ -16,16 +16,27 @@ config:  # service configuration
     - 'https://10.0.24.10'
     - 'https://10.0.24.11'
     - 'https://10.0.24.12'
-    - 'https://10.0.30.10'
-    - 'https://10.0.77.10'
-    - 'https://10.0.77.11'
-    - 'https://10.0.77.12'
-    - 'https://10.0.77.13'
-    - 'https://10.0.79.10'
-    - 'https://10.0.79.11'
-    - 'https://10.0.79.12'
+    - 'https://10.0.27.11'  # exp 2
+    - 'https://10.0.42.10'
+    - 'https://10.0.46.10'
+    - 'https://10.0.46.11'
+    - 'https://10.0.48.10'
+    - 'https://10.0.52.10'
+    - 'http://10.0.52.11'
+    - 'http://10.0.52.12'
+    - 'http://10.0.75.10'  # exp 3
+    - 'http://10.0.79.10'
+    - 'http://10.0.79.11'
+    - 'http://10.0.79.12'
+    - 'http://10.0.69.10'
+    - 'http://10.0.73.10'
+    - 'http://10.0.73.11'
+    - 'http://10.0.96.10'  # exp 4
+    - 'http://10.0.94.10'
+    - 'http://10.0.94.11'
+    - 'http://10.0.90.10'
   link_sampler:  # parameters for the link_sampler
-    std_deviation_first: 8.0  # std deviation of picking next link around mu (first iteration)
+    std_deviation_first: 16.0  # std deviation of picking next link around mu (first iteration)
     std_deviation: 1.0  # std deviation of picking next link around mu (> first iteration)
   num_links_sampler:
     std_deviation: 3.0
@@ -36,7 +47,7 @@ dependencies:  # additional classes that this service requires
     module: emews.samplers.uniformsampler
     config:
       lower_bound: 0  # index 0
-      upper_bound: 15  # should match the list size of start_sites -1 (index starts at zero)
+      upper_bound: 26  # should match the list size of start_sites -1 (index starts at zero)
   num_links_sampler:  # sampler used to pick the number of links to crawl.  Dependent on first link
       class: TruncnormSampler
       module: emews.samplers.truncnormsampler

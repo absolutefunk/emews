@@ -137,15 +137,18 @@ class SiteCrawler(emews.services.baseservice.BaseService):
             self.logger.warning("On follow_link: %s, (server: %s)", ex, site_url)
             return
 
+        self.logger.debug("selected link index (%d/%d): selected page: %s", selected_link_index,
+                          len(page_links), next_link.absolute_url)
+
         # Setup the total number of links to crawl.  As a heuristic, it uses the index of the
         # first link selected as the upper bound and selects a total crawl length based on this
         # index.
+        # TODO: the heuristic presents a subtle bug if the selected index is zero, given that the
+        # lower bound on the sampler is also zero.  Currently just using the page link count, which
+        # works well for index pages of small link count.
         self._num_links_sampler.update_parameters(
-            selected_link_index, self._std_deviation_num_links)
+            len(page_links), self._std_deviation_num_links)
         num_links_to_crawl = self._num_links_sampler.next_value
-
-        self.logger.debug("link index (%d/%d): %s", selected_link_index, len(page_links),
-                          next_link.absolute_url)
 
         # now crawl for (max) num_links_to_crawl
         for _ in range(num_links_to_crawl):

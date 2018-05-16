@@ -2,7 +2,7 @@
 # YAML 1.2 compliant
 config:  # service configuration
   server:
-    host: 10.0.0.10
+    host: 10.0.0.11
     port: 22
     username: coreuser
     password: P28c7RtO0
@@ -42,7 +42,7 @@ dependencies:  # additional classes that this service requires
     module: emews.samplers.uniformsampler
     config:
       lower_bound: 1  # lower bound (sec) - a_2
-      upper_bound: 30  # upper bound (sec) - b_2
+      upper_bound: 48  # upper bound (sec) - b_2
 
 decorators:  # any decorators required need to be defined here
   LoopedService:  # LoopedService decorator
@@ -51,5 +51,5 @@ decorators:  # any decorators required need to be defined here
         class: UniformSampler  # distribution to sample service loop start time from
         module: emews.samplers.uniformsampler
         config:
-          lower_bound: 5  # lower bound (sec) - a_1
-          upper_bound: 900  # upper bound (sec) - b_1
+          lower_bound: 32  # lower bound (sec) - a_1
+          upper_bound: 14400  # upper bound (sec) - b_1

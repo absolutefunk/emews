@@ -637,7 +637,7 @@ class PcapService(UtilService):
 #!/bin/sh
 # set tcpdump options here (see 'man tcpdump' for help)
 # (-s snap length, -C limit pcap file length, -n disable name resolution)
-DUMPOPTS="-s 12288 -C 10 -n"
+DUMPOPTS="-s 12288 -C 2048 -n"
 
 if [ "x$1" = "xstart" ]; then
 

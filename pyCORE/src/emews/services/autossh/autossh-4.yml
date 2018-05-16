@@ -52,4 +52,4 @@ decorators:  # any decorators required need to be defined here
         module: emews.samplers.uniformsampler
         config:
           lower_bound: 60  # lower bound (sec) - a_1
-          upper_bound: 3600  # upper bound (sec) - b_1
+          upper_bound: 28800  # upper bound (sec) - b_1

@@ -33,7 +33,7 @@ dependencies:  # additional classes that this service requires
     module: emews.samplers.truncnormsampler
     config:
       upper_bound: 15  # len(command.command_list) - 1
-      sigma: 2.0  # std deviation
+      sigma: 3.0  # std deviation
   command_sampler:  # the next command to execute
     class: TruncnormSampler
     module: emews.samplers.truncnormsampler
@@ -41,8 +41,8 @@ dependencies:  # additional classes that this service requires
     class: UniformSampler
     module: emews.samplers.uniformsampler
     config:
-      lower_bound: 1  # lower bound (sec) - a_2
-      upper_bound: 10  # upper bound (sec) - b_2
+      lower_bound: 2  # lower bound (sec) - a_2
+      upper_bound: 360  # upper bound (sec) - b_2
 
 decorators:  # any decorators required need to be defined here
   LoopedService:  # LoopedService decorator
@@ -51,5 +51,5 @@ decorators:  # any decorators required need to be defined here
         class: UniformSampler  # distribution to sample service loop start time from
         module: emews.samplers.uniformsampler
         config:
-          lower_bound: 2  # lower bound (sec) - a_1
-          upper_bound: 60  # upper bound (sec) - b_1
+          lower_bound: 32  # lower bound (sec) - a_1
+          upper_bound: 28800  # upper bound (sec) - b_1

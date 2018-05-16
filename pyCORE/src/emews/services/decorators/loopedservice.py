@@ -50,8 +50,9 @@ class LoopedService(ServiceDecorator):
                 break
             try:
                 super(LoopedService, self).start()
-            except StandardError:
+            except StandardError as ex:
                 self.logger.error("Service raised exception.  Stopping loop ...")
+                self.logger.debug("Exception reason: %s", ex)
                 raise
 
         self.logger.info("Exiting loop ...")
