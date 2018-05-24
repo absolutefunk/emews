@@ -34,7 +34,8 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
 
         # instantiate any dependencies
         if config.component_config is not None:
-            self._service_config = config.clone_with_config(config.extract_with_key('config'))
+            #self._service_config = config.clone_with_config(config.extract_with_key('config'))
+            self._service_config = config.extract_with_key('config')
             if 'dependencies' in config.component_config:
                 self._dependencies = self.instantiate_dependencies(config.get('dependencies'))
             else:
@@ -43,26 +44,17 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
             self._service_config = None
 
     @property
-    def config(self):
+    def service_config(self):
         '''
-        @Override Returns the service key of the config as a ConfigComponent.
-        This is a deviation from classes which directly inherent BaseObject, in which all the
-        config is available.  This way service config is separated from other config categories
-        (dependency configs, decorators, etc).
+        Returns the service config section only.  Convenience method.
         '''
         return self._service_config
 
     @property
-    def base_config(self):
-        '''
-        Returns the entire service config, including dependency configs, decorator configs, etc...
-        '''
-        return super(BaseService, self).config
-
-    @property
     def dependencies(self):
         '''
-        @Override returns the dependencies of this decorator, or None if none are defined
+        @Override returns the dependencies of this service, or None if none are defined.
+        Convenience method.
         '''
         return self._dependencies
 

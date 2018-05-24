@@ -54,14 +54,14 @@ class CommandHandler(emews.base.baseobject.BaseObject):
         given, then use that for service configuration.
         '''
         service_builder = ServiceBuilder(self.config)
-        try:
-            service_builder.service(service_str)
-            service_builder.config_path(service_config_path)
-            service_instance = service_builder.result
-        except StandardError:
+        #try:
+        service_builder.service(service_str)
+        service_builder.config_path(service_config_path)
+        service_instance = service_builder.result
+        '''except StandardError:
             # throw exception so client knows this failed
             self.logger.error("Could not build service '%s' from client input.", service_str)
-            raise CommandException("Could not build service '%s' from client input." % service_str)
+            raise CommandException("Could not build service '%s' from client input." % service_str)'''
 
         self._thread_dispatcher.dispatch_thread(service_instance)
         return True

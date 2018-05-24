@@ -6,9 +6,11 @@ being overridden.
 Created on Mar 30, 2018
 @author: Brian Ricks
 '''
+import emews.base.baseobject
+from emews.base.exceptions import KeychainException
 import emews.services.iservice
 
-class ServiceDecorator(emews.services.iservice.IService):
+class ServiceDecorator(emews.base.baseobject.BaseObject, emews.services.iservice.IService):
     '''
     classdocs
     '''
@@ -16,46 +18,36 @@ class ServiceDecorator(emews.services.iservice.IService):
         '''
         Constructor
         '''
+        super(ServiceDecorator, self).__init__(recipient_service.config)
         self._recipient_service = recipient_service
         # cache a reference to the decorator config, if it exists.
-        decorator_configcomponent = self._recipient_service.base_config.extract_with_key(
-            'decorators', self.__class__.__name__)
-        if decorator_configcomponent is not None:
-            self._decorator_config = self._recipient_service.base_config.clone_with_config(
-                decorator_configcomponent)
-        else:
+        try:
+            self._decorator_config = self.config.extract_with_key(
+                'decorators', self.__class__.__name__)
+        except KeychainException:
+            self.logger.info("No decorator config found ...")
             self._decorator_config = None
 
-        # instantiate any dependencies
-        if self._decorator_config is not None and \
-                'dependencies' in self._decorator_config.component_config:
-            self._dependencies = self._recipient_service.instantiate_dependencies(
+        # instantiate any dependencies (decorator)
+        if self._decorator_config is not None and 'dependencies' in self._decorator_config:
+            self._dependencies = self.instantiate_dependencies(
                 self._decorator_config.get('dependencies'))
         else:
             self._dependencies = None
 
     @property
-    def config(self):
+    def decorator_config(self):
         '''
-        @Override Returns the decorator specific config options, if exists.
-        Convenience property as the config options exist in the service config and can be
-        obtained from self.config.
+        Returns the decorator config section only.  Convenience property.
         '''
         return self._decorator_config
 
     @property
-    def logger(self):
-        '''
-        @Override Returns the logger object used with the recipient_service.
-        '''
-        return self._recipient_service.logger
-
-    @property
     def service_config(self):
         '''
-        Returns the recipient_service config.  Convenience property.
+        @Override Returns the service config section only.  Convenience property.
         '''
-        return self._recipient_service.config
+        return self._recipient_service.service_config
 
     @property
     def dependencies(self):

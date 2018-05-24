@@ -42,17 +42,13 @@ class ConfigComponent(object):
 
         config = self._config
         for key in keys:
-            if isinstance(config, (basestring, numbers.Number)):
+            if isinstance(config, (basestring, numbers.Number, bool)):
                 # Implies that 'config is actually a value.
                 raise KeychainException(
                     "Keychain '%s': reached value '%s' before using key '%s' (key doesn't exist)."
                     % (keychain_str(key, *keys), config, key))
 
             config = config.get(key)
-            if config is None:
-                raise KeychainException(
-                    "Keychain '%s': key '%s' doesn't exist in config dictionary."
-                    % (keychain_str(key, *keys), key))
 
         return config
 
