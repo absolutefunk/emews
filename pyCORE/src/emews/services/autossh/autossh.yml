@@ -45,11 +45,12 @@ dependencies:  # additional classes that this service requires
       upper_bound: 48  # upper bound (sec) - b_2
 
 decorators:  # any decorators required need to be defined here
+  NoRaiseService:  # LoopedService decorator
   LoopedService:  # LoopedService decorator
     dependencies:  # additional classes that this decorator requires
       loop_sampler: # unique name to describe the dependency
         class: UniformSampler  # distribution to sample service loop start time from
         module: emews.samplers.uniformsampler
         config:
-          lower_bound: 32  # lower bound (sec) - a_1
-          upper_bound: 14400  # upper bound (sec) - b_1
+          lower_bound: 5  # lower bound (sec) - a_1
+          upper_bound: 32  # upper bound (sec) - b_1
