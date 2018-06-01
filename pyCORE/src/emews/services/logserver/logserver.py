@@ -33,26 +33,27 @@ class LogServer(emews.services.baseservice.BaseService,
         '''
         Constructor
         '''
-        # The listener section in the config is under 'logserver' in the sys_config.  Extract it.
-        # This essentially creates an alias to the original 'listener' section.
-        listener_config = config.clone_with_dict(config.get_sys('logserver', 'listener', 'config'))
+        super(LogServer, self).__init__(config)
+
+        # we need to create a config for the listener, as it uses the logger network handler config
+        listener_config_dict = {
+            'config': {
+                'host': self.config.get_sys('logging', 'log_conf', 'handlers', 'network', 'host'),
+                'port': self.config.get_sys('logging', 'log_conf', 'handlers', 'network', 'port')
+            }
+        }
+        listener_config = self.config.clone_with_dict(listener_config_dict)
+
         try:
             self._listener = emews.base.multiasynclistener.MultiASyncListener(listener_config, self)
         except socket.error as ex:
             print "Could not instantiate LogServer Listener: " + ex
             raise
 
-        # We call super after the listener so logging will work
-        # BaseService requires 'config' to be present in the dict, so we need to re-extract with
-        # the key present.  If not for the logging dependency, we could call super() first and then
-        # pass the service_config to the listener.
-        listener_config = config.clone_with_dict(config.get_sys('logserver', 'listener'))
-        super(LogServer, self).__init__(listener_config)
-
         self._sock_state = {}  # stores state related to individual sockets
         # destination logger to output log entries
         self._dest_logger = logging.getLogger(
-            self._config.get_sys('logserver', 'destination_logger'))
+            self.config.get_sys('logserver', 'destination_logger'))
 
     def run_service(self):
         '''

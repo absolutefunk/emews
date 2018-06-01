@@ -110,10 +110,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         '''
         builds the service
         '''
-        if self._config_component is not None:
-            service_config = self.config.clone_with_config(self._config_component)
-        else:
-            service_config = self.config.clone_with_config(None)
+        service_config = self.config.clone_with_config(self._config_component)
 
         try:
             service_instantiation = self._service_class(service_config)
@@ -129,19 +126,22 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         # regards to decorators needs to follow a specific ordering:
         # ['decorators'] --> [<DecoratorClass>] --> (config dict/list/etc for DecoratorClass)
         # If no config_path for the service was given, then this section is skipped.
-        if 'decorators' in service_config.component_config:
+        if service_config.component_config is not None and \
+            'decorators' in service_config.component_config:
+
             decorator_class_path = self.config.get_sys(
                 'paths', 'emews_pkg_service_decorators_path')
             self.logger.debug("Decorator module path: %s", decorator_class_path)
 
-            for decorator_name, _ in service_config.get('decorators').iteritems():
+            for decorator_name, decorator_config in service_config.get('decorators').iteritems():
                 if self._is_interrupted:
                     return None
 
                 self.logger.debug("Resolving decorator '%s' for %s.", decorator_name, service_name)
                 try:
                     current_instantiation = emews.base.importclass.import_class(
-                        decorator_name, decorator_class_path)(current_instantiation)
+                        decorator_name, decorator_class_path)(
+                            decorator_config, current_instantiation)
                 except KeyError as ex:
                     self.logger.error("(A key is missing from the config): %s", ex)
                     raise

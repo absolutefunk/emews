@@ -25,13 +25,14 @@ class ConnectionManager(emews.base.baseobject.BaseObject,
         signal.signal(signal.SIGHUP, self.shutdown_signal_handler)
         signal.signal(signal.SIGINT, self.shutdown_signal_handler)
 
-        # we pass the listener config upward as ClientSession also uses it
-        listener_config = config.clone_with_dict(config.get_sys('listener', 'config'))
-        super(ConnectionManager, self).__init__(listener_config)
+        super(ConnectionManager, self).__init__(config)
 
-        self._listener = emews.base.multilistener.MultiListener(self.config, self)
+        self._listener = emews.base.multilistener.MultiListener(
+            self.config.get_sys_new('listener'), self)
+
         # handles thread spawning/management
         self._thread_dispatcher = emews.base.thread_dispatcher.ThreadDispatcher(self.config)
+
         # if we have a start delay, convey this to the dispatcher
         if not isinstance(self.config.get_sys('general', 'service_start_delay'), int):
             raise ValueError("In config: general-->service_start_delay must be an integer.")
@@ -67,7 +68,8 @@ class ConnectionManager(emews.base.baseobject.BaseObject,
         @Override start a ClientSession with this socket
         '''
         self._thread_dispatcher.dispatch_thread(
-            emews.base.clientsession.ClientSession(self.config, sock, self._thread_dispatcher),
+            emews.base.clientsession.ClientSession(self.config.get_sys_new('listener'), sock,
+                                                   self._thread_dispatcher),
             force_start=True)
 
     def handle_readable_socket(self, sock):

@@ -20,10 +20,23 @@ class BaseObject(object):
         '''
         config is the Config required, which contains the logger and configuration
         (system configuration, object configuration...)
+        The config object is cloned, and the original config object not referenced.
         '''
-        self._config = config
         self._logger = logging.LoggerAdapter(logging.getLogger(
-            self._config.get_sys('logging', 'main_logger')), {'nodename': self._config.nodename})
+            config.get_sys('logging', 'main_logger')), {'nodename': config.nodename})
+
+        if config.component_config is not None:
+            self._config = config.get_new('config')  # 'config' key required
+
+            # instantiate any dependencies
+            if 'dependencies' in self._config.component_config:
+                self._dependencies = self.instantiate_dependencies(self._config.get('dependencies'))
+            else:
+                self._dependencies = None
+
+        else:
+            # self._logger.debug("No object configuration information found.")
+            self._config = config  # no component config
 
     @property
     def logger(self):
@@ -38,6 +51,14 @@ class BaseObject(object):
         returns the configuration object
         '''
         return self._config
+
+    @property
+    def dependencies(self):
+        '''
+        @Override returns the dependencies of this service, or None if none are defined.
+        Convenience method.
+        '''
+        return self._dependencies
 
     def instantiate_dependencies(self, deps_config):
         '''
@@ -76,10 +97,8 @@ class BaseObject(object):
             # otherwise just clone with none.
             if 'config' in dependency:
                 dep_config = self._config.clone_with_dict(dependency['config'])
-                self.logger.debug("Found config information for '%s'.", dep_name)
             else:
                 dep_config = self._config.clone_with_config(None)
-                self.logger.debug("No config information found for '%s'.", dep_name)
 
             if b_instantiate:
                 try:
@@ -90,6 +109,9 @@ class BaseObject(object):
                 self.logger.debug("Dependency '%s' instantiated.", dep_name)
             else:
                 # instantiation not requested
-                dependency_instantiation_dict[dep_name] = class_object
+                dependency_instantiation_dict[dep_name] = {
+                    'class': class_object,
+                    'config': dep_config
+                }
 
         return emews.base.configcomponent.ConfigComponent(dependency_instantiation_dict)

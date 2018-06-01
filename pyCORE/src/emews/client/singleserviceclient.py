@@ -30,14 +30,13 @@ class SingleServiceClient(emews.base.baseobject.BaseObject,
         '''
         super(SingleServiceClient, self).__init__(config)
 
-        client_config = config.clone_with_dict(config.get_sys('listener', 'config'))
-        self._netclient = emews.base.netclient.NetClient(client_config, self)
+        self._netclient = emews.base.netclient.NetClient(config, self)
         self._command_tuple = command_tuple  # contains service name / service config path
 
         # required params
         try:
-            self._recv_buf = client_config.get('receive_buffer')
-            self._command_delim = client_config.get('command_delimiter')
+            self._recv_buf = self.config.get('receive_buffer')
+            self._command_delim = self.config.get('command_delimiter')
         except emews.base.exceptions.KeychainException as ex:
             self.logger.error(ex)
             raise
@@ -174,17 +173,16 @@ def main():
 
     config = emews.base.config.Config(node_name, sys_config_path)  # node name not needed
 
-    client = SingleServiceClient(config, (args.service, service_config_path))
-    logger = client.logger
+    client = SingleServiceClient(config.get_sys_new('listener'),
+                                 (args.service, service_config_path))
+
     # wait a bit before trying to connect (give the daemon some time to start up)
-    try:
-        delay_config = config.clone_with_dict(
-            config.get_sys('general', 'client_start_delay', 'config'))
-    except emews.base.exceptions.KeychainException as ex:
-        logger.error(ex)
-        return
-    delay_sampler = emews.samplers.uniformsampler.UniformSampler(delay_config)
+    delay_sampler = emews.samplers.uniformsampler.UniformSampler(
+        config.get_sys_new('general', 'client_start_delay'))
+
+    logger = client.logger
     delay_value = delay_sampler.next_value
+
     logger.debug("Waiting %d seconds to request launch of service: %s.",
                  delay_value, args.service)
     client_wait.wait(delay_value)

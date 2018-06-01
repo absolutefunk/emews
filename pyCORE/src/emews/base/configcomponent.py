@@ -6,7 +6,7 @@ Created on Mar 30, 2018
 '''
 import numbers
 
-from emews.base.exceptions import KeychainException
+from emews.base.exceptions import KeychainException, MissingConfigException
 
 def keychain_str(target_key, *keys):
     '''
@@ -14,10 +14,9 @@ def keychain_str(target_key, *keys):
     '''
     key_chain = []
     for key in keys:
-        if key is target_key:
-            key_chain.append(key)
-            break
         key_chain.append(key)
+        if key is target_key:
+            break
 
     return "-->".join(key_chain)
 
@@ -29,6 +28,9 @@ class ConfigComponent(object):
         '''
         config parameter passed is a dictionary containing config info
         '''
+        if config is None:
+            raise MissingConfigException("Dictionary passed cannot be None.")
+
         self._config = config
 
     def get(self, *keys):
@@ -49,6 +51,12 @@ class ConfigComponent(object):
                     % (keychain_str(key, *keys), config, key))
 
             config = config.get(key)
+
+            if config is None:
+                # key doesn't exist at current level in dict
+                raise KeychainException(
+                    "Keychain '%s': key '%s' not present in config (key doesn't exist)."
+                    % (keychain_str(key, *keys), key))
 
         return config
 

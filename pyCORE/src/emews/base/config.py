@@ -75,7 +75,7 @@ class Config(object):
         #configure logging
         logging.config.dictConfig(self._sys_config.get('logging', 'log_conf'))
 
-        self._component_config = emews.base.configcomponent.ConfigComponent(None)
+        self._component_config = None
 
     @property
     def nodename(self):
@@ -132,6 +132,9 @@ class Config(object):
         self._component_config.  This is okay in our case as the class is the same for both
         cloned_config and self, so we comment out the warning locally.
         '''
+        if component_dict is None:
+            raise MissingConfigException("clone_with_dict cannot be used with NoneType.")
+
         cloned_config = copy.copy(self)  # shallow copy
         cloned_config._component_config = emews.base.configcomponent.ConfigComponent(  # pylint: disable=W0212
             component_dict)
@@ -143,6 +146,22 @@ class Config(object):
         The returned object shares its k/v's with the original dict from this object.
         '''
         return emews.base.configcomponent.ConfigComponent(self._component_config.get(*keys))
+
+    def get_new(self, *keys):
+        '''
+        returns a new Config object with the component config created from the keys
+        '''
+        if len(keys) == 1 and keys[0] is None:
+            return self.clone_with_config(None)
+
+        return self.clone_with_dict(self.get(*keys))
+
+    def get_sys_new(self, *keys):
+        '''
+        Returns a new Config object with the component config created from the keys, and the dict
+        used to create the component config extracted from the system config.
+        '''
+        return self.clone_with_dict(self.get_sys(*keys))
 
     def get(self, *keys):
         '''

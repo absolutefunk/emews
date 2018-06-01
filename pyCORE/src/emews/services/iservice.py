@@ -18,20 +18,6 @@ class IService(emews.base.irunnable.IRunnable):
     __metaclass__ = ABCMeta
 
     @abstractproperty
-    def service_config(self):
-        '''
-        Returns the service config section only.  Convenience property.
-        '''
-        pass
-
-    @abstractproperty
-    def dependencies(self):
-        '''
-        Returns the dependencies of this decorator, or None if none are defined.
-        '''
-        pass
-
-    @abstractproperty
     def interrupted(self):
         '''
         Returns true if the service has been interrupted (requested to stop)

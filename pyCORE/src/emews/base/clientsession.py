@@ -19,11 +19,11 @@ class ClientSession(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunn
     '''
     classdocs
     '''
-    def __init__(self, sys_config, sock, thread_dispatcher):
+    def __init__(self, config, sock, thread_dispatcher):
         '''
         Constructor
         '''
-        super(ClientSession, self).__init__(sys_config)
+        super(ClientSession, self).__init__(config)
 
         # currently supported acks
         self._ACK_MSG = {
@@ -45,8 +45,9 @@ class ClientSession(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunn
         self._interrupted = False  # true if stop() invoked (used to make sure shutdown called once)
 
         # CommandHandler (handles command processing, service spawning, etc...)
-        self._command_handler = emews.base.commandhandler.CommandHandler(
-            self.config, thread_dispatcher)
+        # No component config options needed.
+        self._command_handler = emews.base.commandhandler.CommandHandler(self.config.get_new(None),
+                                                                         thread_dispatcher)
         self._command_count = 0  # successful commands processed
 
     def start(self):

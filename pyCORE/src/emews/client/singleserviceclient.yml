@@ -1,0 +1,10 @@
+# Configuration file for SingleServiceClient
+# YAML 1.2 compliant
+config:
+dependencies:  # additional classes that this service requires
+  client_start_delay:  # Delay to start client connection to eMews daemon.
+    class: UniformSampler
+    module: emews.samplers.uniformsampler
+    config:
+      lower_bound: 180
+      upper_bound: 240

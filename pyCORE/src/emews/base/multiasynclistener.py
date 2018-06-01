@@ -20,9 +20,7 @@ class MultiASyncListener(emews.base.baselistener.BaseListener):
         '''
         Constructor
         '''
-        super(MultiASyncListener, self).__init__(config)
-        # callback class for providing listener handling
-        self._handler_listener = handler_listener
+        super(MultiASyncListener, self).__init__(config, handler_listener)
 
         # inputs (fds)
         self._inputs = [self.socket]
@@ -91,10 +89,10 @@ class MultiASyncListener(emews.base.baselistener.BaseListener):
 
                     self.logger.info("Connection established from %s", src_addr)
                     self._inputs.append(acc_sock)
-                    self._handler_listener.handle_accepted_connection(acc_sock)
+                    self.handler.handle_accepted_connection(acc_sock)
                 else:
                     # some socket we are managing (not the listener socket)
-                    self._handler_listener.handle_readable_socket(r_sock)
+                    self.handler.handle_readable_socket(r_sock)
 
             for e_sock in e_socks:
                 # well, this sucks...

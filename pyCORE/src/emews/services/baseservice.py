@@ -32,32 +32,6 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
         self._service_interrupt_event = Event()  # used to interrupt Event.wait() on stop()
         self._interrupted = False  # set to true on stop()
 
-        # instantiate any dependencies
-        if config.component_config is not None:
-            #self._service_config = config.clone_with_config(config.extract_with_key('config'))
-            self._service_config = config.extract_with_key('config')
-            if 'dependencies' in config.component_config:
-                self._dependencies = self.instantiate_dependencies(config.get('dependencies'))
-            else:
-                self._dependencies = None
-        else:
-            self._service_config = None
-
-    @property
-    def service_config(self):
-        '''
-        Returns the service config section only.  Convenience method.
-        '''
-        return self._service_config
-
-    @property
-    def dependencies(self):
-        '''
-        @Override returns the dependencies of this service, or None if none are defined.
-        Convenience method.
-        '''
-        return self._dependencies
-
     @property
     def interrupted(self):
         '''

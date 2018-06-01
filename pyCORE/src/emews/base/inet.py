@@ -13,6 +13,13 @@ class INet(object):
     __metaclass__ = ABCMeta
 
     @abstractproperty
+    def handler(self):
+        '''
+        Returns the handler object.
+        '''
+        pass
+
+    @abstractproperty
     def socket(self):
         '''
         Returns a socket (client socket if client, listener socket if listener).

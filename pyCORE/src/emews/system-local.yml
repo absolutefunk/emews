@@ -7,11 +7,6 @@ general:
   service_start_delay: 15  # in seconds
   # Delay to wait for 'graceful' thread shutdown.  After this wait, continue shut down.
   thread_shutdown_wait: 3  # in seconds (-1 = disable)
-  # Delay to start client connection to eMews daemon.
-  client_start_delay:
-    config:
-      lower_bound: 5
-      upper_bound: 10
 
 paths:
   # package paths for the emews system
@@ -73,13 +68,3 @@ logging:
         - file
         level: DEBUG
         propagate: False
-
-logserver:  # configuration for the node which acts as the LogServer
-  node: local_instance  # must match the node name of the node running the LogServer
-  destination_logger: emews.base  # the logger to handle received log entries
-  # Delay to wait for 'graceful' log server shut down.  After this wait, continue shut down.
-  shutdown_wait: 2  # in seconds (-1 = disable)
-  listener:
-    config:
-      host: localhost  # host to bind to
-      port: 32519  # port to use (should match port under logging-->log_conf-->handler-->network)

@@ -19,9 +19,7 @@ class MultiListener(emews.base.baselistener.BaseListener):
         '''
         Constructor
         '''
-        super(MultiListener, self).__init__(config)
-        # callback class for providing listener handling
-        self._handler_listener = handler_listener
+        super(MultiListener, self).__init__(config, handler_listener)
 
     def listen(self):
         '''
@@ -48,7 +46,7 @@ class MultiListener(emews.base.baselistener.BaseListener):
 
             self.logger.info("Connection established from %s", src_addr)
             sock.setblocking(0)
-            self._handler_listener.handle_accepted_connection(sock)   # call connection handler
+            self.handler.handle_accepted_connection(sock)   # call connection handler
 
     def stop(self):
         '''

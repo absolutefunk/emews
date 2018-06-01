@@ -17,13 +17,14 @@ class BaseListener(emews.base.baseobject.BaseObject, emews.base.inet.INet):
     '''
     classdocs
     '''
-    def __init__(self, config):
+    def __init__(self, config, handler_listener):
         '''
         Constructor
         '''
         super(BaseListener, self).__init__(config)
 
         self._interrupted = False  # sets to true when stop() invoked
+        self._handler_listener = handler_listener
 
         try:
             self._host = self.config.get('host')
@@ -51,6 +52,13 @@ class BaseListener(emews.base.baseobject.BaseObject, emews.base.inet.INet):
         except socket.error as ex:
             self.logger.error("Could not instantiate socket. %s", ex)
             raise
+
+    @property
+    def handler(self):
+        '''
+        @Override returns the handler object for this listener
+        '''
+        return self._handler_listener
 
     @property
     def socket(self):

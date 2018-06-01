@@ -13,6 +13,7 @@ class SequentualIterator(emews.samplers.valuesampler.ValueSampler):
     '''
     classdocs
     '''
+    # TODO: update this to new contract
 
     def __init__(self, start_value, end_value):
         '''
