@@ -26,7 +26,12 @@ class BaseObject(object):
             config.get_sys('logging', 'main_logger')), {'nodename': config.nodename})
 
         if config.component_config is not None:
-            self._config = config.get_new('config')  # 'config' key required
+            try:
+                # 'config' key is required if any general configuration options are needed
+                self._config = config.get_new('config')
+            except emews.base.exceptions.KeychainException:
+                self._config = config.get_new(None)  # component config is None
+                self._logger.debug("Object configuration present but no 'config' section defined.")
 
             # instantiate any dependencies
             if 'dependencies' in self._config.component_config:

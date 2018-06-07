@@ -34,9 +34,7 @@ class SiteCrawler(emews.services.baseservice.BaseService):
             self._invalid_link_prefixes = self.config.get('general', 'invalid_link_prefixes')  #list
             self._siteURLs = self.config.get('general', 'start_sites')  # list
 
-            self._std_deviation_first = self.config.get('link_sampler', 'std_deviation_first')
-            self._std_deviation = self.config.get('link_sampler', 'std_deviation')
-            self._std_deviation_num_links = self.config.get('num_links_sampler', 'std_deviation')
+            self._std_deviation_link = self.config.get('link_sampler', 'sigma_next')
 
             self._site_sampler = self.dependencies.get('site_sampler')
             self._num_links_sampler = self.dependencies.get('num_links_sampler')
@@ -49,7 +47,7 @@ class SiteCrawler(emews.services.baseservice.BaseService):
             self.logger.error(ex)
             raise
 
-    def _get_next_link_index(self, page_links, std_deviation):
+    def _get_next_link_index(self, page_links, std_deviation=None):
         '''
         Given a list of page links, find and return the index of the first valid link, according
         to a link sampler.
@@ -66,7 +64,12 @@ class SiteCrawler(emews.services.baseservice.BaseService):
         while len(page_links) > 1:
             # keep looping until a valid link is found
             # parameters updated here as removing links will change our upper_bound
-            self._link_sampler.update_parameters(len(page_links) - 1, std_deviation)
+            if std_deviation is None:
+                self._link_sampler.update_parameters(upper_bound=len(page_links) - 1)
+            else:
+                self._link_sampler.update_parameters(upper_bound=len(page_links) - 1,
+                                                     sigma=std_deviation)
+
             selected_link_index = self._link_sampler.next_value
 
             if self._checklink(page_links[selected_link_index]):
@@ -121,7 +124,7 @@ class SiteCrawler(emews.services.baseservice.BaseService):
 
         # Crawl to the first link.  This will allow us to set the link delay parameters correctly.
         page_links = list(self._br.links())
-        selected_link_index = self._get_next_link_index(page_links, self._std_deviation_first)
+        selected_link_index = self._get_next_link_index(page_links)
         if selected_link_index is None:
             return
 
@@ -146,26 +149,25 @@ class SiteCrawler(emews.services.baseservice.BaseService):
         # TODO: the heuristic presents a subtle bug if the selected index is zero, given that the
         # lower bound on the sampler is also zero.  Currently just using the page link count, which
         # works well for index pages of small link count.
-        self._num_links_sampler.update_parameters(
-            len(page_links), self._std_deviation_num_links)
+        self._num_links_sampler.update_parameters(upper_bound=len(page_links))
         num_links_to_crawl = self._num_links_sampler.next_value
 
         # now crawl for (max) num_links_to_crawl
         for _ in range(num_links_to_crawl):
             if self.interrupted:
-                return
+                break
 
             page_links = list(self._br.links())
             # use the std_deviation for > first iteration from now on
-            selected_link_index = self._get_next_link_index(page_links, self._std_deviation)
+            selected_link_index = self._get_next_link_index(page_links, self._std_deviation_link)
             if selected_link_index is None:
-                return
+                break
 
             next_link = page_links[selected_link_index]
             self.sleep(self._link_delay_sampler.next_value)
             # we need to check if the end of sleep was due to being interrupted
             if self.interrupted:
-                return
+                break
 
             self.logger.debug("link index (%d/%d): %s", selected_link_index, len(page_links),
                               next_link.absolute_url)
@@ -174,6 +176,4 @@ class SiteCrawler(emews.services.baseservice.BaseService):
                 self._br.follow_link(link=next_link)
             except Exception as ex:
                 self.logger.warning("On follow_link: %s, (server: %s)", ex, site_url)
-                return
-
-        self.logger.debug("Reached max links to crawl (%d).", num_links_to_crawl)
+                break

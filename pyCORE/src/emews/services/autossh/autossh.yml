@@ -24,23 +24,24 @@ config:  # service configuration
     - ps aux
     - ls -l
     - ps aux
-  command_sampler:
-    std_deviation: 1.5
 
 dependencies:  # additional classes that this service requires
   num_commands_sampler:  # number of commands to execute in an SSH session.
     class: TruncnormSampler
     module: emews.samplers.truncnormsampler
-    config:
+    parameters:
       upper_bound: 15  # len(command.command_list) - 1
       sigma: 2.5  # std deviation
   command_sampler:  # the next command to execute
     class: TruncnormSampler
     module: emews.samplers.truncnormsampler
+    parameters:
+      upper_bound: null
+      sigma: 1.5
   command_delay_sampler:  # delay to execute next command
     class: UniformSampler
     module: emews.samplers.uniformsampler
-    config:
+    parameters:
       lower_bound: 1  # lower bound (sec) - a_2
       upper_bound: 48  # upper bound (sec) - b_2
 
@@ -51,6 +52,6 @@ decorators:  # any decorators required need to be defined here
       loop_sampler: # unique name to describe the dependency
         class: UniformSampler  # distribution to sample service loop start time from
         module: emews.samplers.uniformsampler
-        config:
+        parameters:
           lower_bound: 5  # lower bound (sec) - a_1
           upper_bound: 32  # upper bound (sec) - b_1

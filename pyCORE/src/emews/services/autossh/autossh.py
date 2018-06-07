@@ -31,17 +31,15 @@ class AutoSSH(emews.services.baseservice.BaseService):
             self._port = self.config.get('server', 'port')  # port of ssh server
             self._username = self.config.get('server', 'username')  # username for ssh login
             self._password = self.config.get('server', 'password')  # password for ssh login
+            # list of commands to execute
+            self._command_list = self.config.get('command', 'command_list')
 
             # distribution to sample command list count
             self._num_commands = self.dependencies.get('num_commands_sampler')
             # distribution to sample list indices
             self._next_command = self.dependencies.get('command_sampler')
-            self._next_command_std_dev = self.config.get('command_sampler', 'std_deviation')
             # distribution to sample delay to execute next command
             self._next_command_delay = self.dependencies.get('command_delay_sampler')
-
-            # list of commands to execute
-            self._command_list = self.config.get('command', 'command_list')
         except emews.base.exceptions.KeychainException as ex:
             self.logger.error(ex)
             raise
@@ -97,8 +95,7 @@ class AutoSSH(emews.services.baseservice.BaseService):
             if self.interrupted:
                 break
 
-            self._next_command.update_parameters(
-                len(command_list) - 1, self._next_command_std_dev)
+            self._next_command.update_parameters(upper_bound=len(command_list) - 1)
             next_command = command_list.pop(self._next_command.next_value)
             self.logger.debug("Next Command: %s", next_command)
 

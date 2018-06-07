@@ -6,7 +6,7 @@ Created on Feb 26, 2018
 '''
 import random
 
-import emews.base.exceptions
+from emews.base.exceptions import KeychainException
 import emews.samplers.valuesampler
 
 class UniformSampler(emews.samplers.valuesampler.ValueSampler):
@@ -20,14 +20,10 @@ class UniformSampler(emews.samplers.valuesampler.ValueSampler):
         '''
         super(UniformSampler, self).__init__(config)
 
-        self._lower_bound = None
-        self._upper_bound = None
-
         try:
-            self.update_parameters(self.config.get('lower_bound'), self.config.get('upper_bound'))
-        except emews.base.exceptions.MissingConfigException:
-            self.logger.debug("Config empty, update_parameters must be called before next_value.")
-        except emews.base.exceptions.KeychainException as ex:
+            self._lower_bound = self.parameters.get('lower_bound')
+            self._upper_bound = self.parameters.get('upper_bound')
+        except KeychainException as ex:
             self.logger.error(ex)
             raise
 
@@ -38,12 +34,20 @@ class UniformSampler(emews.samplers.valuesampler.ValueSampler):
         '''
         return random.randint(self._lower_bound, self._upper_bound)
 
-    def update_parameters(self, *args):
+    def update_parameters(self, **kwargs):
         '''
-        @Override updates parameters:
-        args[0]=self._lower_bound
-        args[1]=self._upper_bound
+        @Override updates some or all parameters
         '''
+        if 'lower_bound' in kwargs:
+            self._lower_bound = kwargs.pop('lower_bound')
+        if 'upper_bound' in kwargs:
+            self._upper_bound = kwargs.pop('upper_bound')
 
-        self._lower_bound = int(args[0])
-        self._upper_bound = int(args[1])
+        for key, _ in kwargs:
+            self.logger.debug("Unknown parameter '%s' passed.  Ignoring ...", key)
+
+    def reset(self):
+        '''
+        @Override Resets to the start values.  Currently not implemented.
+        '''
+        raise NotImplementedError("Sampler currently does not support resetting parameters.")
