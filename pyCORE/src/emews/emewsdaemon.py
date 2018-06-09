@@ -15,7 +15,6 @@ Created on Mar 24, 2018
 import argparse
 import logging
 import os
-import socket
 import sys
 
 import emews.base.config
@@ -29,7 +28,7 @@ def launch_logserver(config):
     '''
     Determines if the LogServer should be launched.  Criteria for this to occur:
     - Logging base_logger is configured as 'emews.distributed'
-    - This node is the designated LogServer node
+    - This node is the designated LogServer node.
     '''
     try:
         if config.get_sys('logging', 'main_logger') != 'emews.distributed':
@@ -39,13 +38,6 @@ def launch_logserver(config):
         print "A required key in the system config file is missing."
         print ex
         sys.exit(1)
-
-    # are we the log server?
-    try:
-        config.get_sys('logserver')
-    except KeychainException:
-        # nope
-        return None
 
     try:
         logserver_node = config.get_sys('logserver', 'node')
@@ -73,18 +65,20 @@ def main():
     "(default: <none>)")
     parser.add_argument("-n", "--node_name", help="name of the node this daemon launches under "\
     "(default: system host name, if --node_config not given)")
+    parser.add_argument("-l", "--local", help="launches the eMews daemon in local mode")
     args = parser.parse_args()
 
     sys_config_path = os.path.join(os.path.dirname(emews.version.__file__), "system.yml")\
         if args.sys_config is None else args.sys_config
-    node_name = socket.gethostname() if args.node_name is None else args.node_name
 
     print "eMews %s" % emews.version.__version__
     print "  Using system config path: " + sys_config_path
 
-    config = emews.base.config.Config(node_name, sys_config_path)
+    config = emews.base.config.Config(sys_config_path,
+                                      node_config_path=args.node_config,
+                                      node_name=args.node_name)
 
-    print "  Using node name: " + node_name
+    print "  Using node name: " + config.nodename
 
     # When disabling, log messages are cached until logging is enabled again
     logging.disable(logging.CRITICAL)  # disable all log levels

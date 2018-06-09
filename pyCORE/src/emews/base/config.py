@@ -43,7 +43,7 @@ class Config(object):
     '''
     classdocs
     '''
-    def __init__(self, nodename, sys_config_path, node_config_path=None):
+    def __init__(self, sys_config_path, node_config_path=None, node_name=None):
         '''
         Constructor
         '''
@@ -65,11 +65,18 @@ class Config(object):
 
             sys_config_dict[node_config_key] = node_config_dict
 
+        # set the name of the node running this daemon instance
+        if node_name is not None:
+            # top precedence: if the node name is manually given
+            self._nodename = node_name
+        elif node_config_path is not None and 'node_name' in node_config_dict['general']:
+            # if the node name is given in the node config (and no node name was passed as arg)
+            self._nodename = node_config_dict['general']['node_name']
+        else:
+            # no node name is given anywhere, use the name of the host
+            self._nodename = socket.gethostname()
 
-        self._nodename = nodename if node_config_path is None else\
-            node_config_dict['general']['node_name']
         self._project_root = os.path.dirname(emews.version.__file__)
-
         self._sys_config = emews.base.configcomponent.ConfigComponent(sys_config_dict)
 
         #configure logging

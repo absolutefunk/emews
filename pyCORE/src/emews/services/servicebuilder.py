@@ -15,11 +15,11 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
     '''
     classdocs
     '''
-    def __init__(self, sys_config):
+    def __init__(self, config):
         '''
         Constructor
         '''
-        super(ServiceBuilder, self).__init__(sys_config)
+        super(ServiceBuilder, self).__init__(config)
 
         self._is_interrupted = False
         self._config_component = None

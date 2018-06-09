@@ -20,11 +20,11 @@ class BaseObject(object):
         '''
         config is the Config required, which contains the logger and configuration
         (system configuration, object configuration...)
-        The config object is cloned, and the original config object not referenced.
+        The original config object not referenced, instead, node-level options are made available
+        to the child classes.  Child classes should not cache a reference to the config object,
+        instead, child classes should pull any values they need from the config.  In this way, the
+        config object can be garbage collected after instantiation.
         '''
-        self._logger = logging.LoggerAdapter(logging.getLogger(
-            config.get_sys('logging', 'main_logger')), {'nodename': config.nodename})
-
         if config.component_config is not None:
             try:
                 # 'config' key is required if any general configuration options are needed

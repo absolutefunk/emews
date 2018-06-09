@@ -1,10 +1,7 @@
 # Configuration file for LogServer
 # YAML 1.2 compliant
-
-# Note: LogServer uses the host/port assigned in the system config file under
-#'logging' --> 'log_conf' --> 'handlers' --> 'network'
 config:
-  node:  n1  # must match the node name of the node running the LogServer
-  destination_logger: emews.file  # the logger to handle received log entries
+  host: localhost  # interface to bind to
+  port: 32519  # port to listen on for incoming log entries
   # Delay to wait for 'graceful' log server shut down.  After this wait, continue shut down.
   shutdown_wait: 2  # in seconds (-1 = disable)

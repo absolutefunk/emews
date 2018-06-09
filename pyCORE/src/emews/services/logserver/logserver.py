@@ -36,6 +36,7 @@ class LogServer(emews.services.baseservice.BaseService,
         super(LogServer, self).__init__(config)
 
         # we need to create a config for the listener, as it uses the logger network handler config
+        # TODO: probably b0rked now....
         listener_config_dict = {
             'config': {
                 'host': self.config.get_sys('logging', 'log_conf', 'handlers', 'network', 'host'),
@@ -51,9 +52,6 @@ class LogServer(emews.services.baseservice.BaseService,
             raise
 
         self._sock_state = {}  # stores state related to individual sockets
-        # destination logger to output log entries
-        self._dest_logger = logging.getLogger(
-            self.config.get_sys('logserver', 'destination_logger'))
 
     def run_service(self):
         '''
@@ -141,4 +139,4 @@ class LogServer(emews.services.baseservice.BaseService,
         # clients.  If any logging clients are connected, then route messages to the client
         # (no struct unpacking, no unpickle, just send struct and pickle directly).
         log_record = logging.makeLogRecord(pickle.loads(msg))
-        self._dest_logger.handle(log_record)
+        self.logger.handle(log_record)

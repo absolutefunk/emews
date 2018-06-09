@@ -1,6 +1,9 @@
 # Configuration file for SingleServiceClient
 # YAML 1.2 compliant
 config:
+  host: localhost  # eMews daemon address
+  port: 32518      # eMews daemon port
+
 dependencies:  # additional classes that this service requires
   client_start_delay:  # Delay to start client connection to eMews daemon.
     class: UniformSampler

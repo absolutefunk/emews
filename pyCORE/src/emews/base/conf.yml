@@ -1,0 +1,33 @@
+# Base configuration file for the eMews daemon.
+# Editing this file could result in breaking eMews or core eMews functionality.
+logging:
+  # default options (if no log configuration defined in system or node config files)
+  logger: emews.base
+  message_level: DEBUG  # log messages of this level and above (default)
+  message_format: '[%(asctime)s] %(nodename)-12.12s | %(threadName)-16.16s [%(levelname)-8.8s | %(module)-16.16s | %(funcName)-16.16s]: %(message)s'
+
+  log_types:  # logging types
+    emews.base:
+      handlers:
+      - logging.StreamHandler
+    emews.distributed:  # distributed logging (nodes send log messages to a designated node)
+      handlers:
+      - logging.handlers.SocketHandler
+    emews.file:  # logs to a file
+      handlers:
+      - logging.FileHandler
+
+  log_handlers:
+    logging.FileHandler:
+      filename: emews.log
+      mode: a
+      delay: True
+    logging.handlers.SocketHandler: {}
+    logging.StreamHandler:
+      stream: 'ext://sys.stdout'
+
+paths:  # package paths for the emews system
+  emews_pkg_path: emews
+  emews_base_pkg_path: emews.base
+  emews_pkg_services_path: emews.services
+  emews_pkg_helpers_path: emews.helpers
