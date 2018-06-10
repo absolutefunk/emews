@@ -4,6 +4,7 @@ Individual component configuration.
 Created on Mar 30, 2018
 @author: Brian Ricks
 '''
+import copy
 import numbers
 
 from emews.base.exceptions import KeychainException, MissingConfigException
@@ -20,6 +21,28 @@ def keychain_str(target_key, *keys):
 
     return "-->".join(key_chain)
 
+def get_from_dict(self, config_dict, *keys):
+    '''
+    Returns a value from the dictionary 'config_dict'.
+    '''
+    config = config_dict
+    for key in keys:
+        if isinstance(config, (basestring, numbers.Number, bool)):
+            # Implies that 'config' is actually a value.
+            raise KeychainException(
+                "Keychain '%s': reached value '%s' before using key '%s' (key doesn't exist)."
+                % (keychain_str(key, *keys), config, key))
+
+        config = config.get(key)
+
+        if config is None:
+            # key doesn't exist at current level in dict
+            raise KeychainException(
+                "Keychain '%s': key '%s' not present in config (key doesn't exist)."
+                % (keychain_str(key, *keys), key))
+
+    return config
+
 class ConfigComponent(object):
     '''
     classdocs
@@ -32,36 +55,44 @@ class ConfigComponent(object):
             raise MissingConfigException("Dictionary passed cannot be None.")
 
         self._config = config
+        self._user_config = config['config']
+        self._system_options = config['system_options']
+
+    @property
+    def system(self):
+        '''
+        Returns the system options.
+        '''
+        return self._system_options
+
+    def clone(self, config_dict):
+        '''
+        Clones the config object using a new config dictionary.  Note that system_options are
+        not cloned.
+        '''
+        new_config = copy.copy(self)
+        # Even though we are accessing 'protected' members here, this should be okay as we are
+        # doing it from the same class definition.  Disabling pylint here so it won't complain.
+        new_config._config = config_dict  # pylint: disable=W0212
+        new_config._user_config = config_dict['config']  # pylint: disable=W0212
+
+        return new_config
 
     def get(self, *keys):
         '''
-        Returns a value from the config dictionay.
+        Returns a value from the config (under section 'config').
         '''
-        if self._config is None:
-            # nothing to get
-            raise KeychainException(
-                "Keychain '%s': config dictionary is empty." % keychain_str(None, *keys))
+        return get_from_dict(self._user_config, keys)
 
-        config = self._config
-        for key in keys:
-            if isinstance(config, (basestring, numbers.Number, bool)):
-                # Implies that 'config is actually a value.
-                raise KeychainException(
-                    "Keychain '%s': reached value '%s' before using key '%s' (key doesn't exist)."
-                    % (keychain_str(key, *keys), config, key))
-
-            config = config.get(key)
-
-            if config is None:
-                # key doesn't exist at current level in dict
-                raise KeychainException(
-                    "Keychain '%s': key '%s' not present in config (key doesn't exist)."
-                    % (keychain_str(key, *keys), key))
-
-        return config
+    def get_base(self, *keys):
+        '''
+        Returns a value from the base config dictionary.  Should not be called unless keys outside
+        the 'config' section need to be accessed.
+        '''
+        return get_from_dict(self._config, keys)
 
     def __contains__(self, key):
         '''
         membership test
         '''
-        return key in self._config
+        return key in self._user_config

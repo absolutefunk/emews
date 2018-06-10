@@ -33,11 +33,12 @@ def system_init(args):
     logger.debug("Logger initialized.")
 
     # setup the config object
-    system_options = SystemOptions(node_name=node_name,
-                                   logger=logger)
+    config_start_dict = dict()
+    config_start_dict['config'] = _merge_configs(base_config, system_config, node_config)
+    config_start_dict['system_options'] = SystemOptions(node_name=node_name, logger=logger)
 
-
-    return emews.base.system_manager.SystemManager(config)
+    config_start = emews.base.config.Config(config_start_dict)
+    return emews.base.system_manager.SystemManager(config_start)
 
 def _get_node_name(system_config, node_config, arg_name):
     '''
