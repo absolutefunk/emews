@@ -31,3 +31,6 @@ paths:  # package paths for the emews system
   emews_base_pkg_path: emews.base
   emews_pkg_services_path: emews.services
   emews_pkg_helpers_path: emews.helpers
+
+merge_no_include:  # do not include these sections when merging config files
+  logging: null

@@ -27,13 +27,17 @@ def get_from_dict(self, config_dict, *keys):
     '''
     config = config_dict
     for key in keys:
-        if isinstance(config, (basestring, numbers.Number, bool)):
-            # Implies that 'config' is actually a value.
+        try:
+            config = config.get(key)
+        except AttributeError:
+            # Implies that 'config' is actually a value.  This should be thrown in the case that
+            # 'get' is not an implemented method.  It may be easier to simply check the instance
+            # as a dict instead of doing it the duck typing way, but we cannot guarantee what the
+            # actual instance is.  However, we do enforce that whatever the type is, it has to at
+            # least have a 'get' method.
             raise KeychainException(
-                "Keychain '%s': reached value '%s' before using key '%s' (key doesn't exist)."
-                % (keychain_str(key, *keys), config, key))
-
-        config = config.get(key)
+                "Keychain '%s': Current value is not a gettable type (cannot get key '%s')."
+                % (keychain_str(key, *keys), key))
 
         if config is None:
             # key doesn't exist at current level in dict

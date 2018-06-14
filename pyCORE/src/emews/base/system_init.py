@@ -1,5 +1,9 @@
 '''
+Handles initial system initialization tasks, such as config and logging setup.
+Launches the system manager.
 
+Created on June 9, 2018
+@author: Brian Ricks
 '''
 import logging
 import os
@@ -7,6 +11,7 @@ import socket
 
 import emews.base.config
 import emews.base.importclass
+import emews.base.system_manager
 
 def system_init(args):
     '''
@@ -34,7 +39,8 @@ def system_init(args):
 
     # setup the config object
     config_start_dict = dict()
-    config_start_dict['config'] = _merge_configs(base_config, system_config, node_config)
+    config_start_dict['config'] = _merge_configs(
+        base_config, system_config, node_config, logger=logger)
     config_start_dict['system_options'] = SystemOptions(node_name=node_name, logger=logger)
 
     config_start = emews.base.config.Config(config_start_dict)
@@ -87,6 +93,49 @@ def _init_base_logger(base_config, system_config, node_config):
         logger.addHandler(handler_obj)
 
     return logger
+
+def _merge_configs(base_config, system_config, node_config, logger=None):
+    '''
+    Merges the input config files by key, in order of precedence (system config, node config).
+    Values in node config could override values in system config.
+    '''
+    merged_conf = dict()
+
+    # assume top level keys are dicts
+    for key, val in system_config:
+        if key in base_config['merge_no_include']:
+            continue
+
+        merged_conf[key] = val
+        if not key in node_config:
+            # no overrides for this section
+            continue
+
+        # start merge
+        node_config_sec = node_config[key]
+        merged_config_sec = merged_conf[key]
+        for s_key, s_val in merged_config_sec:
+            if not s_key in node_config_sec:
+                # node config does not override this key
+                continue
+
+            # check value types of system config and node config
+            n_val = node_config_sec[s_key]
+            if s_val is not None and not isinstance(s_val, n_val):
+                # Either the values have to be of the same type (or derived type), or the system
+                # config value is not set, ie, None.
+                if logger is not None:
+                    logger.warning(
+                        "Override value is of different types "\
+                        "(system conf: %s, node conf: %s), skipping ...",
+                        type(s_val).__name___, type(n_val).__name___)
+                continue
+
+            # replace the value with the one from the node config
+            # Note, dicts and lists are replaced as a whole, no partial subsection merging supported
+            merged_config_sec[s_key] = n_val
+
+    return merged_conf
 
 class SystemOptions(object):
     '''

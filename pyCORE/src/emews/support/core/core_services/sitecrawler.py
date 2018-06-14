@@ -5,7 +5,6 @@ eMews clients (which themselves will send the proper commands to launch services
 Created on Mar 5, 2018
 @author: Brian Ricks
 '''
-
 # Note, core in module path belongs to CORE, not emews
 from core.service import CoreService
 
