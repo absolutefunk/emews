@@ -1,0 +1,8 @@
+# Example node config file for the designated log server node
+# YAML 1.2 compliant
+general:
+  node_name: null
+
+startup_services:
+  # null as value indicates using all defaults
+  logserver: null

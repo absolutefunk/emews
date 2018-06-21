@@ -13,3 +13,8 @@ class SystemManager(emews.base.baseobject.BaseObject):
         '''
         super(SystemManager, self).__init__(config)
         self.logger.debug("Starting system manager ...")
+
+    def _startup_services(self):
+        '''
+        Looks in the config object to obtain any services present.
+        '''
