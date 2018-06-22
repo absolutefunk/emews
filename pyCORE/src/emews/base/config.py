@@ -47,7 +47,7 @@ def keychain_str(target_key, *keys):
 
     return "-->".join(key_chain)
 
-def get_from_dict(self, config_dict, *keys):
+def _get_from_dict(self, config_dict, *keys):
     '''
     Returns a value from the dictionary 'config_dict'.
     '''
@@ -77,23 +77,32 @@ class Config(object):
     '''
     classdocs
     '''
-    def __init__(self, config):
+    def __init__(self, config, system_options):
         '''
         config parameter passed is a dictionary containing config info
+        system_options parameter is a dictionary containing specific system options
         '''
         if config is None:
-            raise MissingConfigException("Dictionary passed cannot be None.")
+            raise MissingConfigException("Config dictionary passed cannot be None.")
 
         self._config = config
         self._user_config = config['config']
-        self._system_options = config['system_options']
+        self._node_name = system_options['node_name']
+        self._logger = system_options['logger']
 
     @property
-    def system(self):
+    def node_name(self):
         '''
-        Returns the system options.
+        Returns the node name.
         '''
-        return self._system_options
+        return self._node_name
+
+    @property
+    def logger(self):
+        '''
+        Returns the system logger.
+        '''
+        return self._logger
 
     def clone(self, config_dict):
         '''
@@ -112,14 +121,14 @@ class Config(object):
         '''
         Returns a value from the config (under section 'config').
         '''
-        return get_from_dict(self._user_config, keys)
+        return _get_from_dict(self._user_config, keys)
 
     def get_base(self, *keys):
         '''
         Returns a value from the base config dictionary.  Should not be called unless keys outside
         the 'config' section need to be accessed.
         '''
-        return get_from_dict(self._config, keys)
+        return _get_from_dict(self._config, keys)
 
     def __contains__(self, key):
         '''

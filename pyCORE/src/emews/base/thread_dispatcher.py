@@ -8,7 +8,7 @@ import threading
 from weakref import WeakSet
 
 import emews.base.baseobject
-from emews.base.exceptions import KeychainException
+import emews.base.exceptions
 from emews.base.threadwrapper import ThreadWrapper
 
 def thread_names_str():
@@ -35,7 +35,7 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
 
         try:
             self._thread_shutdown_timeout = self.config.get_sys('general', 'thread_shutdown_wait')
-        except KeychainException as ex:
+        except emews.base.exceptions.KeychainException as ex:
             self.logger.error(ex)
             raise
 
@@ -48,6 +48,16 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
 
         self._delay_timer = None
         self._delay_lock = threading.Lock()
+
+        # if we have a start delay, set it
+        try:
+            start_delay = self.config.get_sys('service_start_delay')
+        except emews.base.exceptions.KeychainException:
+            start_delay = 0
+
+        if start_delay > 0:
+            self.logger.debug("Beginning service start delay of %d seconds.", start_delay)
+            self.delay_dispatch(start_delay)
 
     @property
     def count(self):

@@ -37,14 +37,19 @@ def system_init(args):
     # now we have logging, so we can start outputting though the logger
     logger.debug("Logger initialized.")
 
-    # setup the config object
+    # prepare config dict
     config_start_dict = dict()
     config_start_dict['config'] = _merge_configs(
         base_config, system_config, node_config, logger=logger)
-    config_start_dict['system_options'] = SystemOptions(node_name=node_name, logger=logger)
 
-    config_start = emews.base.config.Config(config_start_dict)
-    return emews.base.system_manager.SystemManager(config_start)
+    # create system options
+    system_options = {
+        'node_name': node_name,
+        'logger': logger
+    }
+
+    return emews.base.system_manager.SystemManager(
+        emews.base.config.Config(config_start_dict, system_options))
 
 def _get_node_name(system_config, node_config, arg_name):
     '''
@@ -135,29 +140,18 @@ def _merge_configs(base_config, system_config, node_config, logger=None):
             # Note, dicts and lists are replaced as a whole, no partial subsection merging supported
             merged_config_sec[s_key] = n_val
 
+        # adds the required sections, if they are not already present
+        _add_required_sections(base_config, merged_conf)
+
     return merged_conf
 
-class SystemOptions(object):
+def _add_required_sections(base_config, config):
     '''
-    Contains system properties.
+    Checks for and adds (empty) sections that are missing from the input config file.
+    base_config contains a list of required sections.
     '''
-    def __init__(self, **kwargs):
-        '''
-        kwargs contain the system properties and their values.  We store those into separate fields.
-        '''
-        self._node_name = kwargs.get('node_name')
-        self._logger = kwargs.get('logger')
+    for section_name, _ in base_config['required_sections']:
+        if section_name in config:
+            continue
 
-    @property
-    def node_name(self):
-        '''
-        Returns the name of this node.
-        '''
-        return self._node_name
-
-    @property
-    def logger(self):
-        '''
-        Returns a reference to the main logger.
-        '''
-        return self._logger
+        config[section_name] = None

@@ -34,3 +34,7 @@ paths:  # package paths for the emews system
 
 merge_no_include:  # do not include these sections when merging config files
   logging: null
+
+required_sections: # these sections will be added if not present in any configs
+  general: null
+  startup_services: null
