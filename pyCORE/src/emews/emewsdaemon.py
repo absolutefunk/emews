@@ -13,16 +13,6 @@ Created on Mar 24, 2018
 @author: Brian Ricks
 '''
 import argparse
-import logging
-import os
-import sys
-
-import emews.base.config
-from emews.base.connectionmanager import ConnectionManager
-from emews.base.exceptions import KeychainException
-import emews.base.threadwrapper
-import emews.services.logserver.logserver
-import emews.version
 
 def launch_logserver(config):
     '''
@@ -30,6 +20,7 @@ def launch_logserver(config):
     - Logging base_logger is configured as 'emews.distributed'
     - This node is the designated LogServer node.
     '''
+    # TODO: All this is obsolete, remove...
     try:
         if config.get_sys('logging', 'main_logger') != 'emews.distributed':
             # not using distributed logging

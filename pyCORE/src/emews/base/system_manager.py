@@ -1,7 +1,13 @@
 '''
 Manages the eMews daemon execution.
+
+Created on June 8, 2018
+@author: Brian Ricks
 '''
+import signal
+
 import emews.base.baseobject
+import emews.base.connectionmanager
 import emews.base.exceptions
 import emews.base.thread_dispatcher
 import emews.services.servicebuilder
@@ -15,19 +21,15 @@ class SystemManager(emews.base.baseobject.BaseObject):
         Constructor
         '''
         super(SystemManager, self).__init__(config)
-        self.logger.info("Starting system manager ...")
 
-        # handles thread spawning/management
+        # register signals
+        signal.signal(signal.SIGHUP, self._shutdown_signal_handler)
+        signal.signal(signal.SIGINT, self._shutdown_signal_handler)
+
         self._thread_dispatcher = emews.base.thread_dispatcher.ThreadDispatcher(self.config)
 
-        # start any services specified
-        self._startup_services()
-
-
-
-
-
-        self.logger.info("eMews daemon started.")
+        self.connection_manager = emews.base.connectionmanager.ConnectionManager(
+            config, self._thread_dispatcher)
 
     def _startup_services(self):
         '''
@@ -49,10 +51,29 @@ class SystemManager(emews.base.baseobject.BaseObject):
                 service_builder.config_path(service_config_path)
                 self._thread_dispatcher.dispatch_thread(service_builder.result, force_start=True)
 
+    def _shutdown_signal_handler(self, signum, frame):
+        '''
+        Signal handler for incoming signals (those which may imply we need to shutdown)
+        '''
+        self.logger.info("Received signum %d, beginning shutdown...", signum)
+        self.shutdown()
+
+    def start(self):
+        '''
+        Starts the daemon.
+        '''
+        self.logger.debug("Starting system manager ...")
+        # start any services specified
+        self._startup_services()
+
+        # start the connection manager
+        self.connection_manager.start()
+
     def shutdown(self):
         '''
         Shuts down daemon operation.
         '''
+        self.connection_manager.stop()
 
         # shut down any dispatched threads that may be running
         self._thread_dispatcher.shutdown_all_threads()

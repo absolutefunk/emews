@@ -4,8 +4,6 @@ Listens for new client connections and spawns ClientSessions when appropriate.
 Created on Mar 24, 2018
 @author: Brian Ricks
 '''
-import signal
-
 import emews.base.baseobject
 import emews.base.clientsession
 import emews.base.ihandlerlistener
@@ -20,23 +18,12 @@ class ConnectionManager(emews.base.baseobject.BaseObject,
         '''
         Constructor
         '''
-        # register signals
-        signal.signal(signal.SIGHUP, self.shutdown_signal_handler)
-        signal.signal(signal.SIGINT, self.shutdown_signal_handler)
-
         super(ConnectionManager, self).__init__(config)
 
         self._listener = emews.base.multilistener.MultiListener(
             self.config.get_sys_new('listener'), self)
 
         self._thread_dispatcher = thread_dispatcher
-
-    def shutdown_signal_handler(self, signum, frame):
-        '''
-        Signal handler for incoming signals (those which may imply we need to shutdown)
-        '''
-        self.logger.info("Received signum %d, beginning shutdown...", signum)
-        self._listener.stop()  # shut down the listener
 
     def start(self):
         '''
@@ -47,6 +34,12 @@ class ConnectionManager(emews.base.baseobject.BaseObject,
         except StandardError as ex:
             self.logger.error("Listener failed: %s", ex)
             raise
+
+    def stop(self):
+        '''
+        Stops the ConnectionManager
+        '''
+        self._listener.stop()  # shut down the listener
 
     def handle_accepted_connection(self, sock):
         '''

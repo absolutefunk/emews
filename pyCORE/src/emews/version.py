@@ -1,7 +1,7 @@
 '''
 emews versioning info
 
-Note: this file is used as a reference to obtain the <root> path for the emews project directory
-structure.  It must recide in the root project (emews) directory.
+Created on Mar 24, 2018
+@author: Brian Ricks
 '''
-__version__ = "0.35"
+__version__ = "0.4"
