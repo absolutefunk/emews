@@ -14,9 +14,9 @@ general:  # general eMews daemon options
 communication:  # communication related eMews daemon options
   host: localhost  # host to bind to (should be localhost or 127.0.0.1, etc)
   port: 32518      # port to use
-  receive_buffer: 128     # buffer for incoming characters from an eMews client
-  command_delimiter: ' '  # delimit commands using this
-  recv_timeout: 20  # in seconds - wait this long for a timeout in expected response
+  receive_buffer: 128     # buffer for incoming characters from an eMews client (TODO: move to base config)
+  command_delimiter: ' '  # delimit commands using this (TODO: move to base config)
+  recv_timeout: 20  # in seconds - wait this long for a timeout in expected response (TODO: move to base config)
 
 logging:  # logging configuration
   logger: emews.distributed  # send log messages to a designated node across the network
