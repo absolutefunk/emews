@@ -1,0 +1,80 @@
+# Base configuration for the emews system
+# Note, some of the settings can break the system if changed.
+# YAML 1.2 compliant
+general:
+  # Delay to start services from emews daemon invocation.
+  service_start_delay: 110  # in seconds
+  # Delay to start client connection to eMews daemon.
+  client_start_delay:
+    config:
+      lower_bound: 20
+      upper_bound: 90
+
+paths:
+  # package paths for the emews system
+  emews_pkg_path: emews
+  emews_base_pkg_path: emews.base
+  emews_pkg_services_path: emews.services
+  emews_pkg_service_decorators_path: emews.services.decorators
+  emews_pkg_samplers_path: emews.samplers
+
+listener:  # emews client listener (emews clients also use this for their own configuration)
+  config:
+    host: localhost  # host to bind to (should be localhost or 127.0.0.1, etc)
+    port: 32518      # port to use
+    receive_buffer: 128     # buffer for incoming characters from a emews client
+    command_delimiter: ' '  # delimit commands using this
+    recv_timeout: 20  # in seconds - wait this long for a timeout in expected response
+
+logging:
+  main_logger: emews.distributed  # the primary logger to use
+  log_conf:
+    version: 1
+    formatters:
+      default:
+        format: '[%(asctime)s] %(nodename)-12.12s | %(threadName)-16.16s [%(levelname)-8.8s | %(module)-16.16s | %(funcName)-16.16s]: %(message)s'
+    handlers:
+      console:
+        class: logging.StreamHandler
+        formatter: default
+        level: DEBUG
+        stream: 'ext://sys.stdout'
+      network:
+        class: logging.handlers.SocketHandler
+        host: 10.0.0.21  # host or IP to send log entries to
+        port: 32519  # port on destination host to send log entries to
+        level: DEBUG
+      file:
+        class: logging.FileHandler
+        filename: emews_log.txt
+        mode: a
+        delay: True
+        formatter: default
+    loggers:
+      root:
+        handlers:
+        - console
+        level: DEBUG
+      emews.base:
+        handlers:
+        - console
+        level: DEBUG  # change this to INFO for production
+        propagate: False
+      emews.distributed:
+        handlers:
+        - network
+        level: DEBUG  # change this to INFO for production
+        propagate: False
+      emews.file:
+        handlers:
+        - file
+        level: DEBUG
+        propagate: False
+
+logserver:  # configuration for the node which acts as the LogServer
+  node:  n1  # must match the node name of the node running the LogServer
+  destination_logger: emews.file  # the logger to handle received log entries
+  listener:
+    config:
+      host: 10.0.0.21  # host to bind to (should be localhost or 127.0.0.1, etc)
+      port: 32519  # port to use (should match port under logging-->log_conf-->handler-->network)

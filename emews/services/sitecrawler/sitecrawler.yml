@@ -1,0 +1,72 @@
+# Configuration file for SiteCrawler
+# YAML 1.2 compliant
+
+config:  # service configuration
+  general:
+    user_agent: 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:57.0) Gecko/20100101 Firefox/57.0'
+    invalid_link_prefixes:  # prefix list for links which we should NOT visit
+    - java
+    - none
+    start_sites: # site address to start crawling from
+    - 'http://10.0.14.10'  # exp 1
+    - 'http://10.0.0.11'
+    - 'http://10.0.19.10'
+    - 'http://10.0.19.11'
+    - 'http://10.0.17.10'
+    - 'http://10.0.24.10'
+    - 'http://10.0.24.11'
+    - 'http://10.0.24.12'
+    - 'http://10.0.27.11'  # exp 2
+    - 'http://10.0.42.10'
+    - 'http://10.0.46.10'
+    - 'http://10.0.46.11'
+    - 'http://10.0.48.10'
+    - 'http://10.0.52.10'
+    - 'http://10.0.52.11'
+    - 'http://10.0.52.12'
+    - 'http://10.0.75.10'  # exp 3
+    - 'http://10.0.79.10'
+    - 'http://10.0.79.11'
+    - 'http://10.0.79.12'
+    - 'http://10.0.69.10'
+    - 'http://10.0.73.10'
+    - 'http://10.0.73.11'
+    - 'http://10.0.96.10'  # exp 4
+    - 'http://10.0.94.10'
+    - 'http://10.0.94.11'
+    - 'http://10.0.90.10'
+  link_sampler:  # parameters for the link_sampler
+    std_deviation_first: 16.0  # std deviation of picking next link around mu (first iteration)
+    std_deviation: 1.0  # std deviation of picking next link around mu (> first iteration)
+  num_links_sampler:
+    std_deviation: 2.0
+
+dependencies:  # additional classes that this service requires
+  site_sampler:  # sampler used to pick the site to crawl
+    class: UniformSampler
+    module: emews.samplers.uniformsampler
+    config:
+      lower_bound: 0  # index 0
+      upper_bound: 26  # should match the list size of start_sites -1 (index starts at zero)
+  num_links_sampler:  # sampler used to pick the number of links to crawl.  Dependent on first link
+      class: TruncnormSampler
+      module: emews.samplers.truncnormsampler
+  link_sampler:  # sampler used to pick the next link in a crawl
+    class: TruncnormSampler
+    module: emews.samplers.truncnormsampler
+  link_delay_sampler:  # sampler used to determine delay in crawling to next link
+    class: UniformSampler
+    module: emews.samplers.uniformsampler
+    config:
+      lower_bound: 2  # lower bound (sec) - a_4
+      upper_bound: 10  # upper bound (sec) - b_4
+
+decorators:  # any decorators required need to be defined here
+  LoopedService:  # LoopedService decorator
+    dependencies:  # additional classes that this decorator requires
+      loop_sampler: # unique name to describe the dependency
+        class: UniformSampler  # distribution to sample service loop start time from
+        module: emews.samplers.uniformsampler
+        config:
+          lower_bound: 5  # lower bound (sec) - a_3
+          upper_bound: 16  # upper bound (sec) - b_3
