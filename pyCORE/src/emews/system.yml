@@ -4,8 +4,6 @@
 # file would be unique to each node, instead of global.
 # YAML 1.2 compliant
 general:  # general eMews daemon options
-  # If the node name is null here, then set it either through the command line arg or node config file.
-  node_name: null
   # Delay (seconds) to start services from eMews daemon invocation.
   service_start_delay: 300
   # Delay to wait for 'graceful' thread shutdown.  After this wait, continue shut down.
@@ -14,9 +12,6 @@ general:  # general eMews daemon options
 communication:  # communication related eMews daemon options
   host: localhost  # host to bind to (should be localhost or 127.0.0.1, etc)
   port: 32518      # port to use
-  receive_buffer: 128     # buffer for incoming characters from an eMews client (TODO: move to base config)
-  command_delimiter: ' '  # delimit commands using this (TODO: move to base config)
-  recv_timeout: 20  # in seconds - wait this long for a timeout in expected response (TODO: move to base config)
 
 logging:  # logging configuration
   logger: emews.distributed  # send log messages to a designated node across the network

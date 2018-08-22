@@ -101,44 +101,38 @@ def _init_base_logger(base_config, system_config, node_config):
 
 def _merge_configs(base_config, system_config, node_config, logger=None):
     '''
-    Merges the input config files by key, in order of precedence (system config, node config).
+    Merges the input config files by key, in order of precedence (base config- if in 'include'
+    section, system config, node config).
     Values in node config could override values in system config.
     '''
+    # start with merged sections from base_config
     merged_conf = dict()
 
-    # assume top level keys are dicts
-    for key, val in system_config:
-        if key in base_config['merge_no_include']:
-            continue
-
-        merged_conf[key] = val
-        if not key in node_config:
-            # no overrides for this section
-            continue
-
+    # Assume top level keys are dicts.
+    # All possible sections and kvs are listed under base_config['include_merge']
+    for sec, kvs in base_config['system_config_options']:
         # start merge
-        node_config_sec = node_config[key]
-        merged_config_sec = merged_conf[key]
-        for s_key, s_val in merged_config_sec:
-            if not s_key in node_config_sec:
-                # node config does not override this key
-                continue
+        for s_key, s_val in kvs:
+            merged_val = s_val
 
-            # check value types of system config and node config
-            n_val = node_config_sec[s_key]
-            if s_val is not None and not isinstance(s_val, n_val):
-                # Either the values have to be of the same type (or derived type), or the system
-                # config value is not set, ie, None.
-                if logger is not None:
-                    logger.warning(
-                        "Override value is of different types "\
-                        "(system conf: %s, node conf: %s), skipping ...",
-                        type(s_val).__name___, type(n_val).__name___)
-                continue
+            # check if in system_config
+            config_val = system_config.get(sec, {}).get(s_key, None)
+            if config_val is not None:
+                # system config overrides this kv
+                merged_val = config_val
 
-            # replace the value with the one from the node config
-            # Note, dicts and lists are replaced as a whole, no partial subsection merging supported
-            merged_config_sec[s_key] = n_val
+            # check if in node_config
+            config_val = node_config.get(sec, {}).get(s_key, None)
+            if config_val is not None:
+                # node config overrides this kv
+                merged_val = config_val
+
+            # Add config_val to merged_conf if not None (this occurs if val in base_config is None
+            # and no other configs override it).
+            if merged_val is not None:
+                if not sec in merged_conf:
+                    merged_conf[sec] = dict()
+                merged_conf[sec][s_key] = merged_val
 
         # adds the required sections, if they are not already present
         _add_required_sections(base_config, merged_conf)

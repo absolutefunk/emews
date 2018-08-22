@@ -1,5 +1,22 @@
 # Base configuration file for the eMews daemon.
 # Editing this file could result in breaking eMews or core eMews functionality.
+
+# This section contains the system config skeleton structure; all possible options are listed here.
+# Any option that is null will not be included in the merged config unless overridden in another
+# config file.
+# Sections of kvs that are not present here but can be present in a config file (logging for
+# example), will not be included in the merged config.
+system_config_options:
+  general:  # general eMews daemon options
+    service_start_delay: null # Delay (seconds) to start services from eMews daemon invocation.
+    thread_shutdown_wait: null # Delay (seconds) to wait for 'graceful' thread shutdown.  After this wait, continue shut down.
+  communication:  # communication related eMews daemon options
+    host: null  # host to bind to (should be localhost or 127.0.0.1, etc)
+    port: null  # port to use
+    receive_buffer: 128     # buffer for incoming characters from an eMews client
+    command_delimiter: ' '  # delimit commands using this
+    recv_timeout: 20  # in seconds - wait this long for a timeout in expected response
+
 logging:
   # default options (if no log configuration defined in system or node config files)
   logger: emews.base
@@ -31,9 +48,6 @@ paths:  # package paths for the emews system
   emews_base_pkg_path: emews.base
   emews_pkg_services_path: emews.services
   emews_pkg_helpers_path: emews.helpers
-
-merge_no_include:  # do not include these sections when merging config files
-  logging: null
 
 required_sections: # these sections will be added if not present in any configs
   general: null
