@@ -16,36 +16,10 @@ class BaseObject(object):
     '''
     def __init__(self, config):
         '''
-        The original config object not referenced in its entirety, instead, node-level options are
-        made available to the child classes.  Child classes should not cache a reference to the
-        config object, instead, child classes should pull any values they need from the config
-        during instantiation.  In this way, the config object can be garbage collected after
-        object instantiation.
+        Constructor
         '''
-        if config.component_config is not None:
-            try:
-                # 'config' key is required if any general configuration options are needed
-                self._config = config.get_new('config')
-            except emews.base.exceptions.KeychainException:
-                self._config = config.get_new(None)  # component config is None
-                self._logger.debug("Object configuration present but no 'config' section defined.")
-
-            # instantiate any dependencies
-            if 'dependencies' in self._config.component_config:
-                self._dependencies = self.instantiate_dependencies(self._config.get('dependencies'))
-            else:
-                self._dependencies = None
-
-        else:
-            # self._logger.debug("No object configuration information found.")
-            self._config = config  # no component config
-
-    @property
-    def logger(self):
-        '''
-        returns the logger object
-        '''
-        return self._logger
+        self._config = config
+        self._logger = config.logger
 
     @property
     def config(self):
@@ -55,12 +29,11 @@ class BaseObject(object):
         return self._config
 
     @property
-    def dependencies(self):
+    def logger(self):
         '''
-        @Override returns the dependencies of this service, or None if none are defined.
-        Convenience method.
+        returns the logger object
         '''
-        return self._dependencies
+        return self._logger
 
     def instantiate_dependencies(self, deps_config):
         '''

@@ -26,19 +26,24 @@ def system_init(args):
     # node conf (user config - per node)
     node_config = emews.base.config.parse(args.node_config)
 
+    # prepare eMews daemon config dict
+    config_start_dict = _add_required_sections(
+        base_config, _merge_configs(
+            base_config, system_config, node_config, 'system_config_options'))
+
     # get the node name
-    node_name = _get_node_name(system_config['general'], node_config.get('general', {}),
-                               args.node_name)
+    node_name = _get_node_name(config_start_dict, args.node_name)
+
+    # prepare the init dict (only used locally)
+    config_init_dict = _merge_configs(
+        base_config, system_config, node_config, 'init_config_options')
+
     # init the logger
     logger = logging.LoggerAdapter(
-        _init_base_logger(base_config['logging'], system_config['logging'], node_config['logging']),
-        {'nodename': node_name})
+        _init_base_logger(config_init_dict['logging']), {'nodename': node_name})
 
     # now we have logging, so we can start outputting though the logger
     logger.debug("Logger initialized.")
-
-    # prepare config dict
-    config_start_dict = _merge_configs(base_config, system_config, node_config, logger=logger)
 
     # create system options
     system_options = {
@@ -49,7 +54,7 @@ def system_init(args):
     return emews.base.system_manager.SystemManager(
         emews.base.config.Config(config_start_dict, system_options))
 
-def _get_node_name(system_config, node_config, arg_name):
+def _get_node_name(config, arg_name):
     '''
     Determines the node name.
     '''
@@ -57,47 +62,42 @@ def _get_node_name(system_config, node_config, arg_name):
     if arg_name is not None:
         return arg_name
 
-    # then node config
-    node_name = node_config.get('node_name', None)
-    if node_name is not None:
-        return node_name
-
-    # then system config
-    node_name = system_config.get('node_name', None)
+    # then config
+    node_name = config.get('node_name', None)
     if node_name is not None:
         return node_name
 
     # default: use host name
     return socket.gethostname()
 
-def _init_base_logger(base_config, system_config, node_config):
+def _init_base_logger(log_config):
     '''
     Sets up the logger.
     '''
-    logger_type = system_config.get('logger', base_config['logger'])
-    message_level = system_config.get('message_level', base_config['message_level'])
+    logger_type = log_config['logger']
+    message_level = log_config['message_level']
 
     logger = logging.getLogger(logger_type)
     logger.setLevel(message_level)
     logger.propagate(False)
 
-    for handler_class_path in base_config['log_types'][logger_type]['handlers']:
+    for handler_class_path in log_config['log_types'][logger_type]['handlers']:
         handler_class = emews.base.importclass.import_class_from_module(handler_class_path)
         #TODO: Verify handler_options in system.yml to make sure invalid handler options and options
         # which shouldn't be overridden are not processed (ie, throw exception or something).
         handler_options = dict()
-        handler_options.update(base_config['log_handlers'][handler_class_path])
-        handler_options.update(system_config.get('logger_parameters', {}))
+        handler_options.update(log_config['log_handlers'][handler_class_path])
+        handler_options.update(log_config.get('logger_parameters', {}))
 
         handler_obj = handler_class(**handler_options)
         handler_obj.setLevel(message_level)
-        handler_obj.setFormatter(logging.Formatter(base_config['message_format']))
+        handler_obj.setFormatter(logging.Formatter(log_config['message_format']))
 
         logger.addHandler(handler_obj)
 
     return logger
 
-def _merge_configs(base_config, system_config, node_config, logger=None):
+def _merge_configs(base_config, system_config, node_config, merge_type):
     '''
     Merges the input config files by key, in order of precedence (base config- if in 'include'
     section, system config, node config).
@@ -108,7 +108,7 @@ def _merge_configs(base_config, system_config, node_config, logger=None):
 
     # Assume top level keys are dicts.
     # All possible sections and kvs are listed under base_config['include_merge']
-    for sec, kvs in base_config['system_config_options']:
+    for sec, kvs in base_config[merge_type]:
         # start merge
         for s_key, s_val in kvs:
             merged_val = s_val
@@ -132,9 +132,6 @@ def _merge_configs(base_config, system_config, node_config, logger=None):
                     merged_conf[sec] = dict()
                 merged_conf[sec][s_key] = merged_val
 
-        # adds the required sections, if they are not already present
-        _add_required_sections(base_config, merged_conf)
-
     return merged_conf
 
 def _add_required_sections(base_config, config):
@@ -147,3 +144,5 @@ def _add_required_sections(base_config, config):
             continue
 
         config[section_name] = None
+
+    return config
