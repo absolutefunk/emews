@@ -86,9 +86,15 @@ class Config(object):
             raise MissingConfigException("Config dictionary passed cannot be None.")
 
         self._config = config
+
+        # properties
         self._node_name = system_options['node_name']
         self._logger = system_options['logger']
 
+    '''
+    Config Properties
+    These are mapped to their respective system_option.
+    '''
     @property
     def node_name(self):
         '''
@@ -103,17 +109,20 @@ class Config(object):
         '''
         return self._logger
 
+    '''
+    Methods
+    '''
     def clone(self, config_dict):
         '''
         Clones the config object using a new config dictionary.  Note that system_options are
         not cloned.
         '''
-        new_config = copy.copy(self)
+        new_config_obj = copy.copy(self)
         # Even though we are accessing 'protected' members here, this should be okay as we are
         # doing it from the same class definition.  Disabling pylint here so it won't complain.
-        new_config._config = config_dict  # pylint: disable=W0212
+        new_config_obj._config = config_dict  # pylint: disable=W0212
 
-        return new_config
+        return new_config_obj
 
     def get(self, *keys):
         '''

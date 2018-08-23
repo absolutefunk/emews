@@ -1,16 +1,14 @@
 '''
 BaseObject: the base of everything (well, almost...)
-This class implements stuff that is common to almost everything class in emews: logging,
+This class implements stuff that is common to almost all classes in eMews: logging,
 configuration, et al.
 
 Created on Apr 9, 2018
 
 @author: Brian Ricks
 '''
-import logging
-
 import emews.base.importclass
-import emews.base.configcomponent
+import emews.base.config
 
 class BaseObject(object):
     '''
@@ -18,12 +16,11 @@ class BaseObject(object):
     '''
     def __init__(self, config):
         '''
-        config is the Config required, which contains the logger and configuration
-        (system configuration, object configuration...)
-        The original config object not referenced, instead, node-level options are made available
-        to the child classes.  Child classes should not cache a reference to the config object,
-        instead, child classes should pull any values they need from the config.  In this way, the
-        config object can be garbage collected after instantiation.
+        The original config object not referenced in its entirety, instead, node-level options are
+        made available to the child classes.  Child classes should not cache a reference to the
+        config object, instead, child classes should pull any values they need from the config
+        during instantiation.  In this way, the config object can be garbage collected after
+        object instantiation.
         '''
         if config.component_config is not None:
             try:
