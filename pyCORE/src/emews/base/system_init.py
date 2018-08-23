@@ -38,9 +38,7 @@ def system_init(args):
     logger.debug("Logger initialized.")
 
     # prepare config dict
-    config_start_dict = dict()
-    config_start_dict['config'] = _merge_configs(
-        base_config, system_config, node_config, logger=logger)
+    config_start_dict = _merge_configs(base_config, system_config, node_config, logger=logger)
 
     # create system options
     system_options = {

@@ -86,7 +86,6 @@ class Config(object):
             raise MissingConfigException("Config dictionary passed cannot be None.")
 
         self._config = config
-        self._user_config = config['config']
         self._node_name = system_options['node_name']
         self._logger = system_options['logger']
 
@@ -113,7 +112,6 @@ class Config(object):
         # Even though we are accessing 'protected' members here, this should be okay as we are
         # doing it from the same class definition.  Disabling pylint here so it won't complain.
         new_config._config = config_dict  # pylint: disable=W0212
-        new_config._user_config = config_dict['config']  # pylint: disable=W0212
 
         return new_config
 
@@ -121,17 +119,15 @@ class Config(object):
         '''
         Returns a value from the config (under section 'config').
         '''
-        return _get_from_dict(self._user_config, keys)
-
-    def get_base(self, *keys):
-        '''
-        Returns a value from the base config dictionary.  Should not be called unless keys outside
-        the 'config' section need to be accessed.
-        '''
         return _get_from_dict(self._config, keys)
 
-    def __contains__(self, key):
+    def __contains__(self, *keys):
         '''
-        membership test
+        Membership test (keychain).
         '''
-        return key in self._user_config
+        try:
+            _get_from_dict(self._config, keys)
+        except KeychainException:
+            return False
+
+        return True
