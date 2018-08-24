@@ -1,17 +1,12 @@
 '''
 Configuration.
-Provides helper functions and a class for storing configuration options.
+Provides helper functions for parsing configuration options, and system-wide properties.
 
 Created on Apr 3, 2018
 
 @author: Brian Ricks
 '''
-import copy
-import os
-
 from ruamel.yaml import YAML
-
-from emews.base.exceptions import KeychainException, MissingConfigException
 
 def parse(filename):
     '''
@@ -27,116 +22,22 @@ def parse(filename):
 
     return dct
 
-def prepend_path(filename):
+'''
+Dictionary that contains the system-wide properties.  One of these is the logger, which is also
+designed to be module-level.  The main reason we don't directly grab the logger from the logger
+module is that we use a LoggerAdapter to insert the node name, which itself would need to be
+available.
+'''
+_system_properties = dict()
+
+def set_system_properties(system_properties):
     '''
-    Prepends an absolute path to the filename, relative to the directory this
-    module was loaded from.
+    Sets the system-wide properties.  Objects such as BaseObject pull important properties from this
     '''
-    path = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-    return os.path.join(path, filename)
+    _system_properties.update(system_properties)
 
-def keychain_str(target_key, *keys):
+def get_system_property(key):
     '''
-    returns the keychain string
+    Returns the system property based on the input key
     '''
-    key_chain = []
-    for key in keys:
-        key_chain.append(key)
-        if key is target_key:
-            break
-
-    return "-->".join(key_chain)
-
-def _get_from_dict(self, config_dict, *keys):
-    '''
-    Returns a value from the dictionary 'config_dict'.
-    '''
-    config = config_dict
-    for key in keys:
-        try:
-            config = config.get(key)
-        except AttributeError:
-            # Implies that 'config' is actually a value.  This should be thrown in the case that
-            # 'get' is not an implemented method.  It may be easier to simply check the instance
-            # as a dict instead of doing it the duck typing way, but we cannot guarantee what the
-            # actual instance is.  However, we do enforce that whatever the type is, it has to at
-            # least have a 'get' method.
-            raise KeychainException(
-                "Keychain '%s': Current value is not a gettable type (cannot get key '%s')."
-                % (keychain_str(key, *keys), key))
-
-        if config is None:
-            # key doesn't exist at current level in dict
-            raise KeychainException(
-                "Keychain '%s': key '%s' not present in config (key doesn't exist)."
-                % (keychain_str(key, *keys), key))
-
-    return config
-
-class Config(object):
-    '''
-    classdocs
-    '''
-    def __init__(self, config, system_options):
-        '''
-        config parameter passed is a dictionary containing config info
-        system_options parameter is a dictionary containing specific system options
-        '''
-        if config is None:
-            raise MissingConfigException("Config dictionary passed cannot be None.")
-
-        self._config = config
-
-        # properties
-        self._node_name = system_options['node_name']
-        self._logger = system_options['logger']
-
-    '''
-    Config Properties
-    These are mapped to their respective system_option.
-    '''
-    @property
-    def node_name(self):
-        '''
-        Returns the node name.
-        '''
-        return self._node_name
-
-    @property
-    def logger(self):
-        '''
-        Returns the system logger.
-        '''
-        return self._logger
-
-    '''
-    Methods
-    '''
-    def clone(self, config_dict):
-        '''
-        Clones the config object using a new config dictionary.  Note that system_options are
-        not cloned.
-        '''
-        new_config_obj = copy.copy(self)
-        # Even though we are accessing 'protected' members here, this should be okay as we are
-        # doing it from the same class definition.  Disabling pylint here so it won't complain.
-        new_config_obj._config = config_dict  # pylint: disable=W0212
-
-        return new_config_obj
-
-    def get(self, *keys):
-        '''
-        Returns a value from the config (under section 'config').
-        '''
-        return _get_from_dict(self._config, keys)
-
-    def __contains__(self, *keys):
-        '''
-        Membership test (keychain).
-        '''
-        try:
-            _get_from_dict(self._config, keys)
-        except KeychainException:
-            return False
-
-        return True
+    return _system_properties[key]

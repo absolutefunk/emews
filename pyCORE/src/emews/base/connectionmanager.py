@@ -18,22 +18,18 @@ class ConnectionManager(emews.base.baseobject.BaseObject,
         '''
         Constructor
         '''
-        super(ConnectionManager, self).__init__(config)
+        super(ConnectionManager, self).__init__()
 
-        self._listener = emews.base.multilistener.MultiListener(
-            self.config.get_sys_new('listener'), self)
+        self._listener = emews.base.multilistener.MultiListener(config, self)
 
+        self._config = config
         self._thread_dispatcher = thread_dispatcher
 
     def start(self):
         '''
         Starts the ConnectionManager.
         '''
-        try:
-            self._listener.start()
-        except StandardError as ex:
-            self.logger.error("Listener failed: %s", ex)
-            raise
+        self._listener.start()  # start the listener
 
     def stop(self):
         '''
@@ -46,8 +42,7 @@ class ConnectionManager(emews.base.baseobject.BaseObject,
         @Override start a ClientSession with this socket
         '''
         self._thread_dispatcher.dispatch_thread(
-            emews.base.clientsession.ClientSession(self.config.get_sys_new('listener'), sock,
-                                                   self._thread_dispatcher),
+            emews.base.clientsession.ClientSession(self._config, sock, self._thread_dispatcher),
             force_start=True)
 
     def handle_readable_socket(self, sock):

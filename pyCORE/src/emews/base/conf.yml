@@ -16,11 +16,7 @@ system_config_options:
     receive_buffer: 128     # buffer for incoming characters from an eMews client
     command_delimiter: ' '  # delimit commands using this
     recv_timeout: 20  # in seconds - wait this long for a timeout in expected response
-  paths:  # package paths for the emews system
-    emews_pkg_path: emews
-    emews_base_pkg_path: emews.base
-    emews_pkg_services_path: emews.services
-    emews_pkg_helpers_path: emews.helpers
+  startup_services: null
 
 init_config_options:
   logging:
@@ -50,7 +46,3 @@ init_config_options:
         stream: 'ext://sys.stdout'
 
     logger_parameters: null
-
-required_sections: # these sections will be added if not present in any configs
-  general: null
-  startup_services: null

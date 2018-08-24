@@ -20,27 +20,26 @@ class SystemManager(emews.base.baseobject.BaseObject):
         '''
         Constructor
         '''
-        super(SystemManager, self).__init__(config)
+        super(SystemManager, self).__init__()
 
         # register signals
         signal.signal(signal.SIGHUP, self._shutdown_signal_handler)
         signal.signal(signal.SIGINT, self._shutdown_signal_handler)
 
-        self._thread_dispatcher = emews.base.thread_dispatcher.ThreadDispatcher(self.config)
-
-        self.connection_manager = emews.base.connectionmanager.ConnectionManager(
-            config, self._thread_dispatcher)
+        self._config = config
+        self._thread_dispatcher = None
+        self.connection_manager = None
 
     def _startup_services(self):
         '''
         Looks in the config object to obtain any services present.
         '''
-        startup_services = self.config.get_base("startup_services")
+        startup_services = self._config["startup_services"]
         self.logger.debug("%s startup services.", str(len(startup_services)))
-        if startup_services is not None:
+        if startup_services:
             for service_str, options in startup_services:
                 self.logger.debug("Starting service '%s' ...", service_str)
-                service_builder = emews.services.servicebuilder.ServiceBuilder(self.config)
+                service_builder = emews.services.servicebuilder.ServiceBuilder()
                 service_builder.service(service_str)
 
                 if options is None:
@@ -63,6 +62,13 @@ class SystemManager(emews.base.baseobject.BaseObject):
         Starts the daemon.
         '''
         self.logger.debug("Starting system manager ...")
+
+        # instantiate thread dispatcher and connection manager
+        self._thread_dispatcher = emews.base.thread_dispatcher.ThreadDispatcher(
+            self._config['general'])
+        self.connection_manager = emews.base.connectionmanager.ConnectionManager(
+            self._config['communication'], self._thread_dispatcher)
+
         # start any services specified
         self._startup_services()
 

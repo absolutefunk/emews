@@ -8,41 +8,36 @@ Created on Feb 23, 2018
 '''
 from pexpect import pxssh
 
-import emews.base.exceptions
 import emews.services.baseservice
 
 class AutoSSH(emews.services.baseservice.BaseService):
     '''
     classdocs
     '''
-    def __init__(self, config):
+    def __init__(self, config, dependencies):
         '''
         Constructor
         '''
-        super(AutoSSH, self).__init__(config)
-
+        super(AutoSSH, self).__init__()
         # parameter checks
-        if self.config is None:
-            self.logger.error("Service config is empty. Is a valid service config specified?")
-            raise emews.base.exceptions.MissingConfigException("No service config present.")
+        self._host = config.get('server', 'host')  # hostname of ssh server
+        self._port = config.get('server', 'port')  # port of ssh server
+        self._username = config.get('server', 'username')  # username for ssh login
+        self._password = config.get('server', 'password')  # password for ssh login
+        # list of commands to execute
+        self._command_list = config.get('command', 'command_list')
+        # distribution to sample command list count
+        self._num_commands = dependencies.get('num_commands_sampler')
+        # distribution to sample list indices
+        self._next_command = dependencies.get('command_sampler')
+        # distribution to sample delay to execute next command
+        self._next_command_delay = dependencies.get('command_delay_sampler')
 
-        try:
-            self._host = self.config.get('server', 'host')  # hostname of ssh server
-            self._port = self.config.get('server', 'port')  # port of ssh server
-            self._username = self.config.get('server', 'username')  # username for ssh login
-            self._password = self.config.get('server', 'password')  # password for ssh login
-            # list of commands to execute
-            self._command_list = self.config.get('command', 'command_list')
-
-            # distribution to sample command list count
-            self._num_commands = self.dependencies.get('num_commands_sampler')
-            # distribution to sample list indices
-            self._next_command = self.dependencies.get('command_sampler')
-            # distribution to sample delay to execute next command
-            self._next_command_delay = self.dependencies.get('command_delay_sampler')
-        except emews.base.exceptions.KeychainException as ex:
-            self.logger.error(ex)
-            raise
+    def initialize(self, stage):
+        '''
+        @Override stage-specific initialization
+        '''
+        pass
 
     def _send_ssh_command(self, ssh_client, next_command):
         '''

@@ -18,18 +18,17 @@ def system_init(args):
     Inits the eMews daemon.
     '''
     # first thing we need to do is parse the configs
-    # base system conf (non-user config - global)
+    # base system conf (non-user config - system-wide)
     base_config = emews.base.config.parse("conf.yml")  # conf.yml in same directory as this
-    # system conf (user config - global)
+    # system conf (user config - system-)
     system_config = emews.base.config.parse(os.path.join("..", "system.yml")) \
         if args.sys_config is None else emews.base.config.parse(args.sys_config)
     # node conf (user config - per node)
     node_config = emews.base.config.parse(args.node_config)
 
     # prepare eMews daemon config dict
-    config_start_dict = _add_required_sections(
-        base_config, _merge_configs(
-            base_config, system_config, node_config, 'system_config_options'))
+    config_start_dict = _merge_configs(
+        base_config, system_config, node_config, 'system_config_options')
 
     # get the node name
     node_name = _get_node_name(config_start_dict, args.node_name)
@@ -45,14 +44,13 @@ def system_init(args):
     # now we have logging, so we can start outputting though the logger
     logger.debug("Logger initialized.")
 
-    # create system options
-    system_options = {
+    # create system properties
+    emews.base.config.set_system_properties({
         'node_name': node_name,
         'logger': logger
-    }
+    })
 
-    return emews.base.system_manager.SystemManager(
-        emews.base.config.Config(config_start_dict, system_options))
+    return emews.base.system_manager.SystemManager(config_start_dict)
 
 def _get_node_name(config, arg_name):
     '''
@@ -110,6 +108,7 @@ def _merge_configs(base_config, system_config, node_config, merge_type):
     # All possible sections and kvs are listed under base_config['include_merge']
     for sec, kvs in base_config[merge_type]:
         # start merge
+        merged_conf[sec] = dict()
         for s_key, s_val in kvs:
             merged_val = s_val
 
@@ -128,21 +127,6 @@ def _merge_configs(base_config, system_config, node_config, merge_type):
             # Add config_val to merged_conf if not None (this occurs if val in base_config is None
             # and no other configs override it).
             if merged_val is not None:
-                if not sec in merged_conf:
-                    merged_conf[sec] = dict()
                 merged_conf[sec][s_key] = merged_val
 
     return merged_conf
-
-def _add_required_sections(base_config, config):
-    '''
-    Checks for and adds (empty) sections that are missing from the input config file.
-    base_config contains a list of required sections.
-    '''
-    for section_name, _ in base_config['required_sections']:
-        if section_name in config:
-            continue
-
-        config[section_name] = None
-
-    return config

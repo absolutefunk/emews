@@ -24,11 +24,12 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
     '''
     classdocs
     '''
-    def __init__(self, config):
+    def __init__(self):
         '''
         Constructor
         '''
-        super(BaseService, self).__init__(config)
+        super(BaseService, self).__init__()
+
         self._service_interrupt_event = Event()  # used to interrupt Event.wait() on stop()
         self._interrupted = False  # set to true on stop()
 
@@ -48,6 +49,14 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
 
         self.logger.debug("Sleeping for %s seconds.", time)
         self._service_interrupt_event.wait(time)
+
+    @abstractmethod
+    def initialize(self, stage):
+        '''
+        Called after object construction.  Concrete services perform their initialization here.
+        stage refers to the current running progress of the eMews system.
+        '''
+        pass
 
     @abstractmethod
     def run_service(self):

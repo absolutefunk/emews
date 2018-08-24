@@ -8,21 +8,19 @@ import os
 
 import emews.base.baseobject
 import emews.base.config
-from emews.base.configcomponent import ConfigComponent
 import emews.base.importclass
 
 class ServiceBuilder(emews.base.baseobject.BaseObject):
     '''
     classdocs
     '''
-    def __init__(self, config):
+    def __init__(self):
         '''
         Constructor
         '''
-        super(ServiceBuilder, self).__init__(config)
+        super(ServiceBuilder, self).__init__()
 
         self._is_interrupted = False
-        self._config_component = None
         self._service_config = None
         self._service_class = None
 
@@ -47,11 +45,10 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         '''
         # Attempt to resolve the module.  If using emews naming, then service should also resolve.
         module_name = val_service_name.lower()
-        module_path = self.config.get_sys('paths', 'emews_pkg_services_path')
         #because services are in a subfolder that is the same as their name, concatenate the module
         # name to the module_path.  Also, as we are passing the module name as part of the path,
         # concatenate the module name again.
-        module_path += "." + module_name
+        module_path = "emews.services." + module_name
         try:
             self._service_class = emews.base.importclass.import_class(val_service_name, module_path)
         except ImportError as ex:
@@ -82,7 +79,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
                 self.logger.warning("Could not load default configuration, continuing with none...")
                 return
             self.logger.info("Loaded default configuration: %s", service_config_path)
-            self._config_component = ConfigComponent(config_dict)
+            self._service_config = config_dict
             return
 
         config_try_again = False
@@ -104,7 +101,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
                 self.logger.debug(ex)
                 raise
         self.logger.info("Service configuration '%s' loaded.", val_config_path)
-        self._config_component = ConfigComponent(config_dict)
+        self._service_config = config_dict
 
     def __build_service(self):
         '''
@@ -129,10 +126,6 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         if service_config.component_config is not None and \
             'decorators' in service_config.component_config:
 
-            decorator_class_path = self.config.get_sys(
-                'paths', 'emews_pkg_service_decorators_path')
-            self.logger.debug("Decorator module path: %s", decorator_class_path)
-
             for decorator_name, decorator_config in service_config.get('decorators').iteritems():
                 if self._is_interrupted:
                     return None
@@ -140,7 +133,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
                 self.logger.debug("Resolving decorator '%s' for %s.", decorator_name, service_name)
                 try:
                     current_instantiation = emews.base.importclass.import_class(
-                        decorator_name, decorator_class_path)(
+                        decorator_name, 'emews.services.decorators')(
                             decorator_config, current_instantiation)
                 except KeyError as ex:
                     self.logger.error("(A key is missing from the config): %s", ex)
