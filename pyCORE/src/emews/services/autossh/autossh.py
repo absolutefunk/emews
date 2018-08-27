@@ -27,11 +27,11 @@ class AutoSSH(emews.services.baseservice.BaseService):
         # list of commands to execute
         self._command_list = config.get('command', 'command_list')
         # distribution to sample command list count
-        self._num_commands = dependencies.get('num_commands_sampler')
+        self._num_commands = config.dependencies.get('num_commands_sampler')
         # distribution to sample list indices
-        self._next_command = dependencies.get('command_sampler')
+        self._next_command = config.dependencies.get('command_sampler')
         # distribution to sample delay to execute next command
-        self._next_command_delay = dependencies.get('command_delay_sampler')
+        self._next_command_delay = config.dependencies.get('command_delay_sampler')
 
     def initialize(self, stage):
         '''

@@ -13,12 +13,18 @@ class ServiceDecorator(emews.base.baseobject.BaseObject, emews.services.iservice
     '''
     classdocs
     '''
-    def __init__(self, config, recipient_service):
+    def __init__(self):
         '''
         config: decorator config
         recipient_service: previous decorator in the chain (or service if root of chain)
         '''
-        super(ServiceDecorator, self).__init__(config)
+        super(ServiceDecorator, self).__init__()
+        self._recipient_service = None
+
+    def _post_init(self, recipient_service):
+        '''
+        Dependency injection for setting recipient service.
+        '''
         self._recipient_service = recipient_service
 
     @property

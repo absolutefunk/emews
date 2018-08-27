@@ -12,17 +12,13 @@ class LoopedService(ServiceDecorator):
     '''
     classdocs
     '''
-    def __init__(self, recipient_service):
+    def __init__(self, config):
         '''
         Constructor
         '''
-        super(LoopedService, self).__init__(recipient_service)
+        super(LoopedService, self).__init__()
 
-        try:
-            self._sampler = self.dependencies.get('loop_sampler')
-        except ValueError as ex:
-            self.logger.error(ex)
-            raise
+        self._sampler = config.dependencies.get('loop_sampler')
 
     def start(self):
         '''

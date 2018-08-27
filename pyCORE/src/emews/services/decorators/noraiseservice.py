@@ -14,11 +14,11 @@ class NoRaiseService(ServiceDecorator):
     '''
     classdocs
     '''
-    def __init__(self, recipient_service):  # pylint: disable=W0235
+    def __init__(self, config):
         '''
         Constructor
         '''
-        super(NoRaiseService, self).__init__(recipient_service)
+        super(NoRaiseService, self).__init__()
 
     def start(self):
         '''
