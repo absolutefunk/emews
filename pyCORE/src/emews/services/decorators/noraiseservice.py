@@ -27,6 +27,7 @@ class NoRaiseService(ServiceDecorator):
         try:
             super(NoRaiseService, self).start()
         except Exception as ex:  # pylint: disable=W0703
-            self.logger.error("Service raised exception: %s", ex)
+            self.logger.error("[%s] Raised exception: %s",
+                              self._recipient_service.__class__.__name__, ex)
             # Do not raise again, just exit.  If LoopedService is a child, then it'll restart
             # This decorator.

@@ -7,6 +7,8 @@ Created on Apr 3, 2018
 '''
 from ruamel.yaml import YAML
 
+from emews.base.exceptions import KeychainException
+
 '''
 Module-level functions related to configuration loading/parsing.
 '''
@@ -37,15 +39,38 @@ class BaseConfig(object):
         '''
         Constructor
         '''
-        self._config = config_dict
+        self._dict = config_dict
 
     def get(self, *keys):
         '''
-        Given a keychain, returns a value (if it exists).
+        Given a keychain, returns a value, or throws a KeychainException if value does not exist
+        along the keychain.
         '''
-        pass
+        keychain_str = ""
+        first_iter = True
+        current_key = {}
 
-class ServiceConfig(object):
+        for key in keys:
+            if not isinstance(current_key, dict):
+                # previous key's value is not a dict (and more keys in the keychain)
+                raise KeychainException("Keychain [%s], reached end of chain, but more keys given."\
+                    % keychain_str)
+
+            if first_iter:
+                keychain_str += key
+                first_iter = False
+            else:
+                keychain_str += " --> " + key
+
+            try:
+                current_key = self._dict[key]
+            except KeyError:
+                # current key is not in the dict
+                raise KeychainException("Keychain [%s], key %s not in chain." % keychain_str, key)
+
+        return current_key
+
+class ServiceConfig(BaseConfig):
     '''
     Extension of BaseConfig for eMews Services
     '''

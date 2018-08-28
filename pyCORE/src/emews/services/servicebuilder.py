@@ -8,6 +8,7 @@ import os
 
 import emews.base.baseobject
 import emews.base.config
+from emews.base.exceptions import KeychainException
 import emews.base.importclass
 
 class ServiceBuilder(emews.base.baseobject.BaseObject):
@@ -29,7 +30,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         '''
         return a new service
         '''
-        return self.__build_service()
+        return self._build_service()
 
     def stop(self):
         '''
@@ -66,6 +67,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         Sets the configuration component for the service.  Parsing of the config path is done
         now for caching.
         '''
+        self._service_config = None
         if val_config_path is None and self._service_class is not None:
             # attempt to resolve config file from default service config path and service class
             service_config_path = os.path.join(self.config.root_path, "services",
@@ -100,19 +102,27 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
                                   val_config_path)
                 self.logger.debug(ex)
                 raise
+
         self.logger.info("Service configuration '%s' loaded.", val_config_path)
         self._service_config = config_dict
 
-    def __build_service(self):
+    def _build_service(self):
         '''
         builds the service
         '''
-        service_config = self.config.clone_with_config(self._config_component)
+        if self._service_config is not None and 'config' in self._service_config:
+            base_service_config = dict()
+            base_service_config['config'] = self._service_config['config']
+            if 'dependencies' in self._service_config:
+                base_service_config['dependencies'] = self._service_config['dependencies']
+            base_service_config = emews.base.config.ServiceConfig(
+                self._instantiate_dependencies(base_service_config))
 
         try:
-            service_instantiation = self._service_class(service_config)
+            service_instantiation = self._service_class(base_service_config)
         except StandardError:
-            self.logger.error("Service class could not be instantiated.")
+            self.logger.error("[%s] Service class could not be instantiated.",
+                              self._service_class.__name__)
             raise
 
         service_name = service_instantiation.__class__.__name__
@@ -123,20 +133,22 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         # regards to decorators needs to follow a specific ordering:
         # ['decorators'] --> [<DecoratorClass>] --> (config dict/list/etc for DecoratorClass)
         # If no config_path for the service was given, then this section is skipped.
-        if service_config.component_config is not None and \
-            'decorators' in service_config.component_config:
-
-            for decorator_name, decorator_config in service_config.get('decorators').iteritems():
+        if self._service_config is not None and 'decorators' in self._service_config:
+            for decorator_name, decorator_config in self._service_config['decorators'].iteritems():
                 if self._is_interrupted:
                     return None
+
+                # add decorator dependencies, and create config
+                decorator_config_dep = emews.base.config.ServiceConfig(
+                    self._instantiate_dependencies(decorator_config))
 
                 self.logger.debug("Resolving decorator '%s' for %s.", decorator_name, service_name)
                 try:
                     current_instantiation = emews.base.importclass.import_class(
                         decorator_name, 'emews.services.decorators')(
-                            decorator_config, current_instantiation)
-                except KeyError as ex:
-                    self.logger.error("(A key is missing from the config): %s", ex)
+                            decorator_config_dep, current_instantiation)
+                except KeychainException as ex:
+                    self.logger.error("[%s] In config: %s", decorator_name, ex)
                     raise
                 except ImportError as ex:
                     self.logger.error("Module '%s' could not be resolved into a module: %s",
@@ -149,3 +161,9 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
                 self.logger.debug("Decorator '%s' applied to %s.", decorator_name, service_name)
 
         return current_instantiation
+
+    def _instant_dependencies(self, config):
+        '''
+        Instantiates all dependency objects declared in the input config.
+        '''
+        pass
