@@ -110,14 +110,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         '''
         builds the service
         '''
-        if self._service_config is not None and 'config' in self._service_config:
-            base_service_config = dict()
-            base_service_config['config'] = self._service_config['config']
-            if 'dependencies' in self._service_config:
-                base_service_config['dependencies'] = self._service_config['dependencies']
-            base_service_config = emews.base.config.ServiceConfig(
-                self._instantiate_dependencies(base_service_config))
-
+        base_service_config = self.__process_config(self._service_config)
         try:
             service_instantiation = self._service_class(base_service_config)
         except StandardError:
@@ -138,15 +131,13 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
                 if self._is_interrupted:
                     return None
 
-                # add decorator dependencies, and create config
-                decorator_config_dep = emews.base.config.ServiceConfig(
-                    self._instantiate_dependencies(decorator_config))
+                base_decorator_config = self.__process_config(decorator_config)
 
                 self.logger.debug("Resolving decorator '%s' for %s.", decorator_name, service_name)
                 try:
                     current_instantiation = emews.base.importclass.import_class(
                         decorator_name, 'emews.services.decorators')(
-                            decorator_config_dep, current_instantiation)
+                            base_decorator_config, current_instantiation)
                 except KeychainException as ex:
                     self.logger.error("[%s] In config: %s", decorator_name, ex)
                     raise
@@ -162,8 +153,80 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
 
         return current_instantiation
 
-    def _instant_dependencies(self, config):
+    def _instantiate_dependencies(self, config):
         '''
         Instantiates all dependency objects declared in the input config.
         '''
-        pass
+        '''
+        For each dependency in the supplied dict, attempt to instantiate the dependency.
+        '''
+        dependency_instantiation_dict = dict()
+        for dep_name, dependency in config.iteritems():
+            self.logger.debug("Resolving dependency '%s'.", dep_name)
+            try:
+                class_name = dependency['class']
+                class_path = dependency['module']
+            except KeyError as ex:
+                self.logger.error("Required key missing from configuration for dependency '%s': %s",
+                                  dep_name, ex)
+                raise
+
+            # check optional params
+            b_instantiate = True
+            if 'instantiate' in dependency:
+                if not isinstance(dependency['instantiate'], bool):
+                    self.logger.error("In dependency '%s': Key 'instantiate' must have a "\
+                                      "boolean value (given value: %s).",
+                                      dep_name, dependency['instantiate'])
+                    raise ValueError(
+                        "Key 'instantiate' must have a boolean value (given value: %s)." %
+                        str(dependency['instantiate']))
+                else:
+                    b_instantiate = dependency['instantiate']
+
+            try:
+                class_object = emews.base.importclass.import_class_from_module(
+                    class_name, class_path)
+            except ImportError as ex:
+                self.logger.error("Could not import dependency '%s': %s",
+                                  dep_name, ex)
+                raise
+
+            # Currently dependencies are not allowed to have dependencies.  If this were to change,
+            # then dependencies would in essence use ServiceConfig objects instead of BaseConfig.
+            dep_config = dict()
+            if 'config' in dependency:
+                dep_config['config'] = dependency['config']
+                self.logger.debug("Found config information for '%s'.", dep_name)
+            else:
+                dep_config['config'] = {}
+                self.logger.debug("No config information found for '%s'.", dep_name)
+
+            if b_instantiate:
+                try:
+                    dependency_instantiation_dict[dep_name] = class_object(
+                        emews.base.config.BaseConfig(dep_config))
+                except AttributeError as ex:
+                    self.logger.error("Dependency '%s' could not be instantiated: %s", dep_name, ex)
+                    raise
+                self.logger.debug("Dependency '%s' instantiated.", dep_name)
+            else:
+                # instantiation not requested
+                dependency_instantiation_dict[dep_name] = class_object
+                self.logger.debug("Dependency '%s' requested not to instantiate.", dep_name)
+
+        return dependency_instantiation_dict
+
+    def _process_config(self, config):
+        '''
+        Process the raw config dict to a ServiceConfig.
+        '''
+        base_service_config = dict()
+        base_service_config['config'] = {} if config is None else config.get('config', {})
+        if config is not None and 'dependencies' in config:
+            base_service_config['dependencies'] = self._instantiate_dependencies(
+                self.config['dependencies'])
+        else:
+            base_service_config['dependencies'] = {}
+
+        return emews.base.config.ServiceConfig(base_service_config)
