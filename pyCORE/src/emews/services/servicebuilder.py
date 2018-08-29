@@ -121,7 +121,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         service_name = service_instantiation.__class__.__name__
         self.logger.debug("Service class '%s' instantiated.",
                           service_name)
-        current_instantiation = service_instantiation
+        prev_instantiation = service_instantiation
         # Check config for decorators, and add any found.  Note, the structure in the config in
         # regards to decorators needs to follow a specific ordering:
         # ['decorators'] --> [<DecoratorClass>] --> (config dict/list/etc for DecoratorClass)
@@ -137,7 +137,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
                 try:
                     current_instantiation = emews.base.importclass.import_class(
                         decorator_name, 'emews.services.decorators')(
-                            base_decorator_config, current_instantiation)
+                            base_decorator_config)
                 except KeychainException as ex:
                     self.logger.error("[%s] In config: %s", decorator_name, ex)
                     raise
@@ -149,16 +149,18 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
                     self.logger.error("Decorator '%s' could not be resolved into a class: %s",
                                       decorator_name, ex)
                     raise
+
+                # inject previous instantiation into the current one (decorator chaining)
+                current_instantiation._post_init(prev_instantiation)  # pylint: disable=W0212
                 self.logger.debug("Decorator '%s' applied to %s.", decorator_name, service_name)
+                prev_instantiation = current_instantiation
 
         return current_instantiation
 
     def _instantiate_dependencies(self, config):
         '''
-        Instantiates all dependency objects declared in the input config.
-        '''
-        '''
-        For each dependency in the supplied dict, attempt to instantiate the dependency.
+        Instantiates (or at least imports the class) all dependency objects declared in the input
+        config.
         '''
         dependency_instantiation_dict = dict()
         for dep_name, dependency in config.iteritems():
@@ -192,8 +194,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
                                   dep_name, ex)
                 raise
 
-            # Currently dependencies are not allowed to have dependencies.  If this were to change,
-            # then dependencies would in essence use ServiceConfig objects instead of BaseConfig.
+            # Currently dependencies are not allowed to have dependencies.
             dep_config = dict()
             if 'config' in dependency:
                 dep_config['config'] = dependency['config']
@@ -204,6 +205,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
 
             if b_instantiate:
                 try:
+                    # because dependency configs only have a 'config' section, we use BaseConfig
                     dependency_instantiation_dict[dep_name] = class_object(
                         emews.base.config.BaseConfig(dep_config))
                 except AttributeError as ex:

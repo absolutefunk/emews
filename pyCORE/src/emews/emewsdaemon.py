@@ -14,36 +14,7 @@ Created on Mar 24, 2018
 '''
 import argparse
 
-def launch_logserver(config):
-    '''
-    Determines if the LogServer should be launched.  Criteria for this to occur:
-    - Logging base_logger is configured as 'emews.distributed'
-    - This node is the designated LogServer node.
-    '''
-    # TODO: All this is obsolete, remove...
-    try:
-        if config.get_sys('logging', 'main_logger') != 'emews.distributed':
-            # not using distributed logging
-            return None
-    except KeychainException as ex:
-        print "A required key in the system config file is missing."
-        print ex
-        sys.exit(1)
-
-    try:
-        logserver_node = config.get_sys('logserver', 'node')
-    except KeychainException as ex:
-        print "A required key in the system config file is missing."
-        print ex
-        sys.exit(1)
-
-    if config.nodename == logserver_node:
-        # launch the log server
-        print "  This node is configured to receive distributed log entries."
-        return emews.base.threadwrapper.ThreadWrapper(
-            emews.services.logserver.logserver.LogServer(config))
-
-    return None
+import emews.base.system_init
 
 def main():
     '''
@@ -56,41 +27,14 @@ def main():
     "(default: <none>)")
     parser.add_argument("-n", "--node_name", help="name of the node this daemon launches under "\
     "(default: system host name, if --node_config not given)")
+    # TODO: Implement local mode.  May subsume the standalone launcher...
     parser.add_argument("-l", "--local", help="launches the eMews daemon in local mode")
     args = parser.parse_args()
 
-    sys_config_path = os.path.join(os.path.dirname(emews.version.__file__), "system.yml")\
-        if args.sys_config is None else args.sys_config
-
     print "eMews %s" % emews.version.__version__
-    print "  Using system config path: " + sys_config_path
 
-    config = emews.base.config.Config(sys_config_path,
-                                      node_config_path=args.node_config,
-                                      node_name=args.node_name)
-
-    print "  Using node name: " + config.nodename
-
-    # When disabling, log messages are cached until logging is enabled again
-    logging.disable(logging.CRITICAL)  # disable all log levels
-    log_server = launch_logserver(config)
-    logging.disable(logging.NOTSET)  # enable all log levels
-
-    try:
-        connection_manager = ConnectionManager(config)
-        connection_manager.start()
-    except StandardError:
-        # shutdown LogServer if it is running
-        if log_server is not None:
-            log_server.stop()
-        raise
-
-    if log_server is not None:
-        log_server.stop()
-        log_shutdown_delay = config.get_sys('logserver', 'shutdown_wait')
-        if log_shutdown_delay < 0:
-            log_shutdown_delay = None
-        log_server.join(log_shutdown_delay)
+    system_manager = emews.base.system_init.system_init(args)
+    system_manager.start()
 
     print "eMews shutdown"
 

@@ -23,7 +23,8 @@ class ServiceDecorator(emews.base.baseobject.BaseObject, emews.services.iservice
 
     def _post_init(self, recipient_service):
         '''
-        Dependency injection for setting recipient service.
+        Dependency injection for setting recipient service (either the base service or another
+        decorator in a chain). Invoked by ServiceBuilder.
         '''
         self._recipient_service = recipient_service
 
