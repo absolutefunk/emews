@@ -5,7 +5,6 @@ Launches the system manager.
 Created on June 9, 2018
 @author: Brian Ricks
 '''
-from collections import namedtuple
 import logging
 import os
 import socket
@@ -47,8 +46,9 @@ def system_init(args):
     logger.debug("Logger initialized.")
 
     # create system properties
-    SystemProperties = namedtuple('SystemProperties', ['logger', 'node_name'])
-    system_properties = SystemProperties([logger, node_name])
+    system_properties = emews.base.config.make_config_cls(
+        'SystemProperties',
+        ['logger', 'node_name'])([logger, node_name])
     # update the BaseObject class var
     emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES = system_properties  # pylint: disable=W0212
 

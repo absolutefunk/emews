@@ -16,6 +16,8 @@ import argparse
 
 import emews.base.system_init
 
+# TODO: test launching eMews with python -OO
+
 def main():
     '''
     main function

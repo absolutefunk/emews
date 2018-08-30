@@ -1,29 +1,27 @@
 # Configuration file for AutoSSH
 # YAML 1.2 compliant
 config:  # service configuration
-  server:
-    host: 10.0.0.11
-    port: 22
-    username: coreuser
-    password: P28c7RtO0
-  command:
-    command_list:
-    - uptime
-    - ps aux
-    - df -m
-    - uptime
-    - pwd
-    - ls -al
-    - pwd
-    - ps aux
-    - uname -a
-    - free
-    - free
-    - pwd
-    - uptime
-    - ps aux
-    - ls -l
-    - ps aux
+  host: 10.0.0.11
+  port: 22
+  username: coreuser
+  password: P28c7RtO0
+  command_list:
+  - uptime
+  - ps aux
+  - df -m
+  - uptime
+  - pwd
+  - ls -al
+  - pwd
+  - ps aux
+  - uname -a
+  - free
+  - free
+  - pwd
+  - uptime
+  - ps aux
+  - ls -l
+  - ps aux
 
 helpers:  # helpers which this service will use (many to one)
   num_commands_sampler:  # number of commands to execute in an SSH session.

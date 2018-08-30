@@ -88,4 +88,4 @@ class AutoSSH(emews.services.baseservice.BaseService):
         try:
             ssh_client.logout()
         except pxssh.ExceptionPxssh as ex:
-            self.logger.warning("pxssh cold not log out from server: %s", ex)
+            self.logger.warning("pxssh could not log out from server: %s", ex)

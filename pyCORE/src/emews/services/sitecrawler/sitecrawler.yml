@@ -2,30 +2,29 @@
 # YAML 1.2 compliant
 
 config:  # service configuration
-  general:
-    user_agent: 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:57.0) Gecko/20100101 Firefox/57.0'
-    invalid_link_prefixes:  # prefix list for links which we should NOT visit
-    - java
-    - none
-    start_sites: # site address to start crawling from
-    - 'https://10.0.14.10'
-    - 'https://10.0.0.11'
-    - 'https://10.0.19.10'
-    - 'https://10.0.19.11'
-    - 'https://10.0.17.10'
-    - 'https://10.0.24.10'
-    - 'https://10.0.24.11'
-    - 'https://10.0.24.12'
-    - 'https://10.0.30.10'
-    - 'https://10.0.77.10'
-    - 'https://10.0.77.11'
-    - 'https://10.0.77.12'
-    - 'https://10.0.77.13'
-    - 'https://10.0.79.10'
-    - 'https://10.0.79.11'
-    - 'https://10.0.79.12'
+  user_agent: 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:57.0) Gecko/20100101 Firefox/57.0'
+  invalid_link_prefixes:  # prefix list for links which we should NOT visit
+  - java
+  - none
+  start_sites: # site address to start crawling from
+  - 'https://10.0.14.10'
+  - 'https://10.0.0.11'
+  - 'https://10.0.19.10'
+  - 'https://10.0.19.11'
+  - 'https://10.0.17.10'
+  - 'https://10.0.24.10'
+  - 'https://10.0.24.11'
+  - 'https://10.0.24.12'
+  - 'https://10.0.30.10'
+  - 'https://10.0.77.10'
+  - 'https://10.0.77.11'
+  - 'https://10.0.77.12'
+  - 'https://10.0.77.13'
+  - 'https://10.0.79.10'
+  - 'https://10.0.79.11'
+  - 'https://10.0.79.12'
 
-requires:   # helpers which this service will use (many to one)
+helpers:   # helpers which this service will use (many to one)
   site_sampler:  # sampler used to pick the site to crawl
     helper: samplers.UniformSampler
     config:
@@ -41,7 +40,6 @@ requires:   # helpers which this service will use (many to one)
     config:  # config applied directly to the helper
       upper_bound: null
       sigma: 7.0
-    external:  # config passed to service (can be used to update helper during service run)
       sigma_next: 1.8  # std deviation of picking next link around mu (> first iteration)
   link_delay_sampler:  # sampler used to determine delay in crawling to next link
     helper: samplers.UniformSampler
@@ -49,7 +47,7 @@ requires:   # helpers which this service will use (many to one)
       lower_bound: 2  # lower bound (sec) - a_4
       upper_bound: 56  # upper bound (sec) - b_4
 
-extends:  # helpers that extend core service behavior (one to one)
+extensions:  # extend core service behavior (one to one)
   run.LoopedService:  # LoopedService decorator
     uses:  # additional classes that this decorator requires
       loop_sampler:  # unique name to describe the dependency
