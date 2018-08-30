@@ -12,7 +12,6 @@ build the appropriate service can also perform module lookup.
 Created on Mar 5, 2018
 @author: Brian Ricks
 '''
-
 from abc import abstractmethod
 from threading import Event
 
@@ -24,14 +23,39 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
     '''
     classdocs
     '''
+    __slots__ = ('_config', '_helpers', '_service_interrupt_event', '_interrupted')
+
     def __init__(self):
         '''
         Constructor
         '''
         super(BaseService, self).__init__()
 
+        self._config = None  # initialized in _post_init
+        self._helpers = None  # initialized in _post_init
         self._service_interrupt_event = Event()  # used to interrupt Event.wait() on stop()
         self._interrupted = False  # set to true on stop()
+
+    def _post_init(self, config, helpers):
+        '''
+        Injects the configuration after initialization.  Invoked by ServiceBuilder.
+        '''
+        self._config = config
+        self._helpers = helpers
+
+    @property
+    def config(self):
+        '''
+        Returns the config object.
+        '''
+        return self._config
+
+    @property
+    def helpers(self):
+        '''
+        Returns the helpers object.
+        '''
+        return self._helpers
 
     @property
     def interrupted(self):
@@ -49,14 +73,6 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
 
         self.logger.debug("Sleeping for %s seconds.", time)
         self._service_interrupt_event.wait(time)
-
-    @abstractmethod
-    def initialize(self, stage):
-        '''
-        Called after object construction.  Concrete services perform their initialization here.
-        stage refers to the current running progress of the eMews system.
-        '''
-        pass
 
     @abstractmethod
     def run_service(self):

@@ -14,25 +14,6 @@ class AutoSSH(emews.services.baseservice.BaseService):
     '''
     classdocs
     '''
-    def __init__(self, config, dependencies):
-        '''
-        Constructor
-        '''
-        super(AutoSSH, self).__init__()
-        # parameter checks
-        self._host = config.get('server', 'host')  # hostname of ssh server
-        self._port = config.get('server', 'port')  # port of ssh server
-        self._username = config.get('server', 'username')  # username for ssh login
-        self._password = config.get('server', 'password')  # password for ssh login
-        # list of commands to execute
-        self._command_list = config.get('command', 'command_list')
-        # distribution to sample command list count
-        self._num_commands = config.dependencies.get('num_commands_sampler')
-        # distribution to sample list indices
-        self._next_command = config.dependencies.get('command_sampler')
-        # distribution to sample delay to execute next command
-        self._next_command_delay = config.dependencies.get('command_delay_sampler')
-
     def initialize(self, stage):
         '''
         @Override stage-specific initialization
@@ -76,28 +57,31 @@ class AutoSSH(emews.services.baseservice.BaseService):
             return
 
         try:
-            ssh_client.login(self._host, self._username, password=self._password, port=self._port)
+            ssh_client.login(self.config.host,
+                             self.config.username,
+                             password=self.config.password,
+                             port=self.config.port)
         except pxssh.ExceptionPxssh as ex:
             self.logger.warning("pxssh could not login to server: %s", ex)
             raise
 
         # As we are sampling without replacement, we need to copy the original list
-        command_list = list(self._command_list)
+        command_list = list(self.config.command_list)
 
         # loop until command count reached
-        num_commands = self._num_commands.next_value
+        num_commands = self.helpers.num_commands_sampler.sample()
         for _ in range(num_commands):
             if self.interrupted:
                 break
 
-            self._next_command.update_parameters(upper_bound=len(command_list) - 1)
-            next_command = command_list.pop(self._next_command.next_value)
+            self.helpers.command_sampler.update_parameters(upper_bound=len(command_list) - 1)
+            next_command = command_list.pop(self.helpers.command_sampler.sample())
             self.logger.debug("Next Command: %s", next_command)
 
             if not self._send_ssh_command(ssh_client, next_command):
                 return
 
-            self.sleep(self._next_command_delay.next_value)
+            self.sleep(self.helpers.command_delay_sampler.sample())
 
         self.logger.debug("Done executing commands, logging out...")
 

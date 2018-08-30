@@ -7,7 +7,7 @@ Created on Mar 30, 2018
 
 @author: Brian Ricks
 '''
-from abc import ABCMeta, abstractmethod, abstractproperty
+import abc
 
 import emews.base.irunnable
 
@@ -15,32 +15,40 @@ class IService(emews.base.irunnable.IRunnable):
     '''
     classdocs
     '''
-    __metaclass__ = ABCMeta
+    __slots__ = ()
 
-    @abstractproperty
+    @abc.abstractproperty
+    def config(self):
+        '''
+        Returns the config object.
+        '''
+        pass
+
+    @abc.abstractproperty
+    def helpers(self):
+        '''
+        Returns the helpers object.
+        '''
+        pass
+
+    @abc.abstractproperty
     def interrupted(self):
         '''
         Returns true if the service has been interrupted (requested to stop)
         '''
         pass
 
-    @abstractmethod
+    @abc.abstractmethod
+    def initialize(self, stage):
+        '''
+        Called after object construction.  Concrete services perform their initialization here.
+        stage refers to the current running progress of the eMews system.
+        '''
+        pass
+
+    @abc.abstractmethod
     def sleep(self, time):
         '''
         Provides an interruptable method for sleeping.
-        '''
-        pass
-
-    @abstractmethod
-    def start(self):
-        '''
-        Starts the service.
-        '''
-        pass
-
-    @abstractmethod
-    def stop(self):
-        '''
-        Gracefully exit service.
         '''
         pass

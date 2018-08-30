@@ -6,38 +6,36 @@ Created on Apr 9, 2018
 
 @author: Brian Ricks
 '''
-import emews.base.config
 
 class BaseObject(object):
     '''
     classdocs
     '''
-    def __init__(self):
-        '''
-        Constructor
-        '''
-        # Object properties
-        self._logger = emews.base.config.get_system_property('logger')
+    # We deny the creation of the instance __dict__ by default to save memory, as it is expected
+    # that many instances of certain child classes (samplers for example) will be created for a
+    # single eMews daemon instance, and most eMews child classes inherit BaseObject (which in
+    # itself means we need __slots__ defined here).
+    # Any child classes in which a __dict__ is preferable can simply omit the __slots__ declaration
+    # in its own class definition.
+    __slots__ = ()
 
-        # check if system properties have been updated more than expected
-        if emews.base.config.get_system_property('update') > emews.base.config.EXPECTED_UPDATES:
-            self._logger.error("System Properties have been updated unexpectedly!")
-
-        self._node_name = emews.base.config.get_system_property('node_name')
+    # This is set during eMews system init, once the system properties are known, and BEFORE any
+    # BaseObject instances are instantiated
+    _SYSTEM_OPTIONS = None
 
     '''
-    Object properties
+    Object properties (convenience methods)
     '''
     @property
     def logger(self):
         '''
         Returns the logger object.
         '''
-        return self._logger
+        return self._SYSTEM_OPTIONS.logger
 
     @property
     def node_name(self):
         '''
         Returns the node name.
         '''
-        return self._node_name
+        return self._SYSTEM_OPTIONS.node_name

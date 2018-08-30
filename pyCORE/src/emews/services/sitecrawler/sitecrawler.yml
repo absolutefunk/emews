@@ -24,41 +24,36 @@ config:  # service configuration
     - 'https://10.0.79.10'
     - 'https://10.0.79.11'
     - 'https://10.0.79.12'
-  link_sampler:  # parameters for the link_sampler
-    sigma_next: 1.8  # std deviation of picking next link around mu (> first iteration)
 
-dependencies:  # additional classes that this service requires
+requires:   # helpers which this service will use (many to one)
   site_sampler:  # sampler used to pick the site to crawl
-    class: UniformSampler
-    module: emews.samplers.uniformsampler
-    parameters:
+    helper: samplers.UniformSampler
+    config:
       lower_bound: 0  # index 0
       upper_bound: 15  # should match the list size of start_sites -1 (index starts at zero)
   num_links_sampler:  # sampler used to pick the number of links to crawl.  Dependent on first link
-    class: TruncnormSampler
-    module: emews.samplers.truncnormsampler
-    parameters:
+    helper: samplers.TruncnormSampler
+    config:
       upper_bound: null
       sigma: 5.0
   link_sampler:  # sampler used to pick the next link in a crawl
-    class: TruncnormSampler
-    module: emews.samplers.truncnormsampler
-    parameters:
+    helper: samplers.TruncnormSampler
+    config:  # config applied directly to the helper
       upper_bound: null
       sigma: 7.0
+    external:  # config passed to service (can be used to update helper during service run)
+      sigma_next: 1.8  # std deviation of picking next link around mu (> first iteration)
   link_delay_sampler:  # sampler used to determine delay in crawling to next link
-    class: UniformSampler
-    module: emews.samplers.uniformsampler
-    parameters:
+    helper: samplers.UniformSampler
+    config:
       lower_bound: 2  # lower bound (sec) - a_4
       upper_bound: 56  # upper bound (sec) - b_4
 
-decorators:  # any decorators required need to be defined here
-  LoopedService:  # LoopedService decorator
-    dependencies:  # additional classes that this decorator requires
-      loop_sampler: # unique name to describe the dependency
-        class: UniformSampler  # distribution to sample service loop start time from
-        module: emews.samplers.uniformsampler
-        parameters:
+extends:  # helpers that extend core service behavior (one to one)
+  run.LoopedService:  # LoopedService decorator
+    uses:  # additional classes that this decorator requires
+      loop_sampler:  # unique name to describe the dependency
+        helper: samplers.UniformSampler
+        config:
           lower_bound: 8  # lower bound (sec) - a_3
           upper_bound: 180  # upper bound (sec) - b_3

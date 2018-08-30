@@ -7,22 +7,25 @@ method as part of this contract.
 Created on Apr 11, 2018
 @author: Brian Ricks
 '''
-from abc import ABCMeta, abstractmethod
+import abc
 
-class IRunnable(object):
+# Python 2.7 does not contain __slots__ in the ABCMeta class definition, which we need.
+ABC = abc.ABCMeta('ABC', (object,), {'__slots__': ()})
+
+class IRunnable(ABC):
     '''
     classdocs
     '''
-    __metaclass__ = ABCMeta
+    __slots__ = ()
 
-    @abstractmethod
+    @abc.abstractmethod
     def stop(self):
         '''
         Called to signal that the implementing class needs to gracefully exit all tasks.
         '''
         pass
 
-    @abstractmethod
+    @abc.abstractmethod
     def start(self):
         '''
         Called to start execution of implementing task.
