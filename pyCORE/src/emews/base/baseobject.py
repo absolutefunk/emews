@@ -21,7 +21,7 @@ class BaseObject(object):
 
     # This is set during eMews system init, once the system properties are known, and BEFORE any
     # BaseObject instances are instantiated
-    _SYSTEM_OPTIONS = None
+    _SYSTEM_PROPERTIES = None
 
     '''
     Object properties (convenience methods)
@@ -31,11 +31,11 @@ class BaseObject(object):
         '''
         Returns the logger object.
         '''
-        return self._SYSTEM_OPTIONS.logger
+        return self._SYSTEM_PROPERTIES.logger
 
     @property
-    def node_name(self):
+    def system(self):
         '''
-        Returns the node name.
+        Returns the system properties.
         '''
-        return self._SYSTEM_OPTIONS.node_name
+        return self._SYSTEM_PROPERTIES
