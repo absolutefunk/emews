@@ -49,7 +49,7 @@ helpers:   # helpers which this service will use (many to one)
 
 extensions:  # extend core service behavior (one to one)
   run.LoopedService:  # LoopedService decorator
-    uses:  # additional classes that this decorator requires
+    helpers:  # additional classes that this decorator requires
       loop_sampler:  # unique name to describe the dependency
         helper: samplers.UniformSampler
         config:

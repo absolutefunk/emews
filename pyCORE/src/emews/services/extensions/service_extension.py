@@ -21,21 +21,18 @@ class ServiceExtension(emews.base.baseobject.BaseObject, emews.services.iservice
 
     def __init__(self):
         '''
-        config: decorator config
-        recipient_service: previous decorator in the chain (or service if root of chain)
+        Constructor
         '''
         # self._config and self._helpers are injected by the metaclass before __init__ is invoked
         super(ServiceExtension, self).__init__()
-
-        self._recipient_service = None  # set during _post_init
+        # TODO: evaluate performance for services with many extensions. Large function call chains
+        # may cause significant slowdown.
+        self._recipient_service = None  # injected after instantiation
 
     def _post_init(self, recipient_service):
         '''
-        Dependency injection for setting recipient service (either the base service or another
-        decorator in a chain). Invoked by ServiceBuilder.
+        Post init injector for the recipient service.
         '''
-        # pre-_init dependency injection is not needed here as the recipient service is instantiated
-        # first.
         self._recipient_service = recipient_service
 
     @property

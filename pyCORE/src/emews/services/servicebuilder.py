@@ -8,7 +8,6 @@ import os
 
 import emews.base.baseobject
 import emews.base.config
-from emews.base.exceptions import KeychainException
 import emews.base.importclass
 
 class ServiceBuilder(emews.base.baseobject.BaseObject):
@@ -110,7 +109,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         '''
         builds the service
         '''
-        base_service_config = self.__process_config(self._service_config)
+        base_service_config = self._process_config(self._service_config)
         try:
             service_instantiation = self._service_class(base_service_config)
         except StandardError:
@@ -126,33 +125,44 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         # regards to decorators needs to follow a specific ordering:
         # ['decorators'] --> [<DecoratorClass>] --> (config dict/list/etc for DecoratorClass)
         # If no config_path for the service was given, then this section is skipped.
-        if self._service_config is not None and 'decorators' in self._service_config:
-            for decorator_name, decorator_config in self._service_config['decorators'].iteritems():
+        if self._service_config is not None and 'extensions' in self._service_config:
+            for decorator_name, decorator_config in self._service_config['extensions'].iteritems():
                 if self._is_interrupted:
                     return None
 
-                base_decorator_config = self.__process_config(decorator_config)
-
-                self.logger.debug("Resolving decorator '%s' for %s.", decorator_name, service_name)
+                self.logger.debug("Resolving extension '%s' for %s.", decorator_name, service_name)
                 try:
-                    current_instantiation = emews.base.importclass.import_class(
-                        decorator_name, 'emews.services.decorators')(
-                            base_decorator_config)
-                except KeychainException as ex:
-                    self.logger.error("[%s] In config: %s", decorator_name, ex)
+                    # TODO: turn this module resolving and class import code into a method, as
+                    # self._instantiate_dependencies() also uses it.
+                    type_and_class = decorator_name.split('.')
+                    module_name = 'emews.services.extensions.' + \
+                                  '.'.join(type_and_class[:-1]) + \
+                                  '.' + type_and_class[-1].lower()
+                    class_name = type_and_class[-1]
+                except KeyError as ex:
+                    self.logger.error("Required key missing from configuration for helper '%s': %s",
+                                      decorator_name, ex)
                     raise
+
+                base_decorator_config = self._process_config(decorator_config)
+
+                try:
+                    # TODO: maybe instantiate class outside this block, and catch other
+                    # exceptions related to instantiation?
+                    current_instantiation = emews.base.importclass.import_class(
+                        module_name, class_name)(base_decorator_config)
                 except ImportError as ex:
                     self.logger.error("Module '%s' could not be resolved into a module: %s",
                                       decorator_name.lower(), ex)
                     raise
                 except AttributeError as ex:
-                    self.logger.error("Decorator '%s' could not be resolved into a class: %s",
+                    self.logger.error("Extension '%s' could not be resolved into a class: %s",
                                       decorator_name, ex)
                     raise
 
                 # inject previous instantiation into the current one (decorator chaining)
                 current_instantiation._post_init(prev_instantiation)  # pylint: disable=W0212
-                self.logger.debug("Decorator '%s' applied to %s.", decorator_name, service_name)
+                self.logger.debug("Extension '%s' applied to %s.", decorator_name, service_name)
                 prev_instantiation = current_instantiation
 
         return current_instantiation
@@ -164,16 +174,15 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         '''
         dependency_instantiation_dict = dict()
         for dep_name, dependency in config.iteritems():
-            self.logger.debug("Resolving dependency '%s'.", dep_name)
+            self.logger.debug("Resolving helper '%s'.", dep_name)
             try:
                 type_and_class = dependency['helper'].split('.')
                 module_name = 'emews.helpers.' + \
                               '.'.join(type_and_class[:-1]) + \
                               '.' + type_and_class[-1].lower()
                 class_name = type_and_class[-1]
-
             except KeyError as ex:
-                self.logger.error("Required key missing from configuration for dependency '%s': %s",
+                self.logger.error("Required key missing from configuration for helper '%s': %s",
                                   dep_name, ex)
                 raise
 
@@ -181,7 +190,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
             b_instantiate = True
             if 'instantiate' in dependency:
                 if not isinstance(dependency['instantiate'], bool):
-                    self.logger.error("In dependency '%s': Key 'instantiate' must have a "\
+                    self.logger.error("In helper '%s': Key 'instantiate' must have a "\
                                       "boolean value (given value: %s).",
                                       dep_name, dependency['instantiate'])
                     raise ValueError(
@@ -194,17 +203,17 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
                 class_object = emews.base.importclass.import_class_from_module(
                     module_name, class_name)
             except ImportError as ex:
-                self.logger.error("Could not import dependency '%s': %s",
+                self.logger.error("Could not import helper '%s': %s",
                                   dep_name, ex)
                 raise
 
             # Currently dependencies are not allowed to have dependencies.
             if 'config' in dependency:
                 dep_config = dependency['config']
-                self.logger.debug("Found config information for '%s'.", dep_name)
+                self.logger.debug("Found config information for helper '%s'.", dep_name)
             else:
                 dep_config = {}
-                self.logger.debug("No config information found for '%s'.", dep_name)
+                self.logger.debug("No config information found for helper '%s'.", dep_name)
 
             emews.base.config.Config(dep_config)
 
@@ -213,9 +222,9 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
                     dependency_instantiation_dict[dep_name] = class_object(
                         _inject={'config': dep_config})
                 except AttributeError as ex:
-                    self.logger.error("Dependency '%s' could not be instantiated: %s", dep_name, ex)
+                    self.logger.error("Helper '%s' could not be instantiated: %s", dep_name, ex)
                     raise
-                self.logger.debug("Dependency '%s' instantiated.", dep_name)
+                self.logger.debug("Helper '%s' instantiated.", dep_name)
             else:
                 # instantiation not requested
                 # DelayedInstantiation is callable.  self.helpers.<dep_name>.instantiate() to
@@ -223,7 +232,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
                 dependency_instantiation_dict[dep_name] = \
                     {'instantiate': \
                         emews.base.config.DelayedInstantiation(class_object, dep_config)}
-                self.logger.debug("Dependency '%s' requested not to instantiate.", dep_name)
+                self.logger.debug("Helper '%s' requested not to instantiate.", dep_name)
 
         return dependency_instantiation_dict
 

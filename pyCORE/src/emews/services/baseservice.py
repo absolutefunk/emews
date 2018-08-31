@@ -6,7 +6,7 @@ Also instantiating decorators would be awkward if the base decorator had to call
 contructor.
 
 Services must be in their own module, with the service name the same as the module name (service
-name can use upper camelCase - ServiceName for example).  This is so the string name passed to
+name can use upper CamelCase - ServiceName for example).  This is so the string name passed to
 build the appropriate service can also perform module lookup.
 
 Created on Mar 5, 2018

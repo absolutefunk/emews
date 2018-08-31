@@ -43,7 +43,7 @@ helpers:  # helpers which this service will use (many to one)
 extensions:  # decorators that extend core service behavior (one to one)
   run.NoRaiseService: {} # Keeps other decorators active if service raises exception
   run.LoopedService:  # LoopedService decorator
-    helper:  # additional classes that this decorator requires
+    helpers:  # additional classes that this decorator requires
       loop_sampler: # unique name to describe the dependency
         helper: samplers.UniformSampler
         config:
