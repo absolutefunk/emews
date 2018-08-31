@@ -47,6 +47,10 @@ class InjectionMeta(type):
                 # optional keys
                 if 'helpers' in inject_dict:
                     self._helpers = inject_dict['helpers']  # pylint: disable=W0212
+                if 'extra' in inject_dict:
+                    # these are class-specific attributes, could be anything
+                    for attr_name, attr_value in inject_dict['extra']:
+                        setattr(self, attr_name, attr_value)
 
             subcls_init(self, *args, **kwargs)
         setattr(new_cls, '__init__', __init__)  # replace subclass init with this one
