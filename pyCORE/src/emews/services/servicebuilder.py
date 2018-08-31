@@ -166,8 +166,12 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         for dep_name, dependency in config.iteritems():
             self.logger.debug("Resolving dependency '%s'.", dep_name)
             try:
-                class_name = dependency['class']
-                class_path = dependency['module']
+                type_and_class = dependency['helper'].split('.')
+                module_name = 'emews.helpers.' + \
+                              '.'.join(type_and_class[:-1]) + \
+                              '.' + type_and_class[-1].lower()
+                class_name = type_and_class[-1]
+
             except KeyError as ex:
                 self.logger.error("Required key missing from configuration for dependency '%s': %s",
                                   dep_name, ex)
@@ -188,33 +192,37 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
 
             try:
                 class_object = emews.base.importclass.import_class_from_module(
-                    class_name, class_path)
+                    module_name, class_name)
             except ImportError as ex:
                 self.logger.error("Could not import dependency '%s': %s",
                                   dep_name, ex)
                 raise
 
             # Currently dependencies are not allowed to have dependencies.
-            dep_config = dict()
             if 'config' in dependency:
-                dep_config['config'] = dependency['config']
+                dep_config = dependency['config']
                 self.logger.debug("Found config information for '%s'.", dep_name)
             else:
-                dep_config['config'] = {}
+                dep_config = {}
                 self.logger.debug("No config information found for '%s'.", dep_name)
+
+            emews.base.config.Config(dep_config)
 
             if b_instantiate:
                 try:
-                    # because dependency configs only have a 'config' section, we use BaseConfig
                     dependency_instantiation_dict[dep_name] = class_object(
-                        emews.base.config.BaseConfig(dep_config))
+                        _inject={'config': dep_config})
                 except AttributeError as ex:
                     self.logger.error("Dependency '%s' could not be instantiated: %s", dep_name, ex)
                     raise
                 self.logger.debug("Dependency '%s' instantiated.", dep_name)
             else:
                 # instantiation not requested
-                dependency_instantiation_dict[dep_name] = class_object
+                # DelayedInstantiation is callable.  self.helpers.<dep_name>.instantiate() to
+                # instantiate.
+                dependency_instantiation_dict[dep_name] = \
+                    {'instantiate': \
+                        emews.base.config.DelayedInstantiation(class_object, dep_config)}
                 self.logger.debug("Dependency '%s' requested not to instantiate.", dep_name)
 
         return dependency_instantiation_dict
@@ -225,10 +233,10 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         '''
         base_service_config = dict()
         base_service_config['config'] = {} if config is None else config.get('config', {})
-        if config is not None and 'dependencies' in config:
-            base_service_config['dependencies'] = self._instantiate_dependencies(
-                self.config['dependencies'])
+        if config is not None and 'helpers' in config:
+            base_service_config['helpers'] = self._instantiate_dependencies(
+                self.config['helpers'])
         else:
-            base_service_config['dependencies'] = {}
+            base_service_config['helpers'] = {}
 
-        return emews.base.config.ServiceConfig(base_service_config)
+        return emews.base.config.Config(base_service_config)

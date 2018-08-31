@@ -8,18 +8,12 @@ exception (this decorator will still catch the exeception).
 Created on May 21, 2018
 @author: Brian Ricks
 '''
-from emews.services.decorators.servicedecorator import ServiceDecorator
+import emews.services.extensions.service_extension
 
-class NoRaiseService(ServiceDecorator):
+class NoRaiseService(emews.services.extensions.service_extension.ServiceExtension):
     '''
     classdocs
     '''
-    def __init__(self, config):
-        '''
-        Constructor
-        '''
-        super(NoRaiseService, self).__init__()
-
     def start(self):
         '''
         @Override Starts the service, with additional code to handle uncaught exceptions.

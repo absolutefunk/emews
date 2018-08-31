@@ -6,20 +6,12 @@ but that its behavior needs to be looped for the service duration to be infinite
 Created on Mar 5, 2018
 @author: Brian Ricks
 '''
-from emews.services.decorators.servicedecorator import ServiceDecorator
+import emews.services.extensions.service_extension
 
-class LoopedService(ServiceDecorator):
+class LoopedService(emews.services.extensions.service_extension.ServiceExtension):
     '''
     classdocs
     '''
-    def __init__(self, config):
-        '''
-        Constructor
-        '''
-        super(LoopedService, self).__init__()
-
-        self._sampler = config.dependencies.get('loop_sampler')
-
     def start(self):
         '''
         @Override Starts the service, with additional code for the looping.
@@ -31,7 +23,7 @@ class LoopedService(ServiceDecorator):
         Runs the service in a loop based on the sampler
         '''
         while True:
-            self.sleep(self._sampler.next_value)
+            self.sleep(self.helpers.loop_sampler.sample())
 
             if self.interrupted:
                 '''

@@ -23,25 +23,22 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
     '''
     classdocs
     '''
+    # config dependency injection pre-__init__
+    # derive new type to get around meta conflict between the injector and ABCMeta
+    __metaclass__ = type(
+        'BaseServiceMeta',
+        (type(emews.services.iservice.IService), emews.base.config.InjectionMeta), {})
     __slots__ = ('_config', '_helpers', '_service_interrupt_event', '_interrupted')
 
     def __init__(self):
         '''
         Constructor
         '''
+        # self._config and self._helpers are injected by the metaclass before __init__ is invoked
         super(BaseService, self).__init__()
 
-        self._config = None  # initialized in _post_init
-        self._helpers = None  # initialized in _post_init
         self._service_interrupt_event = Event()  # used to interrupt Event.wait() on stop()
         self._interrupted = False  # set to true on stop()
-
-    def _post_init(self, config, helpers):
-        '''
-        Injects the configuration after initialization.  Invoked by ServiceBuilder.
-        '''
-        self._config = config
-        self._helpers = helpers
 
     @property
     def config(self):
