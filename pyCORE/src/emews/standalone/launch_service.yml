@@ -1,0 +1,7 @@
+# Configuration file for the single service standalone launcher
+# Is treated as the node-level config file, so has highest precedence.
+# YAML 1.2 compliant
+
+logging:  # logging configuration
+  logger: emews.base  # send log messages to stdout
+  message_level: DEBUG  # log messages of this level and above

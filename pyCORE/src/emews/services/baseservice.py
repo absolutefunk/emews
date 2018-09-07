@@ -28,7 +28,7 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
     __metaclass__ = type(
         'BaseServiceMeta',
         (type(emews.services.iservice.IService), emews.base.config.InjectionMeta), {})
-    __slots__ = ('_config', '_helpers', '_service_interrupt_event', '_interrupted')
+    __slots__ = ('_di_config', '_di_helpers', '_service_interrupt_event', '_interrupted')
 
     def __init__(self):
         '''
@@ -45,14 +45,14 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
         '''
         Returns the config object.
         '''
-        return self._config
+        return self._di_config
 
     @property
     def helpers(self):
         '''
         Returns the helpers object.
         '''
-        return self._helpers
+        return self._di_helpers
 
     @property
     def interrupted(self):

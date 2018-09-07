@@ -5,6 +5,8 @@ Created on Apr 3, 2018
 
 @author: Brian Ricks
 '''
+import os
+
 from ruamel.yaml import YAML
 
 def parse(filename):
@@ -14,7 +16,7 @@ def parse(filename):
     if filename is None:
         return None
 
-    f = open(filename)
+    f = open(os.path.join("..", filename))
 
     yaml = YAML()
     dct = yaml.load(f)
@@ -37,16 +39,16 @@ class InjectionMeta(type):
             the original subclass __init__ is called.  This way the configuration is available
             without the dev having to explicitly handle a config object on __init__.
             '''
-            # As a subclass could pass their own '_inject' k/v, we not only check for the key,
+            # As a derived class could pass their own '_inject' k/v, we not only check for the key,
             # but whether the _config attribute exists already.
-            if '_inject' in kwargs and not hasattr(self, '_config'):
-                # pop the key so the subclass doesn't get it through **kwargs
+            if '_inject' in kwargs and not hasattr(self, '_di_config'):
+                # pop the key so the class doesn't get it through **kwargs
                 inject_dict = kwargs.pop('_inject')
                 # 'config' is a required key
-                self._config = inject_dict['config']  # pylint: disable=W0212
+                self._di_config = inject_dict['config']  # pylint: disable=W0212
                 # optional keys
                 if 'helpers' in inject_dict:
-                    self._helpers = inject_dict['helpers']  # pylint: disable=W0212
+                    self._di_helpers = inject_dict['helpers']  # pylint: disable=W0212
                 if 'extra' in inject_dict:
                     # these are class-specific attributes, could be anything
                     for attr_name, attr_value in inject_dict['extra']:

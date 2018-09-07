@@ -9,11 +9,10 @@ Created on Apr 11, 2018
 '''
 import argparse
 import signal
-import os
 
 import emews.base.config
+import emews.base.system_init
 import emews.services.servicebuilder
-import emews.version
 
 def main():
     '''
@@ -49,28 +48,23 @@ def main():
     signal.signal(signal.SIGHUP, shutdown_signal_handler)
     signal.signal(signal.SIGINT, shutdown_signal_handler)
 
-    sys_config_path = os.path.join(os.path.dirname(emews.version.__file__), "system.yml")\
-                                   if args.sys_config is None else args.sys_config
-    service_config_path = args.service_config  # if this is none, default will be attempted
-
     print "emews standalone service launcher"
-    print "  Using system config path: " + sys_config_path
-    if service_config_path is not None:
-        print "  Using service config path: " + service_config_path
+    print "  Using system config path: " + args.sys_config
+    if args.service_config is not None:
+        print "  Using service config path: " + args.service_config
     else:
         print "  Using service config path: <none>"
 
-    # setup logging
-    sys_config = emews.base.config.Config('standalone', sys_config_path)
+    # use 'launch_service.yml' as the node service config file
+    args.__dict__['node_config'] = 'standalone/launch_service.yml'
 
-    if sys_config.get_sys('logging', 'main_logger') == 'emews.distributed':
-        print "emews standalone service launcher does not support distributed logging"
-        return
+    # init system
+    emews.base.system_init.system_init(args, is_daemon=False)
 
     #configure service
-    service_builder = emews.services.servicebuilder.ServiceBuilder(sys_config)
+    service_builder = emews.services.servicebuilder.ServiceBuilder()
     service_builder.service(args.service)
-    service_builder.config_path(service_config_path)
+    service_builder.config_path(args.service_config)
     service_instance = service_builder.result
 
     service_instance.logger.info("Starting service '%s'.", service_instance.__class__.__name__)

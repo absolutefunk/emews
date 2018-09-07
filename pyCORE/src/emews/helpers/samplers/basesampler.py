@@ -15,14 +15,14 @@ class BaseSampler(emews.base.baseobject.BaseObject):
     classdocs
     '''
     __metaclass_ = emews.base.config.InjectionMeta
-    __slots__ = ('_config',)
+    __slots__ = ('_di_config',)
 
     @property
     def config(self):
         '''
         Returns the config object.
         '''
-        return self._config
+        return self._di_config
 
     @abstractmethod
     def sample(self):

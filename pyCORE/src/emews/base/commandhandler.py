@@ -53,7 +53,7 @@ class CommandHandler(emews.base.baseobject.BaseObject):
         Attempts to create a Service from the service_str.  If a config_path for the service is
         given, then use that for service configuration.
         '''
-        service_builder = ServiceBuilder(self.config)
+        service_builder = ServiceBuilder()
         service_builder.service(service_str)
         service_builder.config_path(service_config_path)
         service_instance = service_builder.result

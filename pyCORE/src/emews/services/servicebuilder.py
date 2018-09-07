@@ -131,7 +131,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
                 base_decorator_config = self._process_config(decorator_config)
                 # recipient_service is an extra attribute to define on extension construction
                 base_decorator_config['extra'] = {}
-                base_decorator_config['extra']['_recipient_service'] = prev_instantiation
+                base_decorator_config['extra']['_di_recipient_service'] = prev_instantiation
 
                 module_name, class_name = self._get_path_and_class(
                     'emews.services.extensions', decorator_name)

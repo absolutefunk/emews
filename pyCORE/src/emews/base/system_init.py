@@ -6,7 +6,6 @@ Created on June 9, 2018
 @author: Brian Ricks
 '''
 import logging
-import os
 import socket
 
 import emews.base.baseobject
@@ -14,15 +13,16 @@ import emews.base.config
 import emews.base.importclass
 import emews.base.system_manager
 
-def system_init(args):
+def system_init(args, is_daemon=True):
     '''
-    Inits the eMews daemon.
+    Inits configuration and base system properties.  If the eMews daemon is launching, then start
+    the SystemManager, otherwise return.
     '''
     # first thing we need to do is parse the configs
     # base system conf (non-user config - system-wide)
     base_config = emews.base.config.parse("conf.yml")  # conf.yml in same directory as this
     # system conf (user config - system-)
-    system_config = emews.base.config.parse(os.path.join("..", "system.yml")) \
+    system_config = emews.base.config.parse('system.yml') \
         if args.sys_config is None else emews.base.config.parse(args.sys_config)
     # node conf (user config - per node)
     node_config = emews.base.config.parse(args.node_config)
@@ -51,6 +51,9 @@ def system_init(args):
         ['logger', 'node_name'])([logger, node_name])
     # update the BaseObject class var
     emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES = system_properties  # pylint: disable=W0212
+
+    if not is_daemon:
+        return config_start_dict
 
     return emews.base.system_manager.SystemManager(config_start_dict)
 

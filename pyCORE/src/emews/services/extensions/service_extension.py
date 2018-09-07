@@ -17,7 +17,7 @@ class ServiceExtension(emews.base.baseobject.BaseObject, emews.services.iservice
     __metaclass__ = type(
         'ServiceExtensionMeta',
         (type(emews.services.iservice.IService), emews.base.config.InjectionMeta), {})
-    __slots__ = ('_config', '_helpers', '_recipient_service', '_ph')
+    __slots__ = ('_di_config', '_di_helpers', '_di_recipient_service', '_ph')
 
     def __init__(self):
         '''
@@ -40,14 +40,14 @@ class ServiceExtension(emews.base.baseobject.BaseObject, emews.services.iservice
         '''
         Returns the config object.
         '''
-        return self._config
+        return self._di_config
 
     @property
     def helpers(self):
         '''
         Returns the helpers object.
         '''
-        return self._helpers
+        return self._di_helpers
 
     @property
     def interrupted(self):
@@ -55,22 +55,22 @@ class ServiceExtension(emews.base.baseobject.BaseObject, emews.services.iservice
         @Override Returns true if the service has been interrupted (requested to stop).
         Use implementaton from recipient_service.
         '''
-        return self._recipient_service.interrupted
+        return self._di_recipient_service.interrupted
 
     def sleep(self, time):
         '''
         @Override calls the sleep implementaton of recipient_service.
         '''
-        self._recipient_service.sleep(time)
+        self._di_recipient_service.sleep(time)
 
     def start(self):
         '''
         @Override Starts the service.
         '''
-        self._recipient_service.start()
+        self._di_recipient_service.start()
 
     def stop(self):
         '''
         @Override Gracefully exit service
         '''
-        self._recipient_service.stop()
+        self._di_recipient_service.stop()
