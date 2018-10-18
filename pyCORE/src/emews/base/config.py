@@ -4,8 +4,6 @@ Configuration related module.
 Created on Apr 3, 2018
 @author: Brian Ricks
 """
-import os
-
 from ruamel.yaml import YAML
 
 
@@ -14,7 +12,7 @@ def parse(filename):
     if filename is None:
         return None
 
-    f = open(os.path.join("..", filename))
+    f = open(filename)
 
     yaml = YAML()
     dct = yaml.load(f)

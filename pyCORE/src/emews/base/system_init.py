@@ -8,6 +8,7 @@ Created on June 9, 2018
 @author: Brian Ricks
 """
 import logging
+import os
 import socket
 
 import emews.base.baseobject
@@ -24,10 +25,10 @@ def system_init(args, is_daemon=True):
     """
     # first thing we need to do is parse the configs
     # base system conf (non-user config - system-wide)
-    base_config = emews.base.config.parse("conf.yml")  # conf.yml in same directory as this
+    base_config = emews.base.config.parse('conf.yml')  # conf.yml in same directory as this
     # system conf (user config - system-)
-    system_config = emews.base.config.parse('system.yml') \
-        if args.sys_config is None else emews.base.config.parse(args.sys_config)
+    system_config = emews.base.config.parse(os.path.join('..', 'system.yml')) \
+        if args.sys_config is None else emews.base.config.parse(os.path.join('..', args.sys_config))
     # node conf (user config - per node)
     node_config = emews.base.config.parse(args.node_config)
 
