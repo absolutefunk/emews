@@ -1,10 +1,12 @@
-'''
-Handles initial system initialization tasks, such as config and logging setup.
-Launches the system manager.
+"""
+eMews basic system initialization.
+
+Handles initial system initialization tasks, such as config and logging setup, and launches the
+system manager.
 
 Created on June 9, 2018
 @author: Brian Ricks
-'''
+"""
 import logging
 import socket
 
@@ -13,11 +15,13 @@ import emews.base.config
 import emews.base.importclass
 import emews.base.system_manager
 
+
 def system_init(args, is_daemon=True):
-    '''
-    Inits configuration and base system properties.  If the eMews daemon is launching, then start
-    the SystemManager, otherwise return.
-    '''
+    """
+    Init configuration and base system properties.
+
+    If the eMews daemon is launching, then start the SystemManager, otherwise return.
+    """
     # first thing we need to do is parse the configs
     # base system conf (non-user config - system-wide)
     base_config = emews.base.config.parse("conf.yml")  # conf.yml in same directory as this
@@ -57,10 +61,9 @@ def system_init(args, is_daemon=True):
 
     return emews.base.system_manager.SystemManager(config_start_dict)
 
+
 def _get_node_name(config, arg_name):
-    '''
-    Determines the node name.
-    '''
+    """Determine the node name."""
     # command line arg (top precedence)
     if arg_name is not None:
         return arg_name
@@ -73,10 +76,9 @@ def _get_node_name(config, arg_name):
     # default: use host name
     return socket.gethostname()
 
+
 def _init_base_logger(log_config):
-    '''
-    Sets up the logger.
-    '''
+    """Set up the logger."""
     logger_type = log_config['logger']
     message_level = log_config['message_level']
 
@@ -86,8 +88,8 @@ def _init_base_logger(log_config):
 
     for handler_class_path in log_config['log_types'][logger_type]['handlers']:
         handler_class = emews.base.importclass.import_class_from_module(handler_class_path)
-        #TODO: Verify handler_options in system.yml to make sure invalid handler options and options
-        # which shouldn't be overridden are not processed (ie, throw exception or something).
+        # TODO: Verify handler_options in system.yml to make sure invalid handler options and
+        # options which shouldn't be overridden are not processed (ie, throw exception or something)
         handler_options = dict()
         handler_options.update(log_config['log_handlers'][handler_class_path])
         handler_options.update(log_config.get('logger_parameters', {}))
@@ -100,12 +102,14 @@ def _init_base_logger(log_config):
 
     return logger
 
+
 def _merge_configs(base_config, system_config, node_config, merge_type):
-    '''
-    Merges the input config files by key, in order of precedence (base config- if in 'include'
-    section, system config, node config).
-    Values in node config could override values in system config.
-    '''
+    """
+    Merge the input config files by key, in order of precedence.
+
+    Precedence order: base config (if in 'include' section), system config, node config.
+    For example, values in node config could override values in system config.
+    """
     # start with merged sections from base_config
     merged_conf = dict()
 

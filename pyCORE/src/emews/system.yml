@@ -1,7 +1,7 @@
 # Global configuration for the eMews system.  It is assumed that all nodes share this configuration
-# file.  To override or add configuration options, use a node configuration file.  For environments
-# in which each node has its own copy of eMews, the node configuration file is not needed, as this
-# file would be unique to each node, instead of global.
+# file.  To override or add configuration options on a per-node level, use a node configuration file.
+# For environments in which each node has its own copy of eMews, the node configuration file is not
+# needed, as this file would be unique to each node.
 # YAML 1.2 compliant
 general:  # general eMews daemon options
   # Delay (seconds) to start services from eMews daemon invocation.

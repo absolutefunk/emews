@@ -1,9 +1,9 @@
-'''
+"""
 Manages the eMews daemon execution.
 
 Created on June 8, 2018
 @author: Brian Ricks
-'''
+"""
 import signal
 
 import emews.base.baseobject
@@ -12,14 +12,12 @@ import emews.base.exceptions
 import emews.base.thread_dispatcher
 import emews.services.servicebuilder
 
+
 class SystemManager(emews.base.baseobject.BaseObject):
-    '''
-    classdocs
-    '''
+    """Classdocs."""
+
     def __init__(self, config):
-        '''
-        Constructor
-        '''
+        """Constructor."""
         super(SystemManager, self).__init__()
 
         # register signals
@@ -31,9 +29,7 @@ class SystemManager(emews.base.baseobject.BaseObject):
         self.connection_manager = None
 
     def _startup_services(self):
-        '''
-        Looks in the config object to obtain any services present.
-        '''
+        """Look in the config object to obtain any services present."""
         startup_services = self._config["startup_services"]
         self.logger.debug("%s startup services.", str(len(startup_services)))
         if startup_services:
@@ -51,16 +47,12 @@ class SystemManager(emews.base.baseobject.BaseObject):
                 self._thread_dispatcher.dispatch_thread(service_builder.result, force_start=True)
 
     def _shutdown_signal_handler(self, signum, frame):
-        '''
-        Signal handler for incoming signals (those which may imply we need to shutdown)
-        '''
+        """Signal handler for incoming signals (those which may imply we need to shutdown)."""
         self.logger.info("Received signum %d, beginning shutdown...", signum)
         self.shutdown()
 
     def start(self):
-        '''
-        Starts the daemon.
-        '''
+        """Start the daemon."""
         self.logger.debug("Starting system manager ...")
 
         # instantiate thread dispatcher and connection manager
@@ -76,9 +68,7 @@ class SystemManager(emews.base.baseobject.BaseObject):
         self.connection_manager.start()
 
     def shutdown(self):
-        '''
-        Shuts down daemon operation.
-        '''
+        """Shut down daemon operation."""
         self.connection_manager.stop()
 
         # shut down any dispatched threads that may be running
