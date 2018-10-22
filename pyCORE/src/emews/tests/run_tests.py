@@ -19,5 +19,5 @@ def main():
     The ordering here is not too important.
     """
     test_suites = []
-    test_suites.append(unittest.TestLoader().loadTestsFromModule(emews.base.tests.test_system_init))
     test_suites.append(unittest.TestLoader().loadTestsFromModule(emews.base.tests.test_config))
+    test_suites.append(unittest.TestLoader().loadTestsFromModule(emews.base.tests.test_system_init))
