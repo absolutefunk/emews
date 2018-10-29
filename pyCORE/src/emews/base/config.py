@@ -19,7 +19,7 @@ def parse(filename):
 
     return dct
 
-
+# TODO: possibly move this
 class InjectionMeta(type):
     """
     Meta class for configuration dependency injection.
@@ -104,13 +104,13 @@ class Config(object):
 
     # What, no slots??  Yep, as it turns out, dict access performance is on par with slots,
     # and memory is a bit better using a dict as we can define the class once, instead of
-    # needing to have a separate class definition for each eMews object type
+    # needing to have a separate class definition for each eMews object type.
 
     def __init__(self, config_dict):
         """Constructor."""
         # The magic __dict__ stores all our instance fields, so this is a quick way of assigning
         # the K/Vs from dct.
-        self.__dict__ = config_dict
+        self._assign_dict(config_dict)
         # convert nested dicts to Config objects
         for key, value in self.__dict__.items():
             if isinstance(value, dict):
@@ -123,6 +123,20 @@ class Config(object):
 
                 # replace with Config object
                 self.__dict__[key] = Config(value)
+
+    def _assign_dict(self, dict):
+        """
+        Assign K/Vs of input dict to self.__dict__.
+
+        This is performed in case the input dict is of some custom dict type.
+        """
+        self.__dict__ = {}
+        for key, val in dict.items():
+            self.__dict__[key] = val
+
+    def __contains__(self, key):
+        """Enable 'in' shorthand."""
+        return key in self.__dict__
 
     def __getitem__(self, key):
         """Enable index notation for getting attributes."""
