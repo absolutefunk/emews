@@ -19,7 +19,7 @@ def parse(filename):
 
     return dct
 
-# TODO: possibly move this
+# TODO: possibly move this to another module
 class InjectionMeta(type):
     """
     Meta class for configuration dependency injection.
@@ -62,7 +62,7 @@ class InjectionMeta(type):
         setattr(new_cls, '__init__', __init__)  # replace subclass init with this one
         return new_cls
 
-
+# TODO: possibly move this to another module
 class DelayedInstantiation(object):
     """For objects that do not instantiate immediately."""
 

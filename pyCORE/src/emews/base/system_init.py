@@ -23,14 +23,18 @@ def system_init(args, is_daemon=True):
 
     If the eMews daemon is launching, then start the SystemManager, otherwise return.
     """
+    path_prefix = os.path.join('..', os.path.dirname(os.path.abspath(__file__)))  # root
+
     # first thing we need to do is parse the configs
     # base system conf (non-user config - system-wide)
-    base_config = emews.base.config.parse('conf.yml')  # conf.yml in same directory as this
+    base_config = emews.base.config.parse(os.path.join(path_prefix, 'base/conf.yml'))  # /base
     # system conf (user config - system-)
-    system_config = emews.base.config.parse(os.path.join('..', 'system.yml')) \
-        if args.sys_config is None else emews.base.config.parse(os.path.join('..', args.sys_config))
+    system_config = emews.base.config.parse(os.path.join(path_prefix, 'system.yml')) \
+        if args.sys_config is None else emews.base.config.parse(
+            os.path.join(path_prefix, args.sys_config))
     # node conf (user config - per node)
-    node_config = emews.base.config.parse(args.node_config)
+    node_config = emews.base.config.parse(args.node_config) \
+        if args.node_config is not None else {}
 
     # prepare eMews daemon config dict
     config_start_dict = _merge_configs(
@@ -51,9 +55,11 @@ def system_init(args, is_daemon=True):
     logger.debug("Logger initialized.")
 
     # create system properties
-    system_properties = emews.base.config.make_config_cls(
-        'SystemProperties',
-        ['logger', 'node_name'])([logger, node_name])
+    system_properties = emews.base.config.Config(
+        {'logger': logger,
+         'node_name': node_name,
+         'root': path_prefix})
+
     # update the BaseObject class var
     emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES = system_properties  # pylint: disable=W0212
 
