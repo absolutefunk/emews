@@ -10,6 +10,7 @@ from unittest import TestCase
 import emews.base.baseobject
 import emews.base.config
 import emews.base.system_init
+import emews.base.system_manager
 
 
 class SystemInitTest(TestCase):
@@ -20,31 +21,74 @@ class SystemInitTest(TestCase):
     def setUp(self):
         """Stuff that may be needed in unit tests."""
         self.args = emews.base.config.Config({
-            'sys_config': 'base/tests/sample_conf.yml',
+            'sys_config': 'base/tests/sample_conf_2.yml',
             'node_config': None,
             'node_name': 'TestNode'
         })
 
+        # using a node config
+        self.args2 = emews.base.config.Config({
+            'sys_config': 'base/tests/sample_conf_2.yml',
+            'node_config': 'base/tests/sample_nodeconfig.yml',
+            'node_name': None
+        })
+
     def test_system_init(self):
-        '''
+        """
         Unit test for system_init() function
-        '''
+        """
         # test when not launching in daemon mode
+        # using self.args for the args
         config_dict = emews.base.system_init.system_init(self.args, is_daemon=False)
 
-        # check system properties
         self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES)
         self.assertIsInstance(
             emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.logger, logging.LoggerAdapter)
         self.assertEqual(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.node_name, 'TestNode')
         self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.root)
 
-        # check the config_dict
-        # many of these checks are similar to those in test_config, but complete
+        self._check_config_dict(config_dict)
+
+        self.assertIsNone(config_dict['startup_services'])
+
+        # using self.args2 for the args (explicit node config yaml)
+        config_dict = emews.base.system_init.system_init(self.args2, is_daemon=False)
+
+        self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES)
+        self.assertIsInstance(
+            emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.logger, logging.LoggerAdapter)
+        self.assertEqual(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.node_name,
+                         'test_node_conf')
+        self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.root)
+
+        self._check_config_dict(config_dict)
+
+        self.assertIn('logserver', config_dict['startup_services'])
+        self.assertIsNone(config_dict['startup_services']['logserver'])
+
+        # test when launching in daemon mode
+        # using self.args for the args
+        system_manager = emews.base.system_init.system_init(self.args)
+        self.assertIsInstance(system_manager, emews.base.system_manager.SystemManager)
+
+    def _check_config_dict(self, config_dict):
+        """
+        check system properties
+        """
+
+        # check the config_dict for K/Vs common to all testing scenarios
         self.assertIsInstance(config_dict, dict)
         self.assertIn('general', config_dict)
         self.assertIn('service_start_delay', config_dict['general'])
         self.assertEqual(config_dict['general']['service_start_delay'], 300)
+        self.assertIn('thread_shutdown_wait', config_dict['general'])
+        self.assertEqual(config_dict['general']['thread_shutdown_wait'], 5)
+
+        self.assertIn('communication', config_dict)
+        self.assertIn('host', config_dict['communication'])
+        self.assertEqual(config_dict['communication']['host'], 'localhost')
+        self.assertIn('port', config_dict['communication'])
+        self.assertEqual(config_dict['communication']['port'], 32518)
 
         self.assertIn('logging', config_dict)
         self.assertIn('logger', config_dict['logging'])
@@ -59,4 +103,3 @@ class SystemInitTest(TestCase):
         self.assertEqual(config_dict['logging']['logger_parameters']['host'], 32519)
 
         self.assertIn('startup_services', config_dict)
-        self.assertIsNone(config_dict['startup_services'])
