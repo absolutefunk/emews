@@ -1,16 +1,17 @@
-'''
-BaseObject: Convenience class that provides system properties as fields.  Enables consistency from
-derived classes by providing a common methodology of system property access using self.
+"""
+BaseObject: Convenience class that provides system properties as fields.
+
+Enables consistency from derived classes by providing a common methodology of system property access
+using self.
 
 Created on Apr 9, 2018
-
 @author: Brian Ricks
-'''
+"""
+
 
 class BaseObject(object):
-    '''
-    classdocs
-    '''
+    """classdocs."""
+
     # We deny the creation of the instance __dict__ by default to save memory, as it is expected
     # that many instances of certain child classes (samplers for example) will be created for a
     # single eMews daemon instance, and most eMews child classes inherit BaseObject (which in
@@ -23,19 +24,13 @@ class BaseObject(object):
     # BaseObject instances are instantiated
     _SYSTEM_PROPERTIES = None
 
-    '''
-    Object properties (convenience methods)
-    '''
+    # Object properties (convenience methods)
     @property
     def logger(self):
-        '''
-        Returns the logger object.
-        '''
+        """Return the logger object."""
         return self._SYSTEM_PROPERTIES.logger
 
     @property
     def system(self):
-        '''
-        Returns the system properties.
-        '''
+        """Return the system properties."""
         return self._SYSTEM_PROPERTIES

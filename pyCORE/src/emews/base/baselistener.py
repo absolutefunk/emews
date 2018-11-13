@@ -1,11 +1,13 @@
-'''
-Base class for socket-based network listeners.  A listener is analogous to python's ServerSocket,
-but is written to incorporate unblocking on signals, as fast unblocking is important for quick
-emulator shutdown.  Hence, the listener socket is set to be non-blocking.
+"""
+Base class for socket-based network listeners.
+
+A listener is analogous to python's ServerSocket, but is written to incorporate unblocking on
+signals, as fast unblocking is important for quick emulator shutdown.  Hence, the listener socket is
+set to be non-blocking.
 
 Created on Apr 22, 2018
 @author: Brian Ricks
-'''
+"""
 from abc import abstractmethod
 import socket
 
@@ -13,14 +15,12 @@ import emews.base.baseobject
 import emews.base.exceptions
 import emews.base.inet
 
+
 class BaseListener(emews.base.baseobject.BaseObject, emews.base.inet.INet):
-    '''
-    classdocs
-    '''
+    """classdocs."""
+
     def __init__(self, config, handler_listener):
-        '''
-        Constructor
-        '''
+        """Constructor."""
         super(BaseListener, self).__init__(config)
 
         self._interrupted = False  # sets to true when stop() invoked
@@ -35,16 +35,16 @@ class BaseListener(emews.base.baseobject.BaseObject, emews.base.inet.INet):
 
         # parameter checks
         if self._host == '':
-            self.logger.warning("Host is not specified.  "\
-            "Listener may bind to any available interface.")
+            self.logger.warning("Host is not specified.  "
+                                "Listener may bind to any available interface.")
         if self._port < 1 or self._port > 65535:
-            self.logger.error("Port is out of range (must be between 1 and 65535, "\
-            "given: %d)", self._port)
-            raise ValueError("Port is out of range (must be between 1 and 65535, "\
-            "given: %d)" % self._port)
+            self.logger.error("Port is out of range (must be between 1 and 65535, "
+                              "given: %d)", self._port)
+            raise ValueError("Port is out of range (must be between 1 and 65535, "
+                             "given: %d)" % self._port)
         if self._port < 1024:
-            self.logger.warning("Port is less than 1024 (given: %d).  "\
-            "Elevated permissions may be needed for binding.", self._port)
+            self.logger.warning("Port is less than 1024 (given: %d).  "
+                                "Elevated permissions may be needed for binding.", self._port)
 
         try:
             self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -55,43 +55,37 @@ class BaseListener(emews.base.baseobject.BaseObject, emews.base.inet.INet):
 
     @property
     def handler(self):
-        '''
-        @Override returns the handler object for this listener
-        '''
+        """@Override Return the handler object for this listener."""
         return self._handler_listener
 
     @property
     def socket(self):
-        '''
-        @Override returns the listener socket
-        '''
+        """@Override Returns the listener socket."""
         return self._socket
 
     @property
     def interrupted(self):
-        '''
-        @Override returns whether the net-based object has been requested to stop
-        '''
+        """@Override Return whether the net-based object has been requested to stop."""
         return self._interrupted
 
     def request_write(self, sock):
-        '''
+        """
         @Override (INet) This is called when a socket is requested to be written to.
+
         Not used in listeners, but part of the INet contract.
-        '''
+        """
         pass
 
     def request_close(self, sock):
-        '''
+        """
         @Override (INet) This is called when a socket needs to be closed.
+
         Needs to be implemented in concrete listeners that manage accepted sockets.
-        '''
+        """
         pass
 
     def start(self):
-        '''
-        @Override starts the listener
-        '''
+        """@Override Start the listener."""
         try:
             self._socket.bind((self._host, self._port))
         except socket.error as ex:
@@ -113,13 +107,9 @@ class BaseListener(emews.base.baseobject.BaseObject, emews.base.inet.INet):
 
     @abstractmethod
     def listen(self):
-        '''
-        Invokes the listening procedure.
-        '''
+        """Invoke the listening procedure."""
         pass
 
     def stop(self):
-        '''
-        @Override Requests the listener to stop.
-        '''
+        """@Override Request the listener to stop."""
         pass
