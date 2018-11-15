@@ -5,4 +5,4 @@ general:
 
 startup_services:
   # null as value indicates using all defaults
-  logserver: null
+  testservice: null

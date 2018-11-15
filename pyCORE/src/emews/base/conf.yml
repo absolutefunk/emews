@@ -35,6 +35,9 @@ init_config_options:
       emews.file:  # logs to a file
         handlers:
         - logging.FileHandler
+      emews.testing:
+        handlers:
+        - logging.NullHandler
 
     log_handlers:
       logging.FileHandler:

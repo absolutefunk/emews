@@ -63,10 +63,12 @@ def system_init(args, is_daemon=True):
     # update the BaseObject class var
     emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES = system_properties  # pylint: disable=W0212
 
-    if not is_daemon:
-        return config_start_dict
+    config_obj = emews.base.config.Config(config_start_dict)
 
-    return emews.base.system_manager.SystemManager(config_start_dict)
+    if not is_daemon:
+        return config_obj
+
+    return emews.base.system_manager.SystemManager(config_obj)
 
 
 def _get_node_name(config, arg_name):

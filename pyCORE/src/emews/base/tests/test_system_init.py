@@ -21,29 +21,37 @@ class SystemInitTest(TestCase):
     def setUp(self):
         """Stuff that may be needed in unit tests."""
         self.args = emews.base.config.Config({
-            'sys_config': 'base/tests/sample_conf_2.yml',
+            'sys_config': 'base/tests/sample_conf.yml',
             'node_config': None,
             'node_name': 'TestNode'
         })
 
         # using a node config
         self.args2 = emews.base.config.Config({
-            'sys_config': 'base/tests/sample_conf_2.yml',
+            'sys_config': 'base/tests/sample_conf.yml',
             'node_config': 'base/tests/sample_nodeconfig.yml',
             'node_name': None
         })
 
         # using no node config or node name
         self.args3 = emews.base.config.Config({
-            'sys_config': 'base/tests/sample_conf_2.yml',
+            'sys_config': 'base/tests/sample_conf.yml',
             'node_config': None,
             'node_name': None
+        })
+
+        # using a node config and node name
+        self.args4 = emews.base.config.Config({
+            'sys_config': 'base/tests/sample_conf.yml',
+            'node_config': 'base/tests/sample_nodeconfig.yml',
+            'node_name': 'TestNode'
         })
 
     def test_system_init(self):
         """
         Unit test for system_init() function
         """
+        # 1 ##
         # test when not launching in daemon mode
         # using self.args for the args
         config_dict = emews.base.system_init.system_init(self.args, is_daemon=False)
@@ -58,6 +66,7 @@ class SystemInitTest(TestCase):
 
         self.assertIsNone(config_dict['startup_services'])
 
+        # 2 ##
         # using self.args2 for the args (explicit node config yaml)
         config_dict = emews.base.system_init.system_init(self.args2, is_daemon=False)
 
@@ -70,9 +79,10 @@ class SystemInitTest(TestCase):
 
         self._check_config_dict(config_dict)
 
-        self.assertIn('logserver', config_dict['startup_services'])
-        self.assertIsNone(config_dict['startup_services']['logserver'])
+        self.assertIn('testservice', config_dict['startup_services'])
+        self.assertIsNone(config_dict['startup_services']['testservice'])
 
+        # 3 ##
         # no node name defined
         # using self.args3 for the args
         config_dict = emews.base.system_init.system_init(self.args3, is_daemon=False)
@@ -87,9 +97,26 @@ class SystemInitTest(TestCase):
 
         self._check_config_dict(config_dict)
 
-        self.assertIn('logserver', config_dict['startup_services'])
-        self.assertIsNone(config_dict['startup_services']['logserver'])
+        self.assertIsNone(config_dict['startup_services'])
 
+        # 4 ##
+        # using self.args4 for the args (explicit node config yaml)
+        config_dict = emews.base.system_init.system_init(self.args4, is_daemon=False)
+
+        self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES)
+        self.assertIsInstance(
+            emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.logger, logging.LoggerAdapter)
+        self.assertEqual(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.node_name,
+                         'TestNode')
+        self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.root)
+
+        self._check_config_dict(config_dict)
+
+        self.assertIn('testservice', config_dict['startup_services'])
+        self.assertIsNone(config_dict['startup_services']['testservice'])
+
+        # daemon mode ##
+        # 5 ##
         # check when using daemon mode
         # using self.args for the args
         system_manager = emews.base.system_init.system_init(self.args)
@@ -101,7 +128,7 @@ class SystemInitTest(TestCase):
         self.assertEqual(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.node_name, 'TestNode')
         self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.root)
 
-        # check when using daemon mode
+        # 6 ##
         # using self.args2 for the args
         system_manager = emews.base.system_init.system_init(self.args2)
         self.assertIsInstance(system_manager, emews.base.system_manager.SystemManager)
@@ -113,7 +140,7 @@ class SystemInitTest(TestCase):
                          'test_node_conf')
         self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.root)
 
-        # check when using daemon mode
+        # 7 ##
         # using self.args3 for the args
         system_manager = emews.base.system_init.system_init(self.args3)
         self.assertIsInstance(system_manager, emews.base.system_manager.SystemManager)
@@ -126,35 +153,45 @@ class SystemInitTest(TestCase):
                               basestring)
         self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.root)
 
-    def _check_config_dict(self, config_dict):
+        # 8 ##
+        # check when using daemon mode
+        # using self.args4 for the args
+        system_manager = emews.base.system_init.system_init(self.args4)
+        self.assertIsInstance(system_manager, emews.base.system_manager.SystemManager)
+
+        self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES)
+        self.assertIsInstance(
+            emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.logger, logging.LoggerAdapter)
+        self.assertEqual(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.node_name, 'TestNode')
+        self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.root)
+
+    def _check_config_dict(self, config):
         """
         check system properties
         """
+        self.assertIsInstance(config, emews.base.config.Config)
+        self.assertEqual(len(config), 4)
 
         # check the config_dict for K/Vs common to all testing scenarios
-        self.assertIsInstance(config_dict, dict)
-        self.assertIn('general', config_dict)
-        self.assertIn('service_start_delay', config_dict['general'])
-        self.assertEqual(config_dict['general']['service_start_delay'], 300)
-        self.assertIn('thread_shutdown_wait', config_dict['general'])
-        self.assertEqual(config_dict['general']['thread_shutdown_wait'], 5)
+        self.assertIn('general', config)
+        self.assertIsInstance(config['general'], emews.base.config.Config)
+        self.assertIn('service_start_delay', config['general'])
+        self.assertEqual(config['general']['service_start_delay'], 300)
+        self.assertIn('thread_shutdown_wait', config['general'])
+        self.assertEqual(config['general']['thread_shutdown_wait'], 5)
 
-        self.assertIn('communication', config_dict)
-        self.assertIn('host', config_dict['communication'])
-        self.assertEqual(config_dict['communication']['host'], 'localhost')
-        self.assertIn('port', config_dict['communication'])
-        self.assertEqual(config_dict['communication']['port'], 32518)
+        self.assertIn('communication', config)
+        self.assertIsInstance(config['communication'], emews.base.config.Config)
+        self.assertIn('host', config['communication'])
+        self.assertEqual(config['communication']['host'], 'localhost')
+        self.assertIn('port', config['communication'])
+        self.assertEqual(config['communication']['port'], 32518)
 
-        self.assertIn('logging', config_dict)
-        self.assertIn('logger', config_dict['logging'])
-        self.assertEqual(config_dict['logging']['logger'], 'emews.distributed')
-        self.assertIn('message_level', config_dict['logging'])
-        self.assertEqual(config_dict['logging']['message_level'], 'DEBUG')
-        self.assertIn('logger_parameters', config_dict['logging'])
-        self.assertIsInstance(config_dict['logging']['logger_parameters'], dict)
-        self.assertIn('host', config_dict['logging']['logger_parameters'])
-        self.assertEqual(config_dict['logging']['logger_parameters']['host'], '10.0.0.21')
-        self.assertIn('port', config_dict['logging']['logger_parameters'])
-        self.assertEqual(config_dict['logging']['logger_parameters']['host'], 32519)
+        self.assertIn('logging', config)
+        self.assertIsInstance(config['logging'], emews.base.config.Config)
+        self.assertIn('logger', config['logging'])
+        self.assertEqual(config['logging']['logger'], 'emews.testing')
+        self.assertIn('message_level', config['logging'])
+        self.assertEqual(config['logging']['message_level'], 'DEBUG')
 
-        self.assertIn('startup_services', config_dict)
+        self.assertIn('startup_services', config)
