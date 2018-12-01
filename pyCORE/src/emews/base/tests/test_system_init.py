@@ -52,9 +52,8 @@ class SystemInitTest(TestCase):
         Unit test for system_init() function
         """
         # 1 ##
-        # test when not launching in daemon mode
         # using self.args for the args
-        config_dict = emews.base.system_init.system_init(self.args, is_daemon=False)
+        sys_manager = emews.base.system_init.system_init(self.args)
 
         self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES)
         self.assertIsInstance(
@@ -62,13 +61,13 @@ class SystemInitTest(TestCase):
         self.assertEqual(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.node_name, 'TestNode')
         self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.root)
 
-        self._check_config_dict(config_dict)
+        self._check_config_dict(sys_manager._config)
 
-        self.assertIsNone(config_dict['startup_services'])
+        self.assertIsNone(sys_manager._config['startup_services'])
 
         # 2 ##
         # using self.args2 for the args (explicit node config yaml)
-        config_dict = emews.base.system_init.system_init(self.args2, is_daemon=False)
+        sys_manager = emews.base.system_init.system_init(self.args2)
 
         self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES)
         self.assertIsInstance(
@@ -77,15 +76,15 @@ class SystemInitTest(TestCase):
                          'test_node_conf')
         self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.root)
 
-        self._check_config_dict(config_dict)
+        self._check_config_dict(sys_manager._config)
 
-        self.assertIn('testservice', config_dict['startup_services'])
-        self.assertIsNone(config_dict['startup_services']['testservice'])
+        self.assertIn('testservice', sys_manager._config['startup_services'])
+        self.assertIsNone(sys_manager._config['startup_services']['testservice'])
 
         # 3 ##
         # no node name defined
         # using self.args3 for the args
-        config_dict = emews.base.system_init.system_init(self.args3, is_daemon=False)
+        sys_manager = emews.base.system_init.system_init(self.args3)
 
         self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES)
         self.assertIsInstance(
@@ -95,13 +94,13 @@ class SystemInitTest(TestCase):
                               basestring)
         self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.root)
 
-        self._check_config_dict(config_dict)
+        self._check_config_dict(sys_manager._config)
 
-        self.assertIsNone(config_dict['startup_services'])
+        self.assertIsNone(sys_manager._config['startup_services'])
 
         # 4 ##
         # using self.args4 for the args (explicit node config yaml)
-        config_dict = emews.base.system_init.system_init(self.args4, is_daemon=False)
+        sys_manager = emews.base.system_init.system_init(self.args4)
 
         self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES)
         self.assertIsInstance(
@@ -110,60 +109,10 @@ class SystemInitTest(TestCase):
                          'TestNode')
         self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.root)
 
-        self._check_config_dict(config_dict)
+        self._check_config_dict(sys_manager._config)
 
-        self.assertIn('testservice', config_dict['startup_services'])
-        self.assertIsNone(config_dict['startup_services']['testservice'])
-
-        # daemon mode ##
-        # 5 ##
-        # check when using daemon mode
-        # using self.args for the args
-        system_manager = emews.base.system_init.system_init(self.args)
-        self.assertIsInstance(system_manager, emews.base.system_manager.SystemManager)
-
-        self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES)
-        self.assertIsInstance(
-            emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.logger, logging.LoggerAdapter)
-        self.assertEqual(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.node_name, 'TestNode')
-        self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.root)
-
-        # 6 ##
-        # using self.args2 for the args
-        system_manager = emews.base.system_init.system_init(self.args2)
-        self.assertIsInstance(system_manager, emews.base.system_manager.SystemManager)
-
-        self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES)
-        self.assertIsInstance(
-            emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.logger, logging.LoggerAdapter)
-        self.assertEqual(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.node_name,
-                         'test_node_conf')
-        self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.root)
-
-        # 7 ##
-        # using self.args3 for the args
-        system_manager = emews.base.system_init.system_init(self.args3)
-        self.assertIsInstance(system_manager, emews.base.system_manager.SystemManager)
-
-        self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES)
-        self.assertIsInstance(
-            emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.logger, logging.LoggerAdapter)
-        self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.node_name)
-        self.assertIsInstance(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.node_name,
-                              basestring)
-        self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.root)
-
-        # 8 ##
-        # check when using daemon mode
-        # using self.args4 for the args
-        system_manager = emews.base.system_init.system_init(self.args4)
-        self.assertIsInstance(system_manager, emews.base.system_manager.SystemManager)
-
-        self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES)
-        self.assertIsInstance(
-            emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.logger, logging.LoggerAdapter)
-        self.assertEqual(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.node_name, 'TestNode')
-        self.assertIsNotNone(emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.root)
+        self.assertIn('testservice', sys_manager._config['startup_services'])
+        self.assertIsNone(sys_manager._config['startup_services']['testservice'])
 
     def _check_config_dict(self, config):
         """

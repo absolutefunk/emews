@@ -17,12 +17,8 @@ import emews.base.importclass
 import emews.base.system_manager
 
 
-def system_init(args, is_daemon=True):
-    """
-    Init configuration and base system properties.
-
-    If the eMews daemon is launching, then start the SystemManager, otherwise return.
-    """
+def system_init(args):
+    """Init configuration and base system properties."""
     path_prefix = os.path.join('..', os.path.dirname(os.path.abspath(__file__)))  # root
 
     # first thing we need to do is parse the configs
@@ -63,12 +59,8 @@ def system_init(args, is_daemon=True):
     # update the BaseObject class var
     emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES = system_properties  # pylint: disable=W0212
 
-    config_obj = emews.base.config.Config(config_start_dict)
-
-    if not is_daemon:
-        return config_obj
-
-    return emews.base.system_manager.SystemManager(config_obj)
+    return emews.base.system_manager.SystemManager(
+        emews.base.config.Config(config_start_dict), local_mode=args.local)
 
 
 def _get_node_name(config, arg_name):

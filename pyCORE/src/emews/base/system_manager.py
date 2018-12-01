@@ -16,8 +16,14 @@ import emews.services.servicebuilder
 class SystemManager(emews.base.baseobject.BaseObject):
     """Classdocs."""
 
-    def __init__(self, config):
-        """Constructor."""
+    def __init__(self, config, local_mode=False):
+        """
+        Constructor.
+
+        If local_mode is true, then all distributed functionality is disabled.  This means that only
+        the startup services will launch, and only local logging.  Local mode is useful for testing
+        new services.
+        """
         super(SystemManager, self).__init__()
 
         # register signals
@@ -25,6 +31,7 @@ class SystemManager(emews.base.baseobject.BaseObject):
         signal.signal(signal.SIGINT, self._shutdown_signal_handler)
 
         self._config = config
+        self._local_mode = local_mode
         self._thread_dispatcher = None
         self.connection_manager = None
 
@@ -58,14 +65,20 @@ class SystemManager(emews.base.baseobject.BaseObject):
         # instantiate thread dispatcher and connection manager
         self._thread_dispatcher = emews.base.thread_dispatcher.ThreadDispatcher(
             self._config['general'])
-        self.connection_manager = emews.base.connectionmanager.ConnectionManager(
-            self._config['communication'], self._thread_dispatcher)
 
         # start any services specified
         self._startup_services()
 
-        # start the connection manager
-        self.connection_manager.start()
+        if self._local_mode:
+            # local mode:  do not start ConnectionManager
+            # TODO: implement blocking here so start() does not exit
+            pass
+        else:
+            self.connection_manager = emews.base.connectionmanager.ConnectionManager(
+                self._config['communication'], self._thread_dispatcher)
+
+            # start the connection manager
+            self.connection_manager.start()
 
     def shutdown(self):
         """Shut down daemon operation."""

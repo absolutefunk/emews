@@ -29,7 +29,8 @@ def main():
     parser.add_argument("-n", "--node_name", help="name of the node this daemon launches under "
                         "(default: system host name, if --node_config not given)")
     # TODO: Implement local mode.  May subsume the standalone launcher...
-    parser.add_argument("-l", "--local", help="launches the eMews daemon in local mode [NOT IMPLEMENTED - use standalone launcher]")
+    parser.add_argument("-l", "--local", action='store_true', help="launches the eMews daemon in "
+                        "local mode [NOT IMPLEMENTED - use standalone launcher]")
     args = parser.parse_args()
 
     print "eMews %s" % emews.version.__version__
