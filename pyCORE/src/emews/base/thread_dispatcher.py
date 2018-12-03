@@ -40,7 +40,7 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
         self._delay_lock = threading.Lock()
 
         self._thread_shutdown_timeout = config['thread_shutdown_wait']
-        if self._thread_shutdown_timeout < 0:
+        if self._thread_shutdown_timeout <= 0:
             self._thread_shutdown_timeout = None
 
         start_delay = config['service_start_delay']

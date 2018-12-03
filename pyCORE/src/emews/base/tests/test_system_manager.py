@@ -1,12 +1,11 @@
 """
-Unit test module - system_init.py.
+Unit test module - system_manager.py.
 
 Created on October 17, 2018
 @author: Brian Ricks
 """
 from unittest import TestCase
 
-import emews.base.baseobject
 import emews.base.config
 import emews.base.system_init
 import emews.base.system_manager
