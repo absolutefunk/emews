@@ -22,7 +22,7 @@ class SystemManager(emews.base.baseobject.BaseObject):
 
         If local_mode is true, then all distributed functionality is disabled.  This means that only
         the startup services will launch, and only local logging.  Local mode is useful for testing
-        new services.
+        new services, or eMews itself.
         """
         super(SystemManager, self).__init__()
 

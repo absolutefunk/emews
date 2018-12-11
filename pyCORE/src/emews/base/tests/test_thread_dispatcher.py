@@ -18,7 +18,7 @@ class ThreadDispatcherTest(TestCase):
         """Stuff that may be needed in unit tests."""
         self.config1 = {
             'thread_shutdown_wait': 1.0,
-            'service_start_delay': 2.0
+            'service_start_delay': -1.0
         }
 
     def test_system_init(self):
@@ -27,3 +27,4 @@ class ThreadDispatcherTest(TestCase):
         """
         # 1 ##
         thr_dispatcher = emews.base.thread_dispatcher.ThreadDispatcher(self.config1)
+        self.assertEqual(thr_dispatcher.count, 0)

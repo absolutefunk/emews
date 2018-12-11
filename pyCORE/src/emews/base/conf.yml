@@ -2,23 +2,23 @@
 # Editing this file could result in breaking eMews or core eMews functionality.
 
 # This section contains the system config skeleton structure; all possible options are listed here.
-# Any option that is null will not be included in the merged config unless overridden in another
-# config file.
-# Sections of kvs that are not present here but can be present in a config file (logging for
-# example), will not be included in the merged config.
+# Any option that is not overridden will take the default value given here.
 system_config_options:
   general:  # general eMews daemon options
-    service_start_delay: null # Delay (seconds) to start services from eMews daemon invocation.
-    thread_shutdown_wait: null # Delay (seconds) to wait for 'graceful' thread shutdown.  After this wait, continue shut down.
+    service_start_delay: -1 # Delay (seconds) to start services from eMews daemon invocation.
+    thread_shutdown_wait: -1 # Delay (seconds) to wait for 'graceful' thread shutdown.  After this wait, continue shut down.
   communication:  # communication related eMews daemon options
     host: null  # host to bind to (should be localhost or 127.0.0.1, etc)
     port: null  # port to use
     receive_buffer: 128     # buffer for incoming characters from an eMews client
     command_delimiter: ' '  # delimit commands using this
     recv_timeout: 20  # in seconds - wait this long for a timeout in expected response
-  startup_services: null
+  startup_services: {}
 
 init_config_options:
+  local:  # parameters to override for when eMews is started in local mode
+    logging:
+      logger: emews.base
   logging:
     # default options (if no log configuration defined in system or node config files)
     logger: emews.base
@@ -48,4 +48,4 @@ init_config_options:
       logging.StreamHandler:
         stream: 'ext://sys.stdout'
 
-    logger_parameters: null
+    logger_parameters: {}

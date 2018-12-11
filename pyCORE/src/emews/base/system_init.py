@@ -34,14 +34,21 @@ def system_init(args):
 
     # prepare eMews daemon config dict
     config_start_dict = _merge_configs(
-        base_config, system_config, node_config, 'system_config_options')
-
-    # get the node name
-    node_name = _get_node_name(config_start_dict, args.node_name)
+        'system_config_options', base_config, system_config, node_config)
 
     # prepare the init dict (only used locally)
     config_init_dict = _merge_configs(
-        base_config, system_config, node_config, 'init_config_options')
+        'init_config_options', base_config, system_config, node_config)
+
+    if args.local:
+        # local mode
+        # merge the local overrides
+        config_start_dict = _merge_configs(
+            None, config_start_dict, config_start_dict.get('local', {}))
+        config_init_dict = _merge_configs(None, config_init_dict, config_init_dict.get('local', {}))
+
+    # get the node name
+    node_name = _get_node_name(config_start_dict, args.node_name)
 
     # init the logger
     logger = logging.LoggerAdapter(
@@ -58,6 +65,9 @@ def system_init(args):
 
     # update the BaseObject class var
     emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES = system_properties  # pylint: disable=W0212
+
+    # remove the local section from the config_start_dict
+    del config_start_dict['local']
 
     return emews.base.system_manager.SystemManager(
         emews.base.config.Config(config_start_dict), local_mode=args.local)
@@ -104,39 +114,78 @@ def _init_base_logger(log_config):
     return logger
 
 
-def _merge_configs(base_config, system_config, node_config, merge_type):
+def _merge_configs(merge_type, *config_dicts):
     """
     Merge the input config files by key, in order of precedence.
 
-    Precedence order: base config (if in 'include' section), system config, node config.
+    Precedence order: base config, system config, node config.
     For example, values in node config could override values in system config.
     """
-    # start with merged sections from base_config
-    merged_conf = dict()
+    if len(config_dicts) < 2:
+        # must be at least two dicts to merge
+        raise ValueError("At least two dicts must be passed.")
 
-    # Assume top level keys are dicts.
-    # All possible sections and kvs are listed under base_config['include_merge']
-    for sec, kvs in base_config[merge_type]:
-        # start merge
-        merged_conf[sec] = dict()
-        for s_key, s_val in kvs:
-            merged_val = s_val
+    first_dict = True
+    merged_dict = None
+    for config_dict in config_dicts:
+        if first_dict:
+            first_dict = False
+            # first dict is assumed to be the base config dict
+            if merge_type is None:
+                merged_dict = config_dict
+            else:
+                merged_dict = config_dict[merge_type]
+            continue
 
-            # check if in system_config
-            config_val = system_config.get(sec, {}).get(s_key, None)
-            if config_val is not None:
-                # system config overrides this kv
-                merged_val = config_val
+        merged_dict = _section_merge(merged_dict, config_dict)
 
-            # check if in node_config
-            config_val = node_config.get(sec, {}).get(s_key, None)
-            if config_val is not None:
-                # node config overrides this kv
-                merged_val = config_val
+    return merged_dict
 
-            # Add config_val to merged_conf if not None (this occurs if val in base_config is None
-            # and no other configs override it).
-            if merged_val is not None:
-                merged_conf[sec][s_key] = merged_val
+def _section_merge(sec1, sec2, merge_both=False):
+    """
+    Merge the first section with the second section given.  A section is a dict.
 
-    return merged_conf
+    This is a recursive procedure; the section depth should not be that great.  If merge_both is
+    true, then merge into the final dict any K/Vs from sec2 that are not in sec1.  This situation
+    arises when the base config skeleton contains an empty dict, meaning that the contents could
+    vary.
+    """
+    new_section = {}
+    for s_key, s_val in sec1:
+        if isinstance(s_val, dict):
+            # s_val is a dict (section)
+            # We require that if a section is present at s_key in sec1, then if sec2 has this
+            # key present, then it must also be a section.
+            if s_key in sec2:
+                if not isinstance(sec2[s_key], dict):
+                    raise KeyError("Base configuration requires key '%s' to be a section.")
+                # If the dict (s_val) is empty, then a special case arises in which the content of
+                # the section is undefined.  In this case, we need to merge from both sections,
+                # instead of just sec1.
+                if merge_both or not s_val:
+                    # If merge_both is true, then we are already in the special case.  If s_val is
+                    # empty, then the special case is required.  Note that if s_val is not empty
+                    # but sec2[s_key] is an empty dict, then the special case (merge_both) is not
+                    # invoked, unless we are already in the special case, which essentially will
+                    # have no effect.
+                    new_section[s_key] = _section_merge(s_val, sec2[s_key], merge_both=True)
+                else:
+                    new_section[s_key] = _section_merge(s_val, sec2[s_key])
+            else:
+                # s_key not present in sec2
+                new_section[s_key] = s_val
+        elif s_key in sec2:
+            # s_val is not a dict, s_key present in sec2
+            new_section[s_key] = sec2[s_key]
+        else:
+            # s_val is not a dict, s_key not present in sec2
+            new_section[s_key] = s_val
+
+    if merge_both:
+        # Merge from sec2.  This will only be those keys not present in sec1.
+        for s_key, s_val in sec2:
+            if s_key not in new_section:
+                # Here we don't care what s_val is, as s_key is not present.
+                new_section[s_key] = s_val
+
+    return new_section
