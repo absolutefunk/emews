@@ -95,6 +95,9 @@ def _init_base_logger(log_config):
     logger.setLevel(message_level)
     logger.propagate = False
 
+    # TODO: convert this to a dictconfig!!!
+    logging.config.dictConfig(self._sys_config.get('logging', 'log_conf'))
+
     for handler_class_path in log_config['log_types'][logger_type]['handlers']:
         handler_class = emews.base.importclass.import_class_from_module(handler_class_path)
         # TODO: Verify handler_options in system.yml to make sure invalid handler options and
