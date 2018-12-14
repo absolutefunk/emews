@@ -29,7 +29,7 @@ init_config_options:
           host: 127.0.0.1  # this should be overridden
           port: 32519
         logging.StreamHandler:
-          stream: 'ext://sys.stdout'
+          stream: 'sys.stdout'
   overrides:
     logging:
       logger: emews.base

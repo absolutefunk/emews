@@ -17,4 +17,4 @@ logging:  # logging configuration
   logger: emews.base  # send log messages to a designated node across the network
   message_level: DEBUG  # log messages of this level and above
   logger_parameters:  # parameters specific to the chosen logger
-    stream: 'ext://sys.stdout'
+    stream: 'sys.stdout'

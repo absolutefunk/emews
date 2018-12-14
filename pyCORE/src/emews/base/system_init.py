@@ -11,6 +11,7 @@ import collections
 import logging
 import os
 import socket
+import sys
 
 import emews.base.baseobject
 import emews.base.config
@@ -61,14 +62,14 @@ def system_init(args):
     system_properties = emews.base.config.Config(
         {'logger': logger,
          'node_name': node_name,
-         'root': path_prefix})
+         'root': path_prefix,
+         'local': args.local})
 
     # update the BaseObject class var
     emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES = system_properties  # pylint: disable=W0212
 
-    return
-    #return emews.base.system_manager.SystemManager(
-    #    emews.base.config.Config(config_start_dict), local_mode=args.local)
+    return emews.base.system_manager.SystemManager(
+        emews.base.config.Config(config_start_dict))
 
 
 def _get_node_name(config, arg_name):
@@ -95,8 +96,7 @@ def _init_base_logger(log_config):
     logger.setLevel(message_level)
     logger.propagate = False
 
-    # TODO: convert this to a dictconfig!!!
-    logging.config.dictConfig(self._sys_config.get('logging', 'log_conf'))
+    print "Using logger: " + str(logger_type)
 
     for handler_class_path in log_config['log_types'][logger_type]['handlers']:
         handler_class = emews.base.importclass.import_class_from_module(handler_class_path)
@@ -104,9 +104,13 @@ def _init_base_logger(log_config):
         # options which shouldn't be overridden are not processed (ie, throw exception or something)
         handler_options = {}
         handler_options.update(log_config['log_handlers'][handler_class_path])
-        handler_options.update(log_config['logger_parameters'])
 
-        print handler_options
+        if handler_class_path == 'logging.StreamHandler':
+            # StreamHandler requires a reference to the stream, so we need to take care of that.
+            stream_path, stream_name = log_config['logger_parameters']['stream'].rsplit(".", 1)
+            handler_options['stream'] = getattr(sys.modules[stream_path], stream_name)
+        else:
+            handler_options.update(log_config['logger_parameters'])
 
         handler_obj = handler_class(**handler_options)
         handler_obj.setLevel(message_level)
