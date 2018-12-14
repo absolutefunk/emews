@@ -1,51 +1,53 @@
 # Base configuration file for the eMews daemon.
+# Note: only options listed here are valid for use.
+#
 # Editing this file could result in breaking eMews or core eMews functionality.
 
-# This section contains the system config skeleton structure; all possible options are listed here.
-# Any option that is not overridden will take the default value given here.
-system_config_options:
-  general:  # general eMews daemon options
-    service_start_delay: -1 # Delay (seconds) to start services from eMews daemon invocation.
-    thread_shutdown_wait: -1 # Delay (seconds) to wait for 'graceful' thread shutdown.  After this wait, continue shut down.
-  communication:  # communication related eMews daemon options
-    host: null  # host to bind to (should be localhost or 127.0.0.1, etc)
-    port: null  # port to use
-    receive_buffer: 128     # buffer for incoming characters from an eMews client
-    command_delimiter: ' '  # delimit commands using this
-    recv_timeout: 20  # in seconds - wait this long for a timeout in expected response
-  startup_services: {}
-
 init_config_options:
-  local:  # parameters to override for when eMews is started in local mode
+  readonly:
+    logging:
+      message_format: '[%(asctime)s] %(nodename)-12.12s | %(threadName)-16.16s [%(levelname)-8.8s | %(module)-16.16s | %(funcName)-16.16s]: %(message)s'
+      log_types:  # logging types
+        emews.base:
+          handlers:
+          - logging.StreamHandler
+        emews.distributed:  # distributed logging (nodes send log messages to a designated node)
+          handlers:
+          - logging.handlers.SocketHandler
+        emews.file:  # logs to a file
+          handlers:
+          - logging.FileHandler
+        emews.testing:
+          handlers:
+          - logging.NullHandler
+      log_handlers:
+        logging.FileHandler:
+          filename: emews.log
+          mode: a
+          delay: True
+        logging.handlers.SocketHandler:
+          host: 127.0.0.1  # this should be overridden
+          port: 32519
+        logging.StreamHandler:
+          stream: 'ext://sys.stdout'
+  overrides:
     logging:
       logger: emews.base
-  logging:
-    # default options (if no log configuration defined in system or node config files)
-    logger: emews.base
-    message_level: DEBUG  # log messages of this level and above (default)
-    message_format: '[%(asctime)s] %(nodename)-12.12s | %(threadName)-16.16s [%(levelname)-8.8s | %(module)-16.16s | %(funcName)-16.16s]: %(message)s'
+      message_level: DEBUG  # log messages of this level and above (default)
+      logger_parameters: {}  # any KVs in an override will work
 
-    log_types:  # logging types
-      emews.base:
-        handlers:
-        - logging.StreamHandler
-      emews.distributed:  # distributed logging (nodes send log messages to a designated node)
-        handlers:
-        - logging.handlers.SocketHandler
-      emews.file:  # logs to a file
-        handlers:
-        - logging.FileHandler
-      emews.testing:
-        handlers:
-        - logging.NullHandler
-
-    log_handlers:
-      logging.FileHandler:
-        filename: emews.log
-        mode: a
-        delay: True
-      logging.handlers.SocketHandler: {}
-      logging.StreamHandler:
-        stream: 'ext://sys.stdout'
-
-    logger_parameters: {}
+# System configuration skeleton.  This is the configuration structure after eMews system init.
+system_config_options:
+  readonly:
+    communication:  # communication related eMews daemon options
+      receive_buffer: 128     # buffer for incoming characters from an eMews client
+      command_delimiter: ' '  # delimit commands using this
+      recv_timeout: 20  # in seconds - wait this long for a timeout in expected response
+  overrides:
+    general:  # general eMews daemon options
+      service_start_delay: -1 # Delay (seconds) to start services from eMews daemon invocation.
+      thread_shutdown_wait: -1 # Delay (seconds) to wait for 'graceful' thread shutdown.  After this wait, continue shut down.
+    communication:  # communication related eMews daemon options
+      host: 127.0.0.1  # host to bind to (should be localhost or 127.0.0.1, etc)
+      port: 32518  # port to use
+    startup_services: {}

@@ -26,6 +26,8 @@ class SystemManager(emews.base.baseobject.BaseObject):
         """
         super(SystemManager, self).__init__()
 
+        self.logger.info("Running in local mode ...")
+
         # register signals
         signal.signal(signal.SIGHUP, self._shutdown_signal_handler)
         signal.signal(signal.SIGINT, self._shutdown_signal_handler)

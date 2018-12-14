@@ -7,6 +7,7 @@ system manager.
 Created on June 9, 2018
 @author: Brian Ricks
 """
+import collections
 import logging
 import os
 import socket
@@ -19,15 +20,21 @@ import emews.base.system_manager
 
 def system_init(args):
     """Init configuration and base system properties."""
-    path_prefix = os.path.join('..', os.path.dirname(os.path.abspath(__file__)))  # root
+    path_prefix = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))  # root
+    #path_prefix = os.path.abspath(os.path.join(path_prefix, os.pardir))  # root
+    print "Root path: " + path_prefix
 
     # first thing we need to do is parse the configs
     # base system conf (non-user config - system-wide)
-    base_config = emews.base.config.parse(os.path.join(path_prefix, 'base/conf.yml'))  # /base
-    # system conf (user config - system-)
-    system_config = emews.base.config.parse(os.path.join(path_prefix, 'system.yml')) \
-        if args.sys_config is None else emews.base.config.parse(
-            os.path.join(path_prefix, args.sys_config))
+    base_config = emews.base.config.parse(os.path.join(path_prefix, 'base/conf.yml'))
+    # system conf (user config - system-wide)
+    if args.sys_config is None:
+        if args.local:
+            system_config = emews.base.config.parse(os.path.join(path_prefix, 'system_local.yml'))
+        else:
+            system_config = emews.base.config.parse(os.path.join(path_prefix, 'system.yml'))
+    else:
+        system_config = emews.base.config.parse(os.path.join(path_prefix, args.sys_config))
     # node conf (user config - per node)
     node_config = emews.base.config.parse(args.node_config) \
         if args.node_config is not None else {}
@@ -39,13 +46,6 @@ def system_init(args):
     # prepare the init dict (only used locally)
     config_init_dict = _merge_configs(
         'init_config_options', base_config, system_config, node_config)
-
-    if args.local:
-        # local mode
-        # merge the local overrides
-        config_start_dict = _merge_configs(
-            None, config_start_dict, config_start_dict.get('local', {}))
-        config_init_dict = _merge_configs(None, config_init_dict, config_init_dict.get('local', {}))
 
     # get the node name
     node_name = _get_node_name(config_start_dict, args.node_name)
@@ -66,11 +66,9 @@ def system_init(args):
     # update the BaseObject class var
     emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES = system_properties  # pylint: disable=W0212
 
-    # remove the local section from the config_start_dict
-    del config_start_dict['local']
-
-    return emews.base.system_manager.SystemManager(
-        emews.base.config.Config(config_start_dict), local_mode=args.local)
+    return
+    #return emews.base.system_manager.SystemManager(
+    #    emews.base.config.Config(config_start_dict), local_mode=args.local)
 
 
 def _get_node_name(config, arg_name):
@@ -95,15 +93,17 @@ def _init_base_logger(log_config):
 
     logger = logging.getLogger(logger_type)
     logger.setLevel(message_level)
-    logger.propagate(False)
+    logger.propagate = False
 
     for handler_class_path in log_config['log_types'][logger_type]['handlers']:
         handler_class = emews.base.importclass.import_class_from_module(handler_class_path)
         # TODO: Verify handler_options in system.yml to make sure invalid handler options and
         # options which shouldn't be overridden are not processed (ie, throw exception or something)
-        handler_options = dict()
+        handler_options = {}
         handler_options.update(log_config['log_handlers'][handler_class_path])
-        handler_options.update(log_config.get('logger_parameters', {}))
+        handler_options.update(log_config['logger_parameters'])
+
+        print handler_options
 
         handler_obj = handler_class(**handler_options)
         handler_obj.setLevel(message_level)
@@ -113,7 +113,7 @@ def _init_base_logger(log_config):
 
     return logger
 
-
+# TODO: Move this to config.py!!
 def _merge_configs(merge_type, *config_dicts):
     """
     Merge the input config files by key, in order of precedence.
@@ -127,65 +127,70 @@ def _merge_configs(merge_type, *config_dicts):
 
     first_dict = True
     merged_dict = None
+    readonly_dict = None
     for config_dict in config_dicts:
         if first_dict:
             first_dict = False
             # first dict is assumed to be the base config dict
-            if merge_type is None:
-                merged_dict = config_dict
-            else:
-                merged_dict = config_dict[merge_type]
+            merged_dict = config_dict[merge_type]['overrides']
+            readonly_dict = config_dict[merge_type]['readonly']
             continue
 
         merged_dict = _section_merge(merged_dict, config_dict)
 
+    # add in the read-only options
+    _section_update_readonly(readonly_dict, merged_dict)
     return merged_dict
 
-def _section_merge(sec1, sec2, merge_both=False):
+def _section_merge(sec1, sec2):
     """
     Merge the first section with the second section given.  A section is a dict.
 
-    This is a recursive procedure; the section depth should not be that great.  If merge_both is
-    true, then merge into the final dict any K/Vs from sec2 that are not in sec1.  This situation
-    arises when the base config skeleton contains an empty dict, meaning that the contents could
-    vary.
+    This is a recursive procedure; the section depth should not be that great.
     """
     new_section = {}
-    for s_key, s_val in sec1:
-        if isinstance(s_val, dict):
+    for s_key, s_val in sec1.iteritems():
+        if isinstance(s_val, collections.Mapping):
             # s_val is a dict (section)
             # We require that if a section is present at s_key in sec1, then if sec2 has this
-            # key present, then it must also be a section.
-            if s_key in sec2:
-                if not isinstance(sec2[s_key], dict):
-                    raise KeyError("Base configuration requires key '%s' to be a section.")
-                # If the dict (s_val) is empty, then a special case arises in which the content of
-                # the section is undefined.  In this case, we need to merge from both sections,
-                # instead of just sec1.
-                if merge_both or not s_val:
-                    # If merge_both is true, then we are already in the special case.  If s_val is
-                    # empty, then the special case is required.  Note that if s_val is not empty
-                    # but sec2[s_key] is an empty dict, then the special case (merge_both) is not
-                    # invoked, unless we are already in the special case, which essentially will
-                    # have no effect.
-                    new_section[s_key] = _section_merge(s_val, sec2[s_key], merge_both=True)
+            # key present, then it must also be a section or None, which is just shorthand for an
+            # empty dict.
+            if sec2.get(s_key, None) is not None:
+                if not isinstance(sec2[s_key], collections.Mapping):
+                    raise KeyError("Base configuration requires key '%s' to be a section (map)." % s_key)
+                elif not s_val:
+                    # empty dict in sec1
+                    new_section[s_key] = _section_merge(sec2[s_key], {})
                 else:
                     new_section[s_key] = _section_merge(s_val, sec2[s_key])
             else:
-                # s_key not present in sec2
-                new_section[s_key] = s_val
+                # We don't simply assign s_val here, as we don't know which dict implementation it
+                # is.  This way the resulting config object consists of plain dicts.
+                new_section[s_key] = _section_merge(s_val, {})
         elif s_key in sec2:
             # s_val is not a dict, s_key present in sec2
+            if not isinstance(s_val, sec2[s_key].__class__):
+                raise ValueError("Type mismatch of config value for key '%s'. Must be %s." % (s_key, type(s_val)))
             new_section[s_key] = sec2[s_key]
         else:
             # s_val is not a dict, s_key not present in sec2
             new_section[s_key] = s_val
 
-    if merge_both:
-        # Merge from sec2.  This will only be those keys not present in sec1.
-        for s_key, s_val in sec2:
-            if s_key not in new_section:
-                # Here we don't care what s_val is, as s_key is not present.
-                new_section[s_key] = s_val
-
     return new_section
+
+def _section_update_readonly(readonly_sec, merged_sec):
+    """
+    Add the readonly keys to the merged dict.
+
+    This is a recursive procedure; the section depth should not be that great.
+    """
+    for s_key, s_val in readonly_sec.iteritems():
+        if isinstance(s_val, collections.Mapping):
+            # s_val is a dict (section)
+            if s_key not in merged_sec:
+                merged_sec[s_key] = {}
+            _section_update_readonly(s_val, merged_sec[s_key])
+        else:
+            if merged_sec.get(s_key, None) is not None:
+                raise ValueError("Cannot override values of read-only keys.  Key: '%s'." % s_key)
+            merged_sec[s_key] = s_val

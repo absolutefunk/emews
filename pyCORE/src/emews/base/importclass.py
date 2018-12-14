@@ -27,7 +27,7 @@ def import_class_from_module(class_path, class_name=None):
     class_name is not given, then assume the class name itself is part of the class_path.
     '''
     if class_name is None:
-        class_path, class_name = class_path.lpartition(".")[2]
+        class_path, class_name = class_path.rsplit(".", 1)
 
     # resolve the class module
     class_module = importlib.import_module(class_path)

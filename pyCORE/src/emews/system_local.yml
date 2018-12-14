@@ -1,11 +1,11 @@
-# Global configuration for the eMews system.  It is assumed that all nodes share this configuration
+# Configuration for eMews when in local mode.  It is assumed that all nodes share this configuration
 # file.  To override or add configuration options on a per-node level, use a node configuration file.
 # For environments in which each node has its own copy of eMews, the node configuration file is not
 # needed, as this file would be unique to each node.
 # YAML 1.2 compliant
 general:  # general eMews daemon options
   # Delay (seconds) to start services from eMews daemon invocation.
-  service_start_delay: 300
+  service_start_delay: 20
   # Delay to wait for 'graceful' thread shutdown.  After this wait, continue shut down.
   thread_shutdown_wait: 5  # in seconds (-1 = disable)
 
@@ -14,13 +14,7 @@ communication:  # communication related eMews daemon options
   port: 32518      # port to use
 
 logging:  # logging configuration
-  logger: emews.distributed  # send log messages to a designated node across the network
+  logger: emews.base  # send log messages to a designated node across the network
   message_level: DEBUG  # log messages of this level and above
   logger_parameters:  # parameters specific to the chosen logger
-    host: 10.0.0.21  # host/IP to send log entries to (designated node)
-    port: 32519  # port on destination host to send log entries to
-
-startup_services:
-  # Any services which should start immediately can be placed here.  Per node startup services
-  # should be placed in the respective node config file.  # Services which do not need to be started
-  # immediately should be launched using a request client, to minimize initial memory spikes.
+    stream: 'ext://sys.stdout'

@@ -15,6 +15,7 @@ Created on Mar 24, 2018
 import argparse
 
 import emews.base.system_init
+import emews.version
 
 # TODO: test launching eMews with python -OO
 
