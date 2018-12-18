@@ -34,7 +34,8 @@ init_config_options:
     logging:
       logger: emews.base
       message_level: DEBUG  # log messages of this level and above (default)
-      logger_parameters: {}  # any KVs in an override will work
+      logger_parameters:
+        emews-overwrite: True  # any KVs in an override will work, and always overwrite the section
 
 # System configuration skeleton.  This is the configuration structure after eMews system init.
 system_config_options:

@@ -107,7 +107,12 @@ def _init_base_logger(log_config):
 
         if handler_class_path == 'logging.StreamHandler':
             # StreamHandler requires a reference to the stream, so we need to take care of that.
-            stream_path, stream_name = log_config['logger_parameters']['stream'].rsplit(".", 1)
+            try:
+                stream_path, stream_name = log_config['logger_parameters']['stream'].rsplit(".", 1)
+            except KeyError as ex:
+                raise KeyError("%s requires logger_parameters key: %s"
+                               % (str(logger_type), str(ex)))
+
             handler_options['stream'] = getattr(sys.modules[stream_path], stream_name)
         else:
             handler_options.update(log_config['logger_parameters'])
@@ -165,9 +170,10 @@ def _section_merge(sec1, sec2):
             if sec2.get(s_key, None) is not None:
                 if not isinstance(sec2[s_key], collections.Mapping):
                     raise KeyError("Base configuration requires key '%s' to be a section (map)." % s_key)
-                elif not s_val:
-                    # empty dict in sec1
+                elif not s_val or 'emews-overwrite' in s_val:
+                    # empty dict in sec1 or 'emews-overwrite' key is present
                     new_section[s_key] = _section_merge(sec2[s_key], {})
+                    new_section[s_key]['emews-overwrite'] = True
                 else:
                     new_section[s_key] = _section_merge(s_val, sec2[s_key])
             else:
