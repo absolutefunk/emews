@@ -25,10 +25,9 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
     '''
     # config dependency injection pre-__init__
     # derive new type to get around meta conflict between the injector and ABCMeta
-    __metaclass__ = type(
-        'BaseServiceMeta',
+    __metaclass__ = type('BaseServiceMeta',
         (type(emews.services.iservice.IService), emews.base.config.InjectionMeta), {})
-    __slots__ = ('_di_config', '_di_helpers', '_service_interrupt_event', '_interrupted')
+    __slots__ = ('_di_config', '_name', '_service_interrupt_event', '_interrupted')
 
     def __init__(self):
         '''
@@ -48,11 +47,11 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
         return self._di_config
 
     @property
-    def helpers(self):
+    def name(self):
         '''
-        Returns the helpers object.
+        Returns the service's name.
         '''
-        return self._di_helpers
+        return self._name
 
     @property
     def interrupted(self):
@@ -68,7 +67,7 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
         if self._interrupted:
             return
 
-        self.logger.debug("Sleeping for %s seconds.", time)
+        self.logger.debug("%s sleeping for %s seconds.", self.name, time)
         self._service_interrupt_event.wait(time)
 
     @abstractmethod
@@ -82,13 +81,18 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
         '''
         @Override Starts the service.
         '''
-        self.logger.debug("Service starting.")
-        self.run_service()
+        self.logger.debug("%s starting.", self.name)
+
+        try:
+            self.run_service()
+        except Exception as ex:
+            self.logger.error("%s terminated abruptly (exception: %s)", self.name, ex)
+            raise
 
         if not self._interrupted:
-            self.logger.debug("Service stopping (finished)...")
+            self.logger.debug("%s stopping (finished)...", self.name)
         else:
-            self.logger.debug("Service stopping (requested) ...")
+            self.logger.debug("%s stopping (requested) ...", self.name)
 
     def stop(self):
         '''

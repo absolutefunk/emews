@@ -25,9 +25,9 @@ class IService(emews.base.irunnable.IRunnable):
         pass
 
     @abc.abstractproperty
-    def helpers(self):
+    def name(self):
         '''
-        Returns the helpers object.
+        Returns the service's name.
         '''
         pass
 

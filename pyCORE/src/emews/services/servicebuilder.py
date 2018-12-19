@@ -77,7 +77,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
             try:
                 config_dict = emews.base.config.parse(service_config_path)
             except IOError as ex:
-                self.logger.warning("Could not load default configuration, continuing with none...")
+                self.logger.warning("Could not load default configuration, continuing with none.")
                 return
             self.logger.info("Loaded default configuration: %s", service_config_path)
             self._service_config = config_dict
@@ -109,6 +109,10 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         '''
         builds the service
         '''
+        #TODO: remove all helper code
+        #TODO: Add 'name' to base_service_config as a new key.  Name is the service class name + an
+        # ID which is unique to the service class (ie, AutoSSH will have it's own IDs starting from
+        # zero).
         base_service_config = self._process_config(self._service_config)
         try:
             service_instantiation = self._service_class(_inject=base_service_config)
