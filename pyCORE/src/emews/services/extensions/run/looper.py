@@ -1,14 +1,16 @@
-'''
-A decorator that runs a service in a loop, according to a sampler.
-This implies that the core functionality of the service itself is not infinite in duration,
-but that its behavior needs to be looped for the service duration to be infinite.
+"""
+eMews Service Extension
+
+Runs a service in a loop, according to a sampler.  This implies that the core functionality of the
+service itself is not infinite in duration, but that its behavior needs to be looped for the service
+duration to be infinite.
 
 Created on Mar 5, 2018
 @author: Brian Ricks
-'''
+"""
 import emews.services.extensions.service_extension
 
-class LoopedService(emews.services.extensions.service_extension.ServiceExtension):
+class Looper(emews.services.extensions.service_extension.ServiceExtension):
     '''
     classdocs
     '''
@@ -36,11 +38,7 @@ class LoopedService(emews.services.extensions.service_extension.ServiceExtension
                 '''
                 self.logger.debug("Caught shutdown request ...")
                 break
-            try:
-                super(LoopedService, self).start()
-            except StandardError as ex:
-                self.logger.error("Service raised exception.  Stopping loop ...")
-                self.logger.debug("Exception reason: %s", ex)
-                raise
+
+            super(Looper, self).start()
 
         self.logger.info("Exiting loop ...")
