@@ -1,5 +1,8 @@
 # Sample node configuration for the eMews system, configured for stream-based logging.
 # YAML 1.2 compliant
+general:
+  node_name: sl-node
+
 logging:  # logging configuration
   logger: emews.base  # send log messages to a designated node across the network
   message_level: DEBUG  # log messages of this level and above

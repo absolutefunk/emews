@@ -21,17 +21,12 @@ class BaseListener(emews.base.baseobject.BaseObject, emews.base.inet.INet):
 
     def __init__(self, config, handler_listener):
         """Constructor."""
-        super(BaseListener, self).__init__(config)
+        super(BaseListener, self).__init__()
 
         self._interrupted = False  # sets to true when stop() invoked
         self._handler_listener = handler_listener
-
-        try:
-            self._host = self.config.get('host')
-            self._port = self.config.get('port')
-        except emews.base.exceptions.KeychainException as ex:
-            self.logger.error(ex)
-            raise
+        self._host = config['host']
+        self._port = config['port']
 
         # parameter checks
         if self._host == '':

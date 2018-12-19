@@ -46,7 +46,7 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
         if not self.system.local:
             start_delay = config['service_start_delay']
             if start_delay > 0:
-                self.logger.debug("Beginning service start delay of %d seconds.", start_delay)
+                self.logger.info("Beginning service start delay of %d seconds.", start_delay)
                 self.delay_dispatch(start_delay)
         else:
             self.logger.info("Service start delay ignored due to running in local mode.")
@@ -132,11 +132,11 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
         # and invoking cancel().
         with self._delay_lock:
             if self._delay_timer is not None:
-                self._logger.debug("Delay dispatch timer is active, cancelling ...")
+                self.logger.debug("Delay dispatch timer is active, cancelling ...")
                 self._delay_timer.cancel()
                 self._delay_timer.join()
 
-        self._logger.info("%d dispatched thread(s) to shutdown.", self.count)
+        self.logger.info("%d dispatched thread(s) to shutdown.", self.count)
 
         if self.count > 0:
             for active_thread in self._active_threads:

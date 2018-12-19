@@ -49,7 +49,7 @@ def system_init(args):
         'init_config_options', base_config, system_config, node_config)
 
     # get the node name
-    node_name = _get_node_name(config_start_dict, args.node_name)
+    node_name = _get_node_name(config_start_dict['general'], args.node_name)
 
     # init the logger
     logger = logging.LoggerAdapter(
@@ -182,7 +182,7 @@ def _section_merge(sec1, sec2):
                 new_section[s_key] = _section_merge(s_val, {})
         elif s_key in sec2:
             # s_val is not a dict, s_key present in sec2
-            if not isinstance(s_val, sec2[s_key].__class__):
+            if s_val is not None and not isinstance(s_val, sec2[s_key].__class__):
                 raise ValueError("Type mismatch of config value for key '%s'. Must be %s." % (s_key, type(s_val)))
             new_section[s_key] = sec2[s_key]
         else:
