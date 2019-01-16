@@ -43,8 +43,7 @@ class TruncnormSampler(emews.samplers.valuesampler.ValueSampler):
             self.logger.debug("One or more parameters is None (null).  "\
                 "Must update these parameters before calling next_value().")
 
-    @property
-    def next_value(self):
+    def sample(self):
         '''
         samples using a truncated normal distribution
         '''
@@ -67,9 +66,3 @@ class TruncnormSampler(emews.samplers.valuesampler.ValueSampler):
         self._dist = truncnorm(
             (self._lower_bound - mu) / self._sigma, \
             (self._upper_bound - mu) / self._sigma, loc=mu, scale=self._sigma)
-
-    def reset(self):
-        '''
-        @Override Resets to the start values.  Currently not implemented.
-        '''
-        raise NotImplementedError("Sampler currently does not support resetting parameters.")

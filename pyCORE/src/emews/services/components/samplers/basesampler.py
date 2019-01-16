@@ -15,14 +15,7 @@ class BaseSampler(emews.base.baseobject.BaseObject):
     classdocs
     '''
     __metaclass_ = emews.base.config.InjectionMeta
-    __slots__ = ('_di_config',)
-
-    @property
-    def config(self):
-        '''
-        Returns the config object.
-        '''
-        return self._di_config
+    __slots__ = ()
 
     @abstractmethod
     def sample(self):
@@ -31,18 +24,13 @@ class BaseSampler(emews.base.baseobject.BaseObject):
         '''
         pass
 
-    @abstractmethod
-    def update(self):
+    def update(self, **params):
         '''
-        Called by update_parameters after parameters have been updated.  Useful if model needs to be
-        updated / reinstantiated.
+        Updates parameters of the model.
         '''
-        pass
-
-    def update_parameters(self, **params):
-        '''
-        Given a dict of params, update the config.  Any missing keys will be copied from the
-        current config.  Any keys passed to this method which are not in the original config will
-        be ignored.
-        '''
-        self.update()
+        for param, val in params:
+            try:
+                setattr(self, param, val)
+            except AttributeError:
+                self.logger.debug("Ignoring parameter '%s', which does not exist.")
+                continue

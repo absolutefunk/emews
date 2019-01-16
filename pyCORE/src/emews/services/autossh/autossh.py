@@ -68,7 +68,7 @@ class AutoSSH(emews.services.baseservice.BaseService):
             if self.interrupted:
                 break
 
-            self.command_sampler.update_parameters(upper_bound=len(command_list) - 1)
+            self.command_sampler.update(upper_bound=len(command_list) - 1)
             next_command = command_list.pop(self.command_sampler.sample())
             self.logger.debug("Next Command: %s", next_command)
 

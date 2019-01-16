@@ -6,22 +6,15 @@ Created on Feb 26, 2018
 '''
 import random
 
-import emews.helpers.requires.samplers.basesampler
+import emews.services.components.samplers.basesampler
 
-class UniformSampler(emews.helpers.requires.samplers.basesampler.BaseSampler):
+class UniformSampler(emews.services.components.samplers.basesampler.BaseSampler):
     '''
     classdocs
     '''
-    __slots__ = ()
 
     def sample(self):
         '''
         @Override samples using a bounded uniform distribution
         '''
-        return random.randint(self.config.lower_bound, self.config.upper_bound)
-
-    def update(self):
-        '''
-        @Override invoked after parameters are updated.
-        '''
-        pass
+        return random.randint(self.lower_bound, self.upper_bound)
