@@ -1,5 +1,5 @@
 """
-eMews Service Extension
+eMews Service Modifier
 
 Runs a service in a loop, according to a sampler.  This implies that the core functionality of the
 service itself is not infinite in duration, but that its behavior needs to be looped for the service
@@ -8,9 +8,9 @@ duration to be infinite.
 Created on Mar 5, 2018
 @author: Brian Ricks
 """
-import emews.services.extensions.service_extension
+import emews.services.modifiers.service_modifier
 
-class Looper(emews.services.extensions.service_extension.ServiceExtension):
+class Looper(emews.services.modifers.service_extension.ServiceModifier):
     '''
     classdocs
     '''
@@ -25,7 +25,7 @@ class Looper(emews.services.extensions.service_extension.ServiceExtension):
         Runs the service in a loop based on the sampler
         '''
         while True:
-            self.sleep(self.helpers.loop_sampler.sample())
+            self.sleep(self.components.loop_sampler.sample())
 
             if self.interrupted:
                 '''

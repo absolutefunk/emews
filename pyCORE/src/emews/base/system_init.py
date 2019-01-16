@@ -41,11 +41,11 @@ def system_init(args):
         if args.node_config is not None else {}
 
     # prepare eMews daemon config dict
-    config_start_dict = _merge_configs(
+    config_start_dict = emews.base.config.merge_configs(
         'system_config_options', base_config, system_config, node_config)
 
     # prepare the init dict (only used locally)
-    config_init_dict = _merge_configs(
+    config_init_dict = emews.base.config.merge_configs(
         'init_config_options', base_config, system_config, node_config)
 
     # get the node name
@@ -120,85 +120,3 @@ def _init_base_logger(log_config):
         logger.addHandler(logging.NullHandler())
 
     return logger
-
-# TODO: Move this to config.py!!
-def _merge_configs(merge_type, *config_dicts):
-    """
-    Merge the input config files by key, in order of precedence.
-
-    Precedence order: base config, system config, node config.
-    For example, values in node config could override values in system config.
-    """
-    if len(config_dicts) < 2:
-        # must be at least two dicts to merge
-        raise ValueError("At least two dicts must be passed.")
-
-    first_dict = True
-    merged_dict = None
-    readonly_dict = None
-    for config_dict in config_dicts:
-        if first_dict:
-            first_dict = False
-            # first dict is assumed to be the base config dict
-            merged_dict = config_dict[merge_type]['overrides']
-            readonly_dict = config_dict[merge_type]['readonly']
-            continue
-
-        merged_dict = _section_merge(merged_dict, config_dict)
-
-    # add in the read-only options
-    _section_update_readonly(readonly_dict, merged_dict)
-    return merged_dict
-
-def _section_merge(sec1, sec2, keychain="root"):
-    """
-    Merge the first section with the second section given.  A section is a dict.
-
-    This is a recursive procedure; the section depth should not be that great.
-    """
-    new_section = {}
-
-    for s1_key, s1_val in sec1.iteritems():
-        s2_val = sec2.get(s1_key, None)  # if sec2 doesn't contain s1_key, or s1_key is None
-
-        if isinstance(s1_val, collections.Mapping):
-            # s1_val is a section
-            cur_kc = keychain + str(s1_key)
-
-            if not isinstance(s2_val, collections.Mapping):
-                raise TypeError("While parsing configuration at %s: Attempted override of section with a non-section type." % cur_kc)
-
-            if s2_val is None:
-                # this ensures the resulting section is a basic dict
-                new_section[s1_key] = _section_merge(s1_val, {}, keychain=cur_kc)
-            else:
-                new_section[s1_key] = _section_merge(s1_val, s2_val, keychain=cur_kc)
-
-        elif s2_val is not None:
-            if s1_val is not None and not isinstance(s1_val, s2_val.__class__):
-                # if s1_val is None, then just overwrite it with s2_val
-                raise ValueError("Type mismatch of config value for key '%s'. Must be %s." % (s_key, type(s_val)))
-
-            new_section[s1_key] = s2_val
-        else:
-            # s1_val not a section and s1_key either not present in sec2 or s2_val is None
-            new_section[s1_key] = s1_val
-
-    return new_section
-
-def _section_update_readonly(readonly_sec, merged_sec):
-    """
-    Add the readonly keys to the merged dict.
-
-    This is a recursive procedure; the section depth should not be that great.
-    """
-    for s_key, s_val in readonly_sec.iteritems():
-        if isinstance(s_val, collections.Mapping):
-            # s_val is a dict (section)
-            if s_key not in merged_sec:
-                merged_sec[s_key] = {}
-            _section_update_readonly(s_val, merged_sec[s_key])
-        else:
-            if merged_sec.get(s_key, None) is not None:
-                raise ValueError("Cannot override values of read-only keys.  Key: '%s'." % s_key)
-            merged_sec[s_key] = s_val

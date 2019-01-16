@@ -8,9 +8,9 @@ exception (this decorator will still catch the exeception).
 Created on May 21, 2018
 @author: Brian Ricks
 '''
-import emews.services.extensions.service_extension
+import emews.services.modifiers.service_modifier
 
-class NoRaiseService(emews.services.extensions.service_extension.ServiceExtension):
+class NoRaiseService(emews.services.modifiers.service_modifier.ServiceModifier):
     '''
     classdocs
     '''
@@ -23,5 +23,4 @@ class NoRaiseService(emews.services.extensions.service_extension.ServiceExtensio
         except Exception as ex:  # pylint: disable=W0703
             self.logger.error("[%s] Raised exception: %s",
                               self._recipient_service.__class__.__name__, ex)
-            # Do not raise again, just exit.  If LoopedService is a child, then it'll restart
-            # This decorator.
+            # Do not raise again, just exit.

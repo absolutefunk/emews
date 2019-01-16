@@ -1,5 +1,5 @@
 '''
-Base class for emews service decorators (extensions).
+Base class for emews service decorators (modifiers).
 Subclasses when overriding the required methods can use super(cls, self) to access the methods
 being overridden.
 
@@ -10,12 +10,12 @@ import emews.base.baseobject
 import emews.base.config
 import emews.services.iservice
 
-class ServiceExtension(emews.base.baseobject.BaseObject, emews.services.iservice.IService):
+class ServiceModifier(emews.base.baseobject.BaseObject, emews.services.iservice.IService):
     '''
     classdocs
     '''
     __metaclass__ = type(
-        'ServiceExtensionMeta',
+        'ServiceModifierMeta',
         (type(emews.services.iservice.IService), emews.base.config.InjectionMeta), {})
     __slots__ = ('_di_config', '_di_helpers', '_di_recipient_service', '_ph')
 
@@ -26,7 +26,7 @@ class ServiceExtension(emews.base.baseobject.BaseObject, emews.services.iservice
         # self._config and self._helpers are injected by the metaclass before __init__ is invoked
         super(ServiceExtension, self).__init__()
 
-        # TODO: evaluate performance for services with many extensions. Large function call chains
+        # TODO: evaluate performance for services with many modifiers. Large function call chains
         # may cause significant slowdown.
 
         # NOTE: Placeholder instance variable to appease pylint.  When aggregating types, like above

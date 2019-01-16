@@ -18,19 +18,13 @@ class BaseObject(object):
     # itself means we need __slots__ defined here).
     # Any child classes in which a __dict__ is preferable can simply omit the __slots__ declaration
     # in its own class definition.
-    __slots__ = ()
+    __slots__ = ('sys', 'logger')
 
     # This is set during eMews system init, once the system properties are known, and BEFORE any
     # BaseObject instances are instantiated
     _SYSTEM_PROPERTIES = None
 
-    # Object properties (convenience methods)
-    @property
-    def logger(self):
-        """Return the logger object."""
-        return self._SYSTEM_PROPERTIES.logger
-
-    @property
-    def system(self):
-        """Return the system properties."""
-        return self._SYSTEM_PROPERTIES
+    def __init__(self):
+        """Constructor"""
+        self.sys = _SYSTEM_PROPERTIES
+        self.logger = _SYSTEM_PROPERTIES.logger

@@ -44,6 +44,5 @@ class BaseSampler(emews.base.baseobject.BaseObject):
         Given a dict of params, update the config.  Any missing keys will be copied from the
         current config.  Any keys passed to this method which are not in the original config will
         be ignored.
-        Note, config objects are Namedtuples.
         '''
         self.update()

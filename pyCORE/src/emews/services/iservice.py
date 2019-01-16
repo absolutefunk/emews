@@ -17,27 +17,6 @@ class IService(emews.base.irunnable.IRunnable):
     '''
     __slots__ = ()
 
-    @abc.abstractproperty
-    def config(self):
-        '''
-        Returns the config object.
-        '''
-        pass
-
-    @abc.abstractproperty
-    def name(self):
-        '''
-        Returns the service's name.
-        '''
-        pass
-
-    @abc.abstractproperty
-    def interrupted(self):
-        '''
-        Returns true if the service has been interrupted (requested to stop)
-        '''
-        pass
-
     @abc.abstractmethod
     def initialize(self, stage):
         '''

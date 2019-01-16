@@ -27,7 +27,7 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
     # derive new type to get around meta conflict between the injector and ABCMeta
     __metaclass__ = type('BaseServiceMeta',
         (type(emews.services.iservice.IService), emews.base.config.InjectionMeta), {})
-    __slots__ = ('_di_config', '_name', '_service_interrupt_event', '_interrupted')
+    __slots__ = ('name', 'interrupted', '_service_interrupt_event')
 
     def __init__(self):
         '''
@@ -37,28 +37,7 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
         super(BaseService, self).__init__()
 
         self._service_interrupt_event = Event()  # used to interrupt Event.wait() on stop()
-        self._interrupted = False  # set to true on stop()
-
-    @property
-    def config(self):
-        '''
-        Returns the config object.
-        '''
-        return self._di_config
-
-    @property
-    def name(self):
-        '''
-        Returns the service's name.
-        '''
-        return self._name
-
-    @property
-    def interrupted(self):
-        '''
-        Returns true if the service has been interrupted (requested to stop).  Uses events.
-        '''
-        return self._interrupted
+        self.interrupted = False  # set to true on stop()
 
     def sleep(self, time):
         '''
@@ -74,6 +53,12 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
     def run_service(self):
         '''
         Where the service entrance code goes.  Must be implemented by child class.
+        '''
+        pass
+
+    def initialize(self, stage):
+        '''
+        @Override stage-specific initialization.
         '''
         pass
 
