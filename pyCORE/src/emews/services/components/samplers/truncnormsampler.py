@@ -11,37 +11,23 @@ from scipy.stats import truncnorm
 from emews.base.exceptions import KeychainException
 import emews.samplers.valuesampler
 
-class TruncnormSampler(emews.samplers.valuesampler.ValueSampler):
+class TruncnormSampler(emews.services.components.samplers.basesampler.BaseSampler):
     '''
     classdocs
     '''
+    __slots__ = ('lower_bound', 'upper_bound', 'sigma', '_dist')
+
     def __init__(self, config):
-        '''
-        Constructor
-        Class fields are declared here for readability
-        '''
-        super(TruncnormSampler, self).__init__(config)
+        """Constructor"""
+        self.upper_bound = config['upper_bound']
+        self.sigma = config['lower_bound']
 
-        self._upper_bound = None
-        self._sigma = None
+        self.lower_bound = 0
 
-        try:
-            self._upper_bound = self.parameters.get('upper_bound')
-            self._sigma = self.parameters.get('sigma')
-        except KeychainException as ex:
-            self.logger.error(ex)
-            raise
-
-        self._lower_bound = 0
-
-        if self._upper_bound is not None and self._sigma is not None:
-            mu = self._upper_bound / 2.0
-            self._dist = truncnorm(
-                (self._lower_bound - mu) / self._sigma, \
-                (self._upper_bound - mu) / self._sigma, loc=mu, scale=self._sigma)
-        else:
-            self.logger.debug("One or more parameters is None (null).  "\
-                "Must update these parameters before calling next_value().")
+        if self.upper_bound is not None and self.sigma is not None:
+            mu = self.upper_bound / 2.0
+            self._dist = truncnorm((self.lower_bound - mu) / self.sigma, \
+                (self.upper_bound - mu) / self.sigma, loc=mu, scale=self.sigma)
 
     def sample(self):
         '''
