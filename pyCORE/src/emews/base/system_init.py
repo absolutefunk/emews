@@ -89,39 +89,35 @@ def _get_node_name(config, arg_name):
 
 def _init_base_logger(log_config):
     """Set up the logger."""
-    logger_type = log_config['logger']
     message_level = log_config['message_level']
 
-    logger = logging.getLogger(logger_type)
+    logger = logging.getLogger(log_config['logger_name'])
     logger.setLevel(message_level)
     logger.propagate = False
 
-    print "Using logger: " + str(logger_type)
-
-    for handler_class_path in log_config['log_types'][logger_type]['handlers']:
-        handler_class = emews.base.importclass.import_class_from_module(handler_class_path)
-        # TODO: Verify handler_options in system.yml to make sure invalid handler options and
-        # options which shouldn't be overridden are not processed (ie, throw exception or something)
-        handler_options = {}
-        handler_options.update(log_config['log_handlers'][handler_class_path])
-
-        if handler_class_path == 'logging.StreamHandler':
-            # StreamHandler requires a reference to the stream, so we need to take care of that.
-            try:
-                stream_path, stream_name = log_config['logger_parameters']['stream'].rsplit(".", 1)
-            except KeyError as ex:
-                raise KeyError("%s requires logger_parameters key: %s"
-                               % (str(logger_type), str(ex)))
-
-            handler_options['stream'] = getattr(sys.modules[stream_path], stream_name)
-        else:
-            handler_options.update(log_config['logger_parameters'])
-
-        handler_obj = handler_class(**handler_options)
+    logger_enabled = False
+    if log_config['file']:
+        # log to a file
+        handler_obj = logging.FileHandler(mode='a', delay=True, filename=log_config['file'])
         handler_obj.setLevel(message_level)
         handler_obj.setFormatter(logging.Formatter(log_config['message_format']))
-
         logger.addHandler(handler_obj)
+        logger_enabled = True
+
+    if log_config['stream']:
+        # log to a stream
+        stream_path, stream_name = log_config['stream'].rsplit(".", 1)
+
+        handler_obj = logging.StreamHandler(stream=getattr(sys.modules[stream_path], stream_name))
+        handler_obj.setLevel(message_level)
+        handler_obj.setFormatter(logging.Formatter(log_config['message_format']))
+        logger.addHandler(handler_obj)
+        logger_enabled = True
+
+    if not logger_enabled:
+        # logging disabled
+        print "No file or stream specified for logging.  Logging disabled (no output) ..."
+        logger.addHandler(logging.NullHandler())
 
     return logger
 
@@ -154,40 +150,39 @@ def _merge_configs(merge_type, *config_dicts):
     _section_update_readonly(readonly_dict, merged_dict)
     return merged_dict
 
-def _section_merge(sec1, sec2):
+def _section_merge(sec1, sec2, keychain="root"):
     """
     Merge the first section with the second section given.  A section is a dict.
 
     This is a recursive procedure; the section depth should not be that great.
     """
     new_section = {}
-    for s_key, s_val in sec1.iteritems():
-        if isinstance(s_val, collections.Mapping):
-            # s_val is a dict (section)
-            # We require that if a section is present at s_key in sec1, then if sec2 has this
-            # key present, then it must also be a section or None, which is just shorthand for an
-            # empty dict.
-            if sec2.get(s_key, None) is not None:
-                if not isinstance(sec2[s_key], collections.Mapping):
-                    raise KeyError("Base configuration requires key '%s' to be a section (map)." % s_key)
-                elif not s_val or 'emews-overwrite' in s_val:
-                    # empty dict in sec1 or 'emews-overwrite' key is present
-                    new_section[s_key] = _section_merge(sec2[s_key], {})
-                    new_section[s_key]['emews-overwrite'] = True
-                else:
-                    new_section[s_key] = _section_merge(s_val, sec2[s_key])
+
+    for s1_key, s1_val in sec1.iteritems():
+        s2_val = sec2.get(s1_key, None)  # if sec2 doesn't contain s1_key, or s1_key is None
+
+        if isinstance(s1_val, collections.Mapping):
+            # s1_val is a section
+            cur_kc = keychain + str(s1_key)
+
+            if not isinstance(s2_val, collections.Mapping):
+                raise TypeError("While parsing configuration at %s: Attempted override of section with a non-section type." % cur_kc)
+
+            if s2_val is None:
+                # this ensures the resulting section is a basic dict
+                new_section[s1_key] = _section_merge(s1_val, {}, keychain=cur_kc)
             else:
-                # We don't simply assign s_val here, as we don't know which dict implementation it
-                # is.  This way the resulting config object consists of plain dicts.
-                new_section[s_key] = _section_merge(s_val, {})
-        elif s_key in sec2:
-            # s_val is not a dict, s_key present in sec2
-            if s_val is not None and not isinstance(s_val, sec2[s_key].__class__):
+                new_section[s1_key] = _section_merge(s1_val, s2_val, keychain=cur_kc)
+
+        elif s2_val is not None:
+            if s1_val is not None and not isinstance(s1_val, s2_val.__class__):
+                # if s1_val is None, then just overwrite it with s2_val
                 raise ValueError("Type mismatch of config value for key '%s'. Must be %s." % (s_key, type(s_val)))
-            new_section[s_key] = sec2[s_key]
+
+            new_section[s1_key] = s2_val
         else:
-            # s_val is not a dict, s_key not present in sec2
-            new_section[s_key] = s_val
+            # s1_val not a section and s1_key either not present in sec2 or s2_val is None
+            new_section[s1_key] = s1_val
 
     return new_section
 

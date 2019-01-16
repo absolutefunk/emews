@@ -1,43 +1,20 @@
 # Base configuration file for the eMews daemon.
-# Note: only options listed here are valid for use.
 #
 # Editing this file could result in breaking eMews or core eMews functionality.
 
+# Init configuration skeleton.  Only used during system initialization.
 init_config_options:
-  readonly:
+  readonly:  # These K/Vs cannot be overwritten in a config file
     logging:
+      logger_name: emews.base
       message_format: '[%(asctime)s] %(nodename)-12.12s | %(threadName)-16.16s [%(levelname)-8.8s | %(module)-16.16s | %(funcName)-16.16s]: %(message)s'
-      log_types:  # logging types
-        emews.base:
-          handlers:
-          - logging.StreamHandler
-        emews.distributed:  # distributed logging (nodes send log messages to a designated node)
-          handlers:
-          - logging.handlers.SocketHandler
-        emews.file:  # logs to a file
-          handlers:
-          - logging.FileHandler
-        emews.testing:
-          handlers:
-          - logging.NullHandler
-      log_handlers:
-        logging.FileHandler:
-          filename: emews.log
-          mode: a
-          delay: True
-        logging.handlers.SocketHandler:
-          host: 127.0.0.1  # this should be overridden
-          port: 32519
-        logging.StreamHandler:
-          stream: 'sys.stdout'
-  overrides:
+  overrides:  # These K/Vs can be overwritten in a config file
     logging:
-      logger: emews.base
+      file: False  # file name, if given, will log to the file.  Set to False to disable
+      stream: 'sys.stdout'  # stream, if given, will log to the stream.  Set to False to disable
       message_level: DEBUG  # log messages of this level and above (default)
-      logger_parameters:
-        emews-overwrite: True  # any KVs in an override will work, and always overwrite the section
 
-# System configuration skeleton.  This is the configuration structure after eMews system init.
+# System configuration skeleton.  This is the configuration structure after initialization.
 system_config_options:
   readonly:
     communication:  # communication related eMews daemon options
