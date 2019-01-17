@@ -7,24 +7,23 @@ Created on Mar 30, 2018
 @author: Brian Ricks
 '''
 import emews.base.baseobject
-import emews.base.config
-import emews.services.iservice
+import emews.base.irunnable
 
-class ServiceModifier(emews.base.baseobject.BaseObject, emews.services.iservice.IService):
+class ServiceModifier(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunnable):
     '''
     classdocs
     '''
     __metaclass__ = type(
         'ServiceModifierMeta',
         (type(emews.services.iservice.IService), emews.base.config.InjectionMeta), {})
-    __slots__ = ('_di_config', '_di_helpers', '_di_recipient_service', '_ph')
+    __slots__ = ('_recipient_service', '_ph')
 
     def __init__(self):
         '''
         Constructor
         '''
         # self._config and self._helpers are injected by the metaclass before __init__ is invoked
-        super(ServiceExtension, self).__init__()
+        super(ServiceModifier, self).__init__()
 
         # TODO: evaluate performance for services with many modifiers. Large function call chains
         # may cause significant slowdown.
@@ -36,41 +35,27 @@ class ServiceModifier(emews.base.baseobject.BaseObject, emews.services.iservice.
         self._ph = None
 
     @property
-    def config(self):
-        '''
-        Returns the config object.
-        '''
-        return self._di_config
-
-    @property
-    def helpers(self):
-        '''
-        Returns the helpers object.
-        '''
-        return self._di_helpers
-
-    @property
     def interrupted(self):
         '''
         @Override Returns true if the service has been interrupted (requested to stop).
         Use implementaton from recipient_service.
         '''
-        return self._di_recipient_service.interrupted
+        return self._recipient_service.interrupted
 
     def sleep(self, time):
         '''
-        @Override calls the sleep implementaton of recipient_service.
+        Call the sleep implementaton of recipient_service.
         '''
-        self._di_recipient_service.sleep(time)
+        self._recipient_service.sleep(time)
 
     def start(self):
         '''
-        @Override Starts the service.
+        @Override (IRunnable) Starts the service.
         '''
-        self._di_recipient_service.start()
+        self._recipient_service.start()
 
     def stop(self):
         '''
-        @Override Gracefully exit service
+        @Override (IRunnable) Gracefully exit service
         '''
-        self._di_recipient_service.stop()
+        self._recipient_service.stop()

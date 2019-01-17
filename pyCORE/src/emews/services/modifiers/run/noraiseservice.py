@@ -16,7 +16,7 @@ class NoRaiseService(emews.services.modifiers.service_modifier.ServiceModifier):
     '''
     def start(self):
         '''
-        @Override Starts the service, with additional code to handle uncaught exceptions.
+        @Override Start the service, with additional code to handle uncaught exceptions.
         '''
         try:
             super(NoRaiseService, self).start()

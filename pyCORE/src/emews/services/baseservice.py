@@ -17,16 +17,16 @@ from threading import Event
 
 import emews.base.baseobject
 import emews.base.config
-import emews.services.iservice
+import emews.base.irunnable
 
-class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.IService):
+class BaseService(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunnable):
     '''
     classdocs
     '''
     # config dependency injection pre-__init__
     # derive new type to get around meta conflict between the injector and ABCMeta
     __metaclass__ = type('BaseServiceMeta',
-        (type(emews.services.iservice.IService), emews.base.config.InjectionMeta), {})
+        (type(emews.base.irunnable.IRunnable), emews.base.config.InjectionMeta), {})
     __slots__ = ('name', 'interrupted', '_service_interrupt_event')
 
     def __init__(self):
@@ -41,7 +41,7 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
 
     def sleep(self, time):
         '''
-        @Override Wraps the event.wait().  Convenience method.
+        Block the service for the given amount of time (in seconds).
         '''
         if self._interrupted:
             return
@@ -56,15 +56,9 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
         '''
         pass
 
-    def initialize(self, stage):
-        '''
-        @Override stage-specific initialization.
-        '''
-        pass
-
     def start(self):
         '''
-        @Override Starts the service.
+        @Override (IRunnable) Starts the service.
         '''
         self.logger.debug("%s starting.", self.name)
 
@@ -81,7 +75,7 @@ class BaseService(emews.base.baseobject.BaseObject, emews.services.iservice.ISer
 
     def stop(self):
         '''
-        @Override Gracefully exit service
+        @Override (IRunnable) Gracefully exit service
         '''
         self._service_interrupt_event.set()
         self._interrupted = True
