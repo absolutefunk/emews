@@ -9,11 +9,30 @@ Created on Feb 23, 2018
 from pexpect import pxssh
 
 import emews.services.baseservice
+import emews.services.components.common
 
 class AutoSSH(emews.services.baseservice.BaseService):
     '''
     classdocs
     '''
+    __slots__ = ('_host', '_port', '_username', '_password', '_command_list',
+                 '_num_commands_sampler', '_command_sampler', '_command_delay_sampler')
+
+    def __init__(self, config):
+        """Constructor"""
+        self._host = config['host']
+        self._port = config['port']
+        self._username = config['username']
+        self._password = config['password']
+
+        self._command_list = config['command_list']
+        self._num_commands_sampler =
+            emews.services.components.common.instantiate(config['num_commands_sampler'])
+        self._command_sampler =
+            emews.services.components.common.instantiate(config['command_sampler'])
+        self._command_delay_sampler =
+            emews.services.components.common.instantiate(config['command_delay_sampler'])
+
     def _send_ssh_command(self, ssh_client, next_command):
         '''
         Sends the next SSH command, and sets the command prompt.
@@ -51,31 +70,31 @@ class AutoSSH(emews.services.baseservice.BaseService):
             return
 
         try:
-            ssh_client.login(self.host,
-                             self.username,
-                             password=self.password,
-                             port=self.port)
+            ssh_client.login(self._host,
+                             self._username,
+                             password=self._password,
+                             port=self._port)
         except pxssh.ExceptionPxssh as ex:
             self.logger.warning("pxssh could not login to server: %s", ex)
             raise
 
         # As we are sampling without replacement, we need to copy the original list
-        command_list = list(self.command_list)
+        command_list = list(self._command_list)
 
         # loop until command count reached
-        num_commands = self.num_commands_sampler.sample()
+        num_commands = self._num_commands_sampler.sample()
         for _ in range(num_commands):
             if self.interrupted:
                 break
 
-            self.command_sampler.update(upper_bound=len(command_list) - 1)
-            next_command = command_list.pop(self.command_sampler.sample())
+            self._command_sampler.update(upper_bound=len(command_list) - 1)
+            next_command = command_list.pop(self._command_sampler.sample())
             self.logger.debug("Next Command: %s", next_command)
 
             if not self._send_ssh_command(ssh_client, next_command):
                 return
 
-            self.sleep(self.command_delay_sampler.sample())
+            self.sleep(self._command_delay_sampler.sample())
 
         self.logger.debug("Done executing commands, logging out...")
 
