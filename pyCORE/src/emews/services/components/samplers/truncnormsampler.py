@@ -35,20 +35,10 @@ class TruncnormSampler(emews.services.components.samplers.basesampler.BaseSample
         '''
         return int(round(self._dist.rvs(1)[0]))
 
-    def update_parameters(self, **kwargs):
+    def update_sampler(self, **kwargs):
         '''
-        @Override updates some or all parameters
+        @Override re-instantiate distribution with new parameters
         '''
-        if 'upper_bound' in kwargs:
-            self._upper_bound = kwargs.pop('upper_bound')
-            mu = self._upper_bound / 2.0
-        if 'sigma' in kwargs:
-            self._sigma = kwargs.pop('sigma')
-
-        for key, _ in kwargs:
-            self.logger.debug("Unknown parameter '%s' passed.  Ignoring ...", key)
-
-        # this is redundant if no parameters passed (method shouldn't be called in such case)
-        self._dist = truncnorm(
-            (self._lower_bound - mu) / self._sigma, \
-            (self._upper_bound - mu) / self._sigma, loc=mu, scale=self._sigma)
+        mu = self.upper_bound / 2.0
+        self._dist = truncnorm((self.lower_bound - mu) / self.sigma, \
+            (self.upper_bound - mu) / self.sigma, loc=mu, scale=self.sigma)

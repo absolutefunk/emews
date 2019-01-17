@@ -24,13 +24,26 @@ class BaseSampler(emews.base.baseobject.BaseObject):
         '''
         pass
 
+    @abstractmethod
+    def update_sampler(self):
+        """Update the sampler, given the new parameters.  Called by update()."""
+        pass
+
     def update(self, **params):
         '''
         Updates parameters of the model.
         '''
+        do_update = False
         for param, val in params:
             try:
                 setattr(self, param, val)
+                do_update = True
             except AttributeError:
                 self.logger.debug("Ignoring parameter '%s', which does not exist.")
                 continue
+
+        if not do_update:
+            self.logger.debug("Not invoking update_sampler(), as no parameters updated.")
+            return
+
+        self.update_sampler()
