@@ -25,6 +25,6 @@ class BaseObject(object):
     _SYSTEM_PROPERTIES = None
 
     def __init__(self):
-        """Constructor"""
-        self.sys = _SYSTEM_PROPERTIES
-        self.logger = _SYSTEM_PROPERTIES.logger
+        """Constructor."""
+        self.sys = self._SYSTEM_PROPERTIES
+        self.logger = self._SYSTEM_PROPERTIES.logger

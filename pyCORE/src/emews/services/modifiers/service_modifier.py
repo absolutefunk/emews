@@ -1,27 +1,26 @@
-'''
+"""
 Base class for emews service decorators (modifiers).
+
 Subclasses when overriding the required methods can use super(cls, self) to access the methods
 being overridden.
 
 Created on Mar 30, 2018
 @author: Brian Ricks
-'''
+"""
 import emews.base.baseobject
 import emews.base.irunnable
 
+
 class ServiceModifier(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunnable):
-    '''
-    classdocs
-    '''
+    """Classdocs."""
+
     __metaclass__ = type(
         'ServiceModifierMeta',
         (type(emews.services.iservice.IService), emews.base.config.InjectionMeta), {})
     __slots__ = ('_recipient_service', '_ph')
 
     def __init__(self):
-        '''
-        Constructor
-        '''
+        """Constructor."""
         # self._config and self._helpers are injected by the metaclass before __init__ is invoked
         super(ServiceModifier, self).__init__()
 
@@ -36,26 +35,22 @@ class ServiceModifier(emews.base.baseobject.BaseObject, emews.base.irunnable.IRu
 
     @property
     def interrupted(self):
-        '''
-        @Override Returns true if the service has been interrupted (requested to stop).
-        Use implementaton from recipient_service.
-        '''
+        """
+        @Override Interrupted state of the service.
+
+        If a service is interrupted, it has been requested by eMews to terminate gracefully.  Use
+        implementaton from recipient_service.
+        """
         return self._recipient_service.interrupted
 
     def sleep(self, time):
-        '''
-        Call the sleep implementaton of recipient_service.
-        '''
+        """Call the sleep implementaton of recipient_service."""
         self._recipient_service.sleep(time)
 
     def start(self):
-        '''
-        @Override (IRunnable) Starts the service.
-        '''
+        """@Override (IRunnable) Starts the service."""
         self._recipient_service.start()
 
     def stop(self):
-        '''
-        @Override (IRunnable) Gracefully exit service
-        '''
+        """@Override (IRunnable) Gracefully exit service."""
         self._recipient_service.stop()

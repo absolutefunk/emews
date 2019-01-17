@@ -1,5 +1,5 @@
 """
-eMews Service Modifier
+eMews Service Modifier.
 
 Runs a service in a loop, according to a sampler.  This implies that the core functionality of the
 service itself is not infinite in duration, but that its behavior needs to be looped for the service
@@ -11,21 +11,19 @@ Created on Mar 5, 2018
 import emews.services.components.common
 import emews.services.modifiers.service_modifier
 
+
 class Looper(emews.services.modifers.service_modifier.ServiceModifier):
-    '''
-    classdocs
-    '''
+    """classdocs."""
+
     __slots__ = ('_loop_sampler')
 
     def __init__(self, config):
-        """Constructor"""
+        """Constructor."""
         super(Looper, self).__init__()
         self._loop_sampler = emews.services.components.common.instantiate(config['loop_sampler'])
 
     def start(self):
-        '''
-        @Override Run the service in a loop, based on the sampler.
-        '''
+        """@Override Run the service in a loop, based on the sampler."""
         while True:
             self.sleep(self._loop_sampler.sample())
 

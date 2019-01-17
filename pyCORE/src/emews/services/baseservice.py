@@ -1,5 +1,6 @@
-'''
-Base class for emews services.
+"""
+Base class for eMews services.
+
 While this class is abstract, it still inherits the IService interface.  This is mainly to
 separate base service functionality from the service decorators, which would be redundant otherwise.
 Also instantiating decorators would be awkward if the base decorator had to call the BaseService
@@ -11,7 +12,7 @@ build the appropriate service can also perform module lookup.
 
 Created on Mar 5, 2018
 @author: Brian Ricks
-'''
+"""
 from abc import abstractmethod
 from threading import Event
 
@@ -19,20 +20,19 @@ import emews.base.baseobject
 import emews.base.config
 import emews.base.irunnable
 
+
 class BaseService(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunnable):
-    '''
-    classdocs
-    '''
+    """Classdocs."""
+
     # config dependency injection pre-__init__
     # derive new type to get around meta conflict between the injector and ABCMeta
-    __metaclass__ = type('BaseServiceMeta',
-        (type(emews.base.irunnable.IRunnable), emews.base.config.InjectionMeta), {})
+    __metaclass__ = type(
+        'BaseServiceMeta', (type(emews.base.irunnable.IRunnable), emews.base.config.InjectionMeta),
+        {})
     __slots__ = ('name', 'interrupted', '_service_interrupt_event')
 
     def __init__(self):
-        '''
-        Constructor
-        '''
+        """Constructor."""
         # self._config and self._helpers are injected by the metaclass before __init__ is invoked
         super(BaseService, self).__init__()
 
@@ -40,9 +40,7 @@ class BaseService(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunnab
         self.interrupted = False  # set to true on stop()
 
     def sleep(self, time):
-        '''
-        Block the service for the given amount of time (in seconds).
-        '''
+        """Block the service for the given amount of time (in seconds)."""
         if self._interrupted:
             return
 
@@ -51,15 +49,11 @@ class BaseService(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunnab
 
     @abstractmethod
     def run_service(self):
-        '''
-        Where the service entrance code goes.  Must be implemented by child class.
-        '''
+        """Where the service entrance code goes.  Must be implemented by child class."""
         pass
 
     def start(self):
-        '''
-        @Override (IRunnable) Starts the service.
-        '''
+        """@Override (IRunnable) Start the service."""
         self.logger.debug("%s starting.", self.name)
 
         try:
@@ -74,8 +68,6 @@ class BaseService(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunnab
             self.logger.debug("%s stopping (requested) ...", self.name)
 
     def stop(self):
-        '''
-        @Override (IRunnable) Gracefully exit service
-        '''
+        """@Override (IRunnable) Gracefully exit service."""
         self._service_interrupt_event.set()
         self._interrupted = True
