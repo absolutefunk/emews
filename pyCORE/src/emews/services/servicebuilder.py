@@ -1,54 +1,51 @@
-'''
+"""
 Builder for services.  Handles things such as configuration and which service to actually build.
 
 Created on Apr 2, 2018
 @author: Brian Ricks
-'''
+"""
 import os
 
 import emews.base.baseobject
 import emews.base.config
 import emews.base.importclass
 
+
 class ServiceBuilder(emews.base.baseobject.BaseObject):
-    '''
-    classdocs
-    '''
+    """classdocs."""
+
     def __init__(self):
-        '''
-        Constructor
-        '''
+        """Constructor."""
         super(ServiceBuilder, self).__init__()
 
         self._is_interrupted = False
         self._service_config = None
         self._service_class = None
 
-    @property
     def result(self):
-        '''
-        return a new service
-        '''
+        """Return a new service."""
         return self._build_service()
 
     def stop(self):
-        '''
-        Sets a stop flag.  Only useful if builder is instantiating decorators in a loop.
-        '''
+        """Set a stop flag.  Only useful if builder is instantiating decorators in a loop."""
         self.logger.debug("Stop flag set.")
         self._is_interrupted = True
 
     def service(self, val_service_name):
-        '''
-        Sets the service.  We do parsing of the service name to the module and class here so they
-        will be cached on build calls.
-        '''
+        """
+        Set the service.
+
+        We do parsing of the service name to the module and class here so they will be cached on
+        build calls.
+        """
         # Attempt to resolve the module.  If using emews naming, then service should also resolve.
         module_name = val_service_name.lower()
-        #because services are in a subfolder that is the same as their name, concatenate the module
+
+        # Because services are in a subfolder that is the same as their name, concatenate the module
         # name to the module_path.  Also, as we are passing the module name as part of the path,
         # concatenate the module name again.
         module_path = "emews.services." + module_name
+
         try:
             self._service_class = emews.base.importclass.import_class(val_service_name, module_path)
         except ImportError as ex:
@@ -62,10 +59,11 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
             raise
 
     def config_path(self, val_config_path):
-        '''
-        Sets the configuration component for the service.  Parsing of the config path is done
-        now for caching.
-        '''
+        """
+        Set the configuration component for the service.
+
+        Parsing of the config path is done now for caching.
+        """
         self._service_config = None
         if val_config_path is None and self._service_class is not None:
             # attempt to resolve config file from default service config path and service class
@@ -106,11 +104,9 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         self._service_config = config_dict
 
     def _build_service(self):
-        '''
-        builds the service
-        '''
-        #TODO: remove all helper code
-        #TODO: Add 'name' to base_service_config as a new key.  Name is the service class name + an
+        """Build the service."""
+        # TODO: remove all helper code
+        # TODO: Add 'name' to base_service_config as a new key.  Name is the service class name + an
         # ID which is unique to the service class (ie, AutoSSH will have it's own IDs starting from
         # zero).
         base_service_config = self._process_config(self._service_config)
