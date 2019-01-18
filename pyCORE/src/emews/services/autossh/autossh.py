@@ -1,43 +1,44 @@
-'''
-AutoSSH: Automates the process of a user logging into an SSH server, executing some commands, and
-logging out.  SSH server login rate and command execution rate are controlled by samplers set
-in the config.
+"""
+Automates the process of a user interacting with an SSH client.
+
+Automation includes logging in, executing some commands, and logging out.
 
 Created on Feb 23, 2018
 @author: Brian Ricks
-'''
+"""
 from pexpect import pxssh
 
 import emews.services.baseservice
 import emews.services.components.common
 
+
 class AutoSSH(emews.services.baseservice.BaseService):
-    '''
-    classdocs
-    '''
+    """Classdocs."""
+
     __slots__ = ('_host', '_port', '_username', '_password', '_command_list',
                  '_num_commands_sampler', '_command_sampler', '_command_delay_sampler')
 
     def __init__(self, config):
-        """Constructor"""
+        """Constructor."""
         self._host = config['host']
         self._port = config['port']
         self._username = config['username']
         self._password = config['password']
 
         self._command_list = config['command_list']
-        self._num_commands_sampler =
+        self._num_commands_sampler = \
             emews.services.components.common.instantiate(config['num_commands_sampler'])
-        self._command_sampler =
+        self._command_sampler = \
             emews.services.components.common.instantiate(config['command_sampler'])
-        self._command_delay_sampler =
+        self._command_delay_sampler = \
             emews.services.components.common.instantiate(config['command_delay_sampler'])
 
     def _send_ssh_command(self, ssh_client, next_command):
-        '''
-        Sends the next SSH command, and sets the command prompt.
-        Returns true if execution shoud continue, false otherwise.
-        '''
+        """
+        Send the next SSH command, and set the command prompt.
+
+        Return true if execution shoud continue, false otherwise.
+        """
         try:
             ssh_client.sendline(next_command)
         except pxssh.ExceptionPxssh as ex:
@@ -56,10 +57,7 @@ class AutoSSH(emews.services.baseservice.BaseService):
         return True
 
     def run_service(self):
-        '''
-        @Override Attempts to connect and login to the ssh server given with the
-        credentials given.
-        '''
+        """@Override Connect and login to the ssh server given with the credentials given."""
         try:
             ssh_client = pxssh.pxssh()
         except pxssh.ExceptionPxssh as ex:

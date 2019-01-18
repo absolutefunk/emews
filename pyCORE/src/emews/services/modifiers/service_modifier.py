@@ -17,21 +17,7 @@ class ServiceModifier(emews.base.baseobject.BaseObject, emews.base.irunnable.IRu
     __metaclass__ = type(
         'ServiceModifierMeta',
         (type(emews.services.iservice.IService), emews.base.config.InjectionMeta), {})
-    __slots__ = ('_recipient_service', '_ph')
-
-    def __init__(self):
-        """Constructor."""
-        # self._config and self._helpers are injected by the metaclass before __init__ is invoked
-        super(ServiceModifier, self).__init__()
-
-        # TODO: evaluate performance for services with many modifiers. Large function call chains
-        # may cause significant slowdown.
-
-        # NOTE: Placeholder instance variable to appease pylint.  When aggregating types, like above
-        # for the metaclasses, and if no instance variables are defined here, pylint throws an error
-        # that this is an old-style class .  I'm not sure if the error is legit (doubtful), so this
-        # will do until python 3 porting time.
-        self._ph = None
+    __slots__ = ('_recipient_service')
 
     @property
     def interrupted(self):
