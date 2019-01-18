@@ -1,20 +1,29 @@
-'''
-Samples from a bounded unform distribution,  inclusive [lower_bound, upper_bound].
+"""
+Samples from a bounded uniform distribution,  inclusive [lower_bound, upper_bound].
 
 Created on Feb 26, 2018
 @author: Brian Ricks
-'''
+"""
+
 import random
 
 import emews.services.components.samplers.basesampler
 
+
 class UniformSampler(emews.services.components.samplers.basesampler.BaseSampler):
-    '''
-    classdocs
-    '''
+    """classdocs."""
+
+    __slots__ = ('lower_bound', 'upper_bound')
+
+    def __init__(self, config):
+        """Constructor."""
+        self.upper_bound = config['upper_bound']
+        self.lower_bound = config['lower_bound']
+
+    def update_sampler(self):
+        """@Override Not needed."""
+        pass
 
     def sample(self):
-        '''
-        @Override samples using a bounded uniform distribution
-        '''
+        """@Override samples using a bounded uniform distribution."""
         return random.randint(self.lower_bound, self.upper_bound)

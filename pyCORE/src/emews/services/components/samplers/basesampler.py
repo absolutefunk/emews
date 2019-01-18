@@ -1,27 +1,25 @@
-'''
-BaseSampler: Abstract class for samplers.  These are classes which usually
-represent some distribution in which we can sample values from.
+"""
+BaseSampler: Abstract class for samplers.
+
+These are classes which usually represent some distribution in which we can sample values from.
 
 Created on Feb 26, 2018
 @author: Brian Ricks
-'''
+"""
 from abc import abstractmethod
 
 import emews.base.baseobject
-import emews.base.config
+
 
 class BaseSampler(emews.base.baseobject.BaseObject):
-    '''
-    classdocs
-    '''
+    """classdocs."""
+
     __metaclass_ = emews.base.config.InjectionMeta
     __slots__ = ()
 
     @abstractmethod
     def sample(self):
-        '''
-        Returns the next value sampled.
-        '''
+        """Return the next value sampled."""
         pass
 
     @abstractmethod
@@ -30,9 +28,7 @@ class BaseSampler(emews.base.baseobject.BaseObject):
         pass
 
     def update(self, **params):
-        '''
-        Updates parameters of the model.
-        '''
+        """Update parameters of the model."""
         do_update = False
         for param, val in params:
             try:
