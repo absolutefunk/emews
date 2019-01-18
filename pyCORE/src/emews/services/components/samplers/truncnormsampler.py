@@ -6,10 +6,9 @@ Mu is defined as the median in [lower_bound, upper_bound], and lower_bound = 0.
 Created on Feb 26, 2018
 @author: Brian Ricks
 """
-
 from scipy.stats import truncnorm
 
-import emews.samplers.valuesampler
+import emews.services.components.samplers.basesampler
 
 
 class TruncnormSampler(emews.services.components.samplers.basesampler.BaseSampler):
@@ -19,6 +18,7 @@ class TruncnormSampler(emews.services.components.samplers.basesampler.BaseSample
 
     def __init__(self, config):
         """Constructor."""
+        super(TruncnormSampler, self).__init__()
         self.upper_bound = config['upper_bound']
         self.sigma = config['lower_bound']
 

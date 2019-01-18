@@ -4,7 +4,6 @@ Samples from a bounded uniform distribution,  inclusive [lower_bound, upper_boun
 Created on Feb 26, 2018
 @author: Brian Ricks
 """
-
 import random
 
 import emews.services.components.samplers.basesampler
@@ -17,6 +16,7 @@ class UniformSampler(emews.services.components.samplers.basesampler.BaseSampler)
 
     def __init__(self, config):
         """Constructor."""
+        super(UniformSampler, self).__init__()
         self.upper_bound = config['upper_bound']
         self.lower_bound = config['lower_bound']
 
