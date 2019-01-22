@@ -9,7 +9,7 @@ Created on Feb 23, 2018
 from pexpect import pxssh
 
 import emews.services.baseservice
-import emews.services.components.common
+import emews.components.common
 
 
 class AutoSSH(emews.services.baseservice.BaseService):
@@ -29,11 +29,11 @@ class AutoSSH(emews.services.baseservice.BaseService):
 
         self._command_list = config['command_list']
         self._num_commands_sampler = \
-            emews.services.components.common.instantiate(config['num_commands_sampler'])
+            emews.components.common.instantiate(config['num_commands_sampler'])
         self._command_sampler = \
-            emews.services.components.common.instantiate(config['command_sampler'])
+            emews.components.common.instantiate(config['command_sampler'])
         self._command_delay_sampler = \
-            emews.services.components.common.instantiate(config['command_delay_sampler'])
+            emews.components.common.instantiate(config['command_delay_sampler'])
 
     def _send_ssh_command(self, ssh_client, next_command):
         """
