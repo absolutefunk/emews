@@ -6,10 +6,10 @@ Created on Feb 26, 2018
 """
 import random
 
-import emews.services.components.samplers.basesampler
+import emews.components.samplers.basesampler
 
 
-class UniformSampler(emews.services.components.samplers.basesampler.BaseSampler):
+class UniformSampler(emews.components.samplers.basesampler.BaseSampler):
     """classdocs."""
 
     __slots__ = ('lower_bound', 'upper_bound')

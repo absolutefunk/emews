@@ -8,10 +8,10 @@ Created on Feb 26, 2018
 
 @author: Brian Ricks
 """
-import emews.services.components.samplers.basesampler
+import emews.components.samplers.basesampler
 
 
-class SequentualIterator(emews.services.components.samplers.basesampler):
+class SequentualIterator(emews.components.samplers.basesampler):
     """Classdocs."""
 
     __slots__ = ('start_value', 'end_value', '_current_value')

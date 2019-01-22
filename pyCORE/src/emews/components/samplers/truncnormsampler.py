@@ -8,10 +8,10 @@ Created on Feb 26, 2018
 """
 from scipy.stats import truncnorm
 
-import emews.services.components.samplers.basesampler
+import emews.components.samplers.basesampler
 
 
-class TruncnormSampler(emews.services.components.samplers.basesampler.BaseSampler):
+class TruncnormSampler(emews.components.samplers.basesampler.BaseSampler):
     """Classdocs."""
 
     __slots__ = ('lower_bound', 'upper_bound', 'sigma', '_dist')
