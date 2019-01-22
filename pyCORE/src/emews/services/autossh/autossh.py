@@ -20,6 +20,8 @@ class AutoSSH(emews.services.baseservice.BaseService):
 
     def __init__(self, config):
         """Constructor."""
+        super(AutoSSH, self).__init__()
+
         self._host = config['host']
         self._port = config['port']
         self._username = config['username']
