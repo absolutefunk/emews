@@ -8,7 +8,7 @@ import os
 
 import emews.base.baseobject
 import emews.base.config
-import emews.base.importclass
+import emews.base.import_tools
 
 
 class ServiceBuilder(emews.base.baseobject.BaseObject):
@@ -38,24 +38,11 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         We do parsing of the service name to the module and class here so they will be cached on
         build calls.
         """
-        # Attempt to resolve the module.  If using emews naming, then service should also resolve.
-        module_name = val_service_name.lower()
-
-        # Because services are in a subfolder that is the same as their name, concatenate the module
-        # name to the module_path.  Also, as we are passing the module name as part of the path,
-        # concatenate the module name again.
-        module_path = "emews.services." + module_name
-
         try:
-            self._service_class = emews.base.importclass.import_class(val_service_name, module_path)
+            self._service_class = emews.base.import_tools.import_service(val_service_name)
         except ImportError as ex:
-            self.logger.error("Module name '%s' could not be resolved into a module: %s",
-                              module_name, ex)
-            raise
-        except AttributeError as ex:
-            self.logger.error("Service name '%s' could not be resolved into a class.",
-                              val_service_name)
-            self.logger.debug(ex)
+            self.logger.error("Service name '%s' could not be resolved: %s",
+                              val_service_name, ex)
             raise
 
     def config_path(self, val_config_path):
