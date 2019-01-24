@@ -14,99 +14,55 @@ import emews.base.import_tools
 class ServiceBuilder(emews.base.baseobject.BaseObject):
     """classdocs."""
 
-    def __init__(self):
-        """Constructor."""
-        super(ServiceBuilder, self).__init__()
-
-        self._is_interrupted = False
-        self._service_config = None
-        self._service_class = None
-
     def result(self):
         """Return a new service."""
         return self._build_service()
 
-    def stop(self):
-        """Set a stop flag.  Only useful if builder is instantiating decorators in a loop."""
-        self.logger.debug("Stop flag set.")
-        self._is_interrupted = True
+    @classmethod
+    def build(cls, service_name, service_config_name=None):
+        """Build the service."""
+        # service config
+        if service_config_name is None:
+            service_config_name = service_name.lower() + ".yml"
 
-    def service(self, val_service_name):
-        """
-        Set the service.
+        service_config_path = os.path.join(cls.sys.root_path, "services", service_config_name)
 
-        We do parsing of the service name to the module and class here so they will be cached on
-        build calls.
-        """
         try:
-            self._service_class = emews.base.import_tools.import_service(val_service_name)
-        except ImportError as ex:
-            self.logger.error("Service name '%s' could not be resolved: %s",
-                              val_service_name, ex)
+            service_config = cls._process_config(emews.base.config.parse(service_config_path))
+        except IOError:
+            cls.logger.error("Could not load service configuration: %s", service_config_path)
             raise
 
-    def config_path(self, val_config_path):
-        """
-        Set the configuration component for the service.
+        cls.logger.debug("Loaded service configuration: %s", service_config_path)
 
-        Parsing of the config path is done now for caching.
-        """
-        self._service_config = None
-        if val_config_path is None and self._service_class is not None:
-            # attempt to resolve config file from default service config path and service class
-            service_config_path = os.path.join(self.config.root_path, "services",
-                                               self._service_class.__name__.lower(),
-                                               self._service_class.__name__.lower() + ".yml")
-            self.logger.info("No configuration file given, attempting to load default: %s",
-                             service_config_path)
-            try:
-                config_dict = emews.base.config.parse(service_config_path)
-            except IOError as ex:
-                self.logger.warning("Could not load default configuration, continuing with none.")
-                return
-            self.logger.info("Loaded default configuration: %s", service_config_path)
-            self._service_config = config_dict
-            return
-
-        config_try_again = False
+        # import service module
         try:
-            config_dict = emews.base.config.parse(val_config_path)
-        except IOError:
-            # config file only may be given, try to prepend path to same folder as service module
-            self.logger.info("Service configuration could not be loaded, trying service path ...")
-            config_try_again = True
+            service_class = emews.base.import_tools.import_service(service_name)
+        except ImportError:
+            cls.logger.error("Service '%s' module could not be imported.", service_name)
+            raise
 
-        if config_try_again:
-            try:
-                config_dict = emews.base.config.parse(os.path.join(
-                    self.config.root_path, "services", self._service_class.__name__.lower(),
-                    val_config_path))
-            except IOError as ex:
-                self.logger.error("Service configuration '%s' could not be loaded.",
-                                  val_config_path)
-                self.logger.debug(ex)
-                raise
+        # instantiate service object
+        try:
+            service_obj = service_class(service_config['config'], _inject=service_config['inject'])
+        except StandardError:
+            cls.logger.error("Service '%s' could not be instantiated.", service_name)
+            raise
 
-        self.logger.info("Service configuration '%s' loaded.", val_config_path)
-        self._service_config = config_dict
+        # build service modifiers
+        cls._build_modifiers(service_obj, service_config)
 
-    def _build_service(self):
+    @classmethod
+    def _build_modifiers(cls, service_obj, service_config):
         """Build the service."""
         # TODO: remove all helper code
         # TODO: Add 'name' to base_service_config as a new key.  Name is the service class name + an
         # ID which is unique to the service class (ie, AutoSSH will have it's own IDs starting from
         # zero).
-        base_service_config = self._process_config(self._service_config)
-        try:
-            service_instantiation = self._service_class(_inject=base_service_config)
-        except StandardError:
-            self.logger.error("[%s] Service class could not be instantiated.",
-                              self._service_class.__name__)
-            raise
+
 
         service_name = service_instantiation.__class__.__name__
-        self.logger.debug("Service class '%s' instantiated.",
-                          service_name)
+        cls.logger.debug("Service class '%s' instantiated.", service_name)
         prev_instantiation = service_instantiation
         # Check config for decorators (extensions), and add any found.
         if self._service_config is not None and 'extensions' in self._service_config:
@@ -213,7 +169,8 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
 
         return dependency_instantiation_dict
 
-    def _process_config(self, config):
+    @classmethod
+    def _process_config(cls, config):
         '''
         Process the raw config dict to a ServiceConfig.
         '''

@@ -7,7 +7,6 @@ system manager.
 Created on June 9, 2018
 @author: Brian Ricks
 """
-import collections
 import logging
 import os
 import socket
@@ -15,27 +14,25 @@ import sys
 
 import emews.base.baseobject
 import emews.base.config
-import emews.base.importclass
 import emews.base.system_manager
 
 
 def system_init(args):
     """Init configuration and base system properties."""
-    path_prefix = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))  # root
-    #path_prefix = os.path.abspath(os.path.join(path_prefix, os.pardir))  # root
-    print "Root path: " + path_prefix
+    root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))  # root
+    print "Root path: " + root_path
 
     # first thing we need to do is parse the configs
     # base system conf (non-user config - system-wide)
-    base_config = emews.base.config.parse(os.path.join(path_prefix, 'base/conf.yml'))
+    base_config = emews.base.config.parse(os.path.join(root_path, 'base/conf.yml'))
     # system conf (user config - system-wide)
     if args.sys_config is None:
         if args.local:
-            system_config = emews.base.config.parse(os.path.join(path_prefix, 'system_local.yml'))
+            system_config = emews.base.config.parse(os.path.join(root_path, 'system_local.yml'))
         else:
-            system_config = emews.base.config.parse(os.path.join(path_prefix, 'system.yml'))
+            system_config = emews.base.config.parse(os.path.join(root_path, 'system.yml'))
     else:
-        system_config = emews.base.config.parse(os.path.join(path_prefix, args.sys_config))
+        system_config = emews.base.config.parse(os.path.join(root_path, args.sys_config))
     # node conf (user config - per node)
     node_config = emews.base.config.parse(args.node_config) \
         if args.node_config is not None else {}
@@ -62,7 +59,7 @@ def system_init(args):
     system_properties = emews.base.config.Config(
         {'logger': logger,
          'node_name': node_name,
-         'root': path_prefix,
+         'root_path': root_path,
          'local': args.local})
 
     # update the BaseObject class var

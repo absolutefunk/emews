@@ -7,8 +7,6 @@ Created on Apr 13, 2018
 """
 import importlib
 
-import emews.base.baseobject
-
 
 def import_class(class_path, class_name):
     """
@@ -48,7 +46,6 @@ def import_service(service_name):
 
     Service must be in a folder of the same name, in the eMews services folder.
     """
-    class_path = emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES.service_path + "." + \
-        service_name.lower()
+    class_path = "emews.services." + service_name.lower()
 
     return import_class(class_path, service_name)
