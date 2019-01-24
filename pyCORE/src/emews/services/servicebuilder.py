@@ -4,6 +4,7 @@ Builder for services.  Handles things such as configuration and which service to
 Created on Apr 2, 2018
 @author: Brian Ricks
 """
+import collections
 import os
 
 import emews.base.baseobject
@@ -45,6 +46,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         # instantiate service object
         try:
             service_obj = service_class(service_config['config'], _inject=service_config['inject'])
+            cls.logger.debug("Service class '%s' instantiated.", service_name)
         except StandardError:
             cls.logger.error("Service '%s' could not be instantiated.", service_name)
             raise
@@ -59,47 +61,54 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         # TODO: Add 'name' to base_service_config as a new key.  Name is the service class name + an
         # ID which is unique to the service class (ie, AutoSSH will have it's own IDs starting from
         # zero).
+        prev_instantiation = service_obj  # starting instantiation is the service object
+        # check config for modifiers, and if exists, add them in order
+        for index, modifier_dict in enumerate(service_config.get('modifiers', [])):
+            # syntax validation
+            if not isinstance(modifier_dict, collections.Mapping):
+                cls.logger.error("Modifier for '%s' at index %d not a dictionary.",
+                                 service_obj.__class__.__name__, index)
+                raise TypeError("Modifier for '%s' at index %d not a dictionary." %
+                                service_obj.__class__.__name__, index)
+            if len(modifier_dict) > 1:
+                cls.logger.error("Modifier for '%s' at index %d contains multiple entries.",
+                                 service_obj.__class__.__name__, index)
+                raise AttributeError("Modifier for '%s' at index %d contains multiple entries." %
+                                     service_obj.__class__.__name__, index)
 
+            modifier_name = modifier_dict.keys()[0]
 
-        service_name = service_instantiation.__class__.__name__
-        cls.logger.debug("Service class '%s' instantiated.", service_name)
-        prev_instantiation = service_instantiation
-        # Check config for decorators (extensions), and add any found.
-        if self._service_config is not None and 'extensions' in self._service_config:
-            for decorator_name, decorator_config in self._service_config['extensions'].iteritems():
-                if self._is_interrupted:
-                    return None
+            cls.logger.debug("Importing modifier '%s' for service '%s'.",
+                             modifier_name, service_obj.__class__.__name__)
+            base_decorator_config = self._process_config(decorator_config)
+            # recipient_service is an extra attribute to define on extension construction
+            base_decorator_config['extra'] = {}
+            base_decorator_config['extra']['_di_recipient_service'] = prev_instantiation
 
-                self.logger.debug("Resolving extension '%s' for %s.", decorator_name, service_name)
-                base_decorator_config = self._process_config(decorator_config)
-                # recipient_service is an extra attribute to define on extension construction
-                base_decorator_config['extra'] = {}
-                base_decorator_config['extra']['_di_recipient_service'] = prev_instantiation
+            module_name, class_name = self._get_path_and_class(
+                'emews.services.extensions', decorator_name)
 
-                module_name, class_name = self._get_path_and_class(
-                    'emews.services.extensions', decorator_name)
+            try:
+                current_instantiation = emews.base.importclass.import_class(
+                    module_name, class_name)
+            except ImportError as ex:
+                self.logger.error("Module '%s' could not be resolved into a module: %s",
+                                  decorator_name.lower(), ex)
+                raise
+            except AttributeError as ex:
+                self.logger.error("Extension '%s' could not be resolved into a class: %s",
+                                  decorator_name, ex)
+                raise
 
-                try:
-                    current_instantiation = emews.base.importclass.import_class(
-                        module_name, class_name)
-                except ImportError as ex:
-                    self.logger.error("Module '%s' could not be resolved into a module: %s",
-                                      decorator_name.lower(), ex)
-                    raise
-                except AttributeError as ex:
-                    self.logger.error("Extension '%s' could not be resolved into a class: %s",
-                                      decorator_name, ex)
-                    raise
+            try:
+                current_instantiation = current_instantiation(_inject=base_decorator_config)
+            except AttributeError as ex:
+                self.logger.error("Extension '%s' could not be instantiated: %s",
+                                  decorator_name, ex)
+                raise
 
-                try:
-                    current_instantiation = current_instantiation(_inject=base_decorator_config)
-                except AttributeError as ex:
-                    self.logger.error("Extension '%s' could not be instantiated: %s",
-                                      decorator_name, ex)
-                    raise
-
-                self.logger.debug("Extension '%s' applied to %s.", decorator_name, service_name)
-                prev_instantiation = current_instantiation
+            self.logger.debug("Extension '%s' applied to %s.", decorator_name, service_obj.__class__.__name__)
+            prev_instantiation = current_instantiation
 
         return current_instantiation
 

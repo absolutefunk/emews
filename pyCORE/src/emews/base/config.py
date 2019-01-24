@@ -4,6 +4,8 @@ Configuration related module.
 Created on Apr 3, 2018
 @author: Brian Ricks
 """
+import collections
+
 from ruamel.yaml import YAML
 
 
