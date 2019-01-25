@@ -49,3 +49,17 @@ def import_service(service_name):
     class_path = "emews.services." + service_name.lower()
 
     return import_class(class_path, service_name)
+
+
+def format_path_and_class(self, path_prefix, name):
+    """
+    Format the full module path and class name.
+
+    Returns a tuple of (full module path, class name).
+    """
+    type_and_class = name.split('.')
+    module_path = path_prefix + '.' + '.'.join(type_and_class[:-1]) + '.' + \
+        type_and_class[-1].lower()
+    class_name = type_and_class[-1]
+
+    return zip(module_path, class_name)

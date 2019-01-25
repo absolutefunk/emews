@@ -40,7 +40,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         try:
             service_class = emews.base.import_tools.import_service(service_name)
         except ImportError:
-            cls.logger.error("Service '%s' module could not be imported.", service_name)
+            cls.logger.error("Service module '%s' could not be imported.", service_name)
             raise
 
         # instantiate service object
@@ -77,27 +77,21 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
                                      service_obj.__class__.__name__, index)
 
             modifier_name = modifier_dict.keys()[0]
-
             cls.logger.debug("Importing modifier '%s' for service '%s'.",
                              modifier_name, service_obj.__class__.__name__)
-            base_decorator_config = self._process_config(decorator_config)
-            # recipient_service is an extra attribute to define on extension construction
-            base_decorator_config['extra'] = {}
-            base_decorator_config['extra']['_di_recipient_service'] = prev_instantiation
+            modifier_config = cls._process_config(modifier_dict)
+            modifier_config['inject'] = {}
+            modifier_config['inject']['_recipient_service'] = prev_instantiation
 
-            module_name, class_name = self._get_path_and_class(
-                'emews.services.extensions', decorator_name)
+            module_name, class_name = emews.base.import_tools.format_path_and_class(
+                'emews.services.modifiers', modifier_name)
 
             try:
-                current_instantiation = emews.base.importclass.import_class(
+                current_instantiation = emews.base.import_tools.import_class(
                     module_name, class_name)
-            except ImportError as ex:
-                self.logger.error("Module '%s' could not be resolved into a module: %s",
-                                  decorator_name.lower(), ex)
-                raise
-            except AttributeError as ex:
-                self.logger.error("Extension '%s' could not be resolved into a class: %s",
-                                  decorator_name, ex)
+            except ImportError:
+                cls.logger.error("Modifier module '%s' could not be imported.",
+                                 modifier_name.lower())
                 raise
 
             try:
@@ -192,15 +186,3 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
             base_service_config['helpers'] = {}
 
         return {'config': emews.base.config.Config(base_service_config)}
-
-    def _get_path_and_class(self, module_prefix, name):
-        '''
-        Formats the full module path and class name.
-        '''
-        type_and_class = name.split('.')
-        module_path = module_prefix + '.' + \
-                      '.'.join(type_and_class[:-1]) + \
-                      '.' + type_and_class[-1].lower()
-        class_name = type_and_class[-1]
-
-        return zip(module_path, class_name)
