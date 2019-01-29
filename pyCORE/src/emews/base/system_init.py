@@ -37,48 +37,43 @@ def system_init(args):
     node_config = emews.base.config.parse(args.node_config) \
         if args.node_config is not None else {}
 
-    # prepare eMews daemon config dict
-    config_start_dict = emews.base.config.merge_configs(
-        'system_config_options', base_config, system_config, node_config)
-
-    # prepare the init dict (only used locally)
-    config_init_dict = emews.base.config.merge_configs(
-        'init_config_options', base_config, system_config, node_config)
+    # merge dicts for init and system dicts
+    config_dict_init = emews.base.config.merge_configs(
+        base_config['init'], system_config, node_config)
+    config_dict_system = emews.base.config.merge_configs(
+        base_config['system'], system_config, node_config)
 
     # get the node name
-    node_name = _get_node_name(config_start_dict['general'], args.node_name)
+    node_name = _get_node_name(config_dict_init['general']['node_name'], args.node_name)
 
     # init the logger
     logger = logging.LoggerAdapter(
-        _init_base_logger(config_init_dict['logging']), {'nodename': node_name})
+        _init_base_logger(config_dict_init['logging']), {'nodename': node_name})
 
     # now we have logging, so we can start outputting though the logger
     logger.debug("Logger initialized.")
 
     # create system properties
-    system_properties = emews.base.config.Config(
-        {'logger': logger,
-         'node_name': node_name,
-         'root_path': root_path,
-         'local': args.local})
+    system_properties = {'logger': logger,
+                         'node_name': node_name,
+                         'root_path': root_path,
+                         'local': args.local}
 
     # update the BaseObject class var
     emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES = system_properties  # pylint: disable=W0212
 
-    return emews.base.system_manager.SystemManager(
-        emews.base.config.Config(config_start_dict))
+    return emews.base.system_manager.SystemManager(config_dict_system)
 
 
-def _get_node_name(config, arg_name):
+def _get_node_name(config_node_name, arg_name):
     """Determine the node name."""
     # command line arg (top precedence)
     if arg_name is not None:
         return arg_name
 
     # then config
-    node_name = config.get('node_name', None)
-    if node_name is not None:
-        return node_name
+    if config_node_name is not None:
+        return config_node_name
 
     # default: use host name
     return socket.gethostname()

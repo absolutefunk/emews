@@ -32,6 +32,7 @@ def _to_raw_dict(in_dict):
 
     return out_dict
 
+
 # TODO: possibly move this to another module
 class InjectionMeta(type):
     """
@@ -76,8 +77,8 @@ class InjectionMeta(type):
         return new_cls
 
 
-## Config merging functions
-def merge_configs(merge_type, *config_dicts):
+# Config merging functions
+def merge_configs(*config_dicts):
     """
     Merge the input config files by key, in order of precedence.
 
@@ -95,8 +96,8 @@ def merge_configs(merge_type, *config_dicts):
         if first_dict:
             first_dict = False
             # first dict is assumed to be the base config dict
-            merged_dict = config_dict[merge_type]['overrides']
-            readonly_dict = config_dict[merge_type]['readonly']
+            merged_dict = config_dict['overrides']
+            readonly_dict = config_dict['readonly']
             continue
 
         merged_dict = _section_merge(merged_dict, config_dict)
@@ -104,6 +105,7 @@ def merge_configs(merge_type, *config_dicts):
     # add in the read-only options
     _section_update_readonly(readonly_dict, merged_dict)
     return merged_dict
+
 
 def _section_merge(sec1, sec2, keychain="root"):
     """
@@ -121,7 +123,8 @@ def _section_merge(sec1, sec2, keychain="root"):
             cur_kc = keychain + str(s1_key)
 
             if not isinstance(s2_val, collections.Mapping):
-                raise TypeError("While parsing configuration at %s: Attempted override of section with a non-section type." % cur_kc)
+                raise TypeError("While parsing configuration at %s: Attempted override of section"
+                                " with a non-section type." % cur_kc)
 
             if s2_val is None:
                 # this ensures the resulting section is a basic dict
@@ -132,7 +135,8 @@ def _section_merge(sec1, sec2, keychain="root"):
         elif s2_val is not None:
             if s1_val is not None and not isinstance(s1_val, s2_val.__class__):
                 # if s1_val is None, then just overwrite it with s2_val
-                raise ValueError("Type mismatch of config value for key '%s'. Must be %s." % (s_key, type(s_val)))
+                raise ValueError("Type mismatch of config value for key '%s'. Must be %s." %
+                                 (s1_key, type(s2_val)))
 
             new_section[s1_key] = s2_val
         else:
@@ -140,6 +144,7 @@ def _section_merge(sec1, sec2, keychain="root"):
             new_section[s1_key] = s1_val
 
     return new_section
+
 
 def _section_update_readonly(readonly_sec, merged_sec):
     """

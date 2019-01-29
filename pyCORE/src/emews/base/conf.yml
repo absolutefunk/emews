@@ -3,19 +3,21 @@
 # Editing this file could result in breaking eMews or core eMews functionality.
 
 # Init configuration skeleton.  Only used during system initialization.
-init_config_options:
+init:
   readonly:  # These K/Vs cannot be overwritten in a config file
     logging:
       logger_name: emews.base
       message_format: '[%(asctime)s] %(nodename)-12.12s | %(threadName)-16.16s [%(levelname)-8.8s | %(module)-16.16s | %(funcName)-16.16s]: %(message)s'
   overrides:  # These K/Vs can be overwritten in a config file
+    general:  # general eMews daemon options
+      node_name: null  # name of the node running this instance of eMews
     logging:
       file: False  # file name, if given, will log to the file.  Set to False to disable
       stream: 'sys.stdout'  # stream, if given, will log to the stream.  Set to False to disable
       message_level: DEBUG  # log messages of this level and above (default)
 
 # System configuration skeleton.  This is the configuration structure after initialization.
-system_config_options:
+system:
   readonly:
     communication:  # communication related eMews daemon options
       receive_buffer: 128     # buffer for incoming characters from an eMews client
@@ -25,7 +27,6 @@ system_config_options:
     general:  # general eMews daemon options
       service_start_delay: -1 # Delay (seconds) to start services from eMews daemon invocation.
       thread_shutdown_wait: -1 # Delay (seconds) to wait for 'graceful' thread shutdown.  After this wait, continue shut down.
-      node_name: null
     communication:  # communication related eMews daemon options
       host: 127.0.0.1  # host to bind to (should be localhost or 127.0.0.1, etc)
       port: 32518  # port to use
