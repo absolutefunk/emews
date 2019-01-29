@@ -29,7 +29,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         service_config_path = os.path.join(cls.sys.root_path, "services", service_config_name)
 
         try:
-            service_config = cls._process_config(emews.base.config.parse(service_config_path))
+            service_config = emews.base.config.parse(service_config_path)
         except IOError:
             cls.logger.error("Could not load service configuration: %s", service_config_path)
             raise
@@ -64,23 +64,22 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         # zero).
         prev_instantiation = service_obj  # starting instantiation is the service object
         # check config for modifiers, and if exists, add them in order
-        for index, modifier_dict in enumerate(service_config.get('modifiers', [])):
+        for index, modifier_config in enumerate(service_config.get('modifiers', [])):
             # syntax validation
-            if not isinstance(modifier_dict, collections.Mapping):
+            if not isinstance(modifier_config, collections.Mapping):
                 cls.logger.error("Modifier for '%s' at index %d not a dictionary.",
                                  service_obj.__class__.__name__, index)
                 raise TypeError("Modifier for '%s' at index %d not a dictionary." %
                                 service_obj.__class__.__name__, index)
-            if len(modifier_dict) > 1:
+            if len(modifier_config) > 1:
                 cls.logger.error("Modifier for '%s' at index %d contains multiple entries.",
                                  service_obj.__class__.__name__, index)
                 raise AttributeError("Modifier for '%s' at index %d contains multiple entries." %
                                      service_obj.__class__.__name__, index)
 
-            modifier_name = modifier_dict.keys()[0]
+            modifier_name = modifier_config.keys()[0]
             cls.logger.debug("Importing modifier '%s' for service '%s'.",
                              modifier_name, service_obj.__class__.__name__)
-            modifier_config = cls._process_config(modifier_dict)
             modifier_config['inject'] = {}
             modifier_config['inject']['_recipient_service'] = prev_instantiation
 
@@ -108,20 +107,3 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
             prev_instantiation = current_instantiation
 
         return current_instantiation
-
-    @classmethod
-    def _process_config(cls, config):
-        """
-        Format input config dict to a raw dict suitable for passing to services.
-
-        Include injection key for K/Vs which need to be injected into a base class.
-        """
-        base_service_config = dict()
-        base_service_config['config'] = {} if config is None else config.get('config', {})
-        if config is not None and 'helpers' in config:
-            base_service_config['helpers'] = self._instantiate_dependencies(
-                self.config['helpers'])
-        else:
-            base_service_config['helpers'] = {}
-
-        return {'config': emews.base.config.Config(base_service_config)}

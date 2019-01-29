@@ -19,7 +19,18 @@ def parse(filename):
     yaml = YAML()
     dct = yaml.load(f)
 
-    return dct
+    return _to_raw_dict(dct)
+
+
+def _to_raw_dict(in_dict):
+    """Recursively convert input dictionary to a raw dictionary type."""
+    out_dict = {}
+    for key, value in in_dict.items():
+        if isinstance(value, collections.Mapping):
+            # recursively replace with raw dictionary type
+            out_dict[key] = _to_raw_dict(value)
+
+    return out_dict
 
 # TODO: possibly move this to another module
 class InjectionMeta(type):
@@ -64,89 +75,6 @@ class InjectionMeta(type):
         setattr(new_cls, '__init__', __init__)  # replace subclass init with this one
         return new_cls
 
-# TODO: possibly move this to another module
-class DelayedInstantiation(object):
-    """For objects that do not instantiate immediately."""
-
-    __slots__ = ('_cls', '_config', '_container', '_container_key')
-
-    def __init__(self, cls, cls_config):
-        """Constructor."""
-        self._cls = cls
-        self._config = cls_config
-        self._container = None
-        self._container_key = None
-
-    def set_container(self, container, key):
-        """
-        Set the container object in which this object resides.
-
-        The key is used to lookup this object from the container.
-        """
-        self._container = container
-        self._container_key = key
-
-    def __call__(self):
-        """
-        Instantiate the class instance passed during construction.
-
-        Also replace the instance key in the container (Config) with the instantiated object.
-        """
-        if self._container is None:
-            raise ValueError("Cannot instantiate class as container is not known")
-        if self._container_key is None:
-            raise ValueError("Cannot instantiate class as container key is not known")
-
-        obj_instance = self._cls(_inject={'config': self._config})
-        self._container.__dict__[self._container_key] = obj_instance
-
-
-class Config(object):
-    """Provides a very simple config object using both dot and index notation."""
-
-    # What, no slots??  Yep, as it turns out, dict access performance is on par with slots,
-    # and memory is a bit better using a dict as we can define the class once, instead of
-    # needing to have a separate class definition for each eMews object type.
-
-    def __init__(self, config_dict):
-        """Constructor."""
-        # The magic __dict__ stores all our instance fields, so this is a quick way of assigning
-        # the K/Vs from dct.
-        self._assign_dict(config_dict)
-        # convert nested dicts to Config objects
-        for key, value in self.__dict__.items():
-            if isinstance(value, dict):
-                # First check if this dict is actually for a delayed instantiation helper.
-                if len(value) == 1 and 'instantiate' in value and \
-                        isinstance(value['instantiate'], DelayedInstantiation):
-                    # Give this Config self to the DelayedInstantiation object, and the key to
-                    # look it up.
-                    value['instantiate'].set_container(self, key)
-
-                # replace with Config object
-                self.__dict__[key] = Config(value)
-
-    def _assign_dict(self, dict):
-        """
-        Assign K/Vs of input dict to self.__dict__.
-
-        This is performed in case the input dict is of some custom dict type.
-        """
-        self.__dict__ = {}
-        for key, val in dict.items():
-            self.__dict__[key] = val
-
-    def __contains__(self, key):
-        """Enable 'in' shorthand."""
-        return key in self.__dict__
-
-    def __getitem__(self, key):
-        """Enable index notation for getting attributes."""
-        return self.__dict__[key]
-
-    def __len__(self):
-        """Return number of K/Vs in the __dict__ of this object."""
-        return len(self.__dict__)
 
 ## Config merging functions
 def merge_configs(merge_type, *config_dicts):
