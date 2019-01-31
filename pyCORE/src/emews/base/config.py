@@ -33,6 +33,26 @@ def _to_raw_dict(in_dict):
     return out_dict
 
 
+class ConfigDict(collections.Mapping):
+    """Provides a read-only dict structure."""
+
+    def __init__(self, dct):
+        """Constructor."""
+        self._dct = dct
+
+    def __getitem__(self, key):
+        """Index notation."""
+        return self._data[key]
+
+    def __len__(self):
+        """Size of _dct."""
+        return len(self._data)
+
+    def __iter__(self):
+        """Provide _dct iterator."""
+        return iter(self._data)
+
+
 # TODO: possibly move this to another module
 class InjectionMeta(type):
     """

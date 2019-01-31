@@ -34,26 +34,20 @@ class SystemManager(emews.base.baseobject.BaseObject):
         self._thread_dispatcher = None
         self.connection_manager = None
 
-        if self.system.local:
+        if self.sys['local']:
             self.logger.info("Running in local mode ...")
 
     def _startup_services(self):
         """Look in the config object to obtain any services present."""
-        startup_services = self._config["startup_services"]
+        startup_services = self._config['startup_services']
         self.logger.info("%s startup services.", str(len(startup_services)))
-        if startup_services:
-            for service_str, options in startup_services:
-                self.logger.debug("Starting service '%s' ...", service_str)
-                service_builder = emews.services.servicebuilder.ServiceBuilder()
-                service_builder.service(service_str)
 
-                if options is None:
-                    service_config_path = None
-                else:
-                    service_config_path = options.get('config_path', None)
+        for service_str in startup_services:
+            self.logger.debug("Starting service '%s' ...", service_str)
 
-                service_builder.config_path(service_config_path)
-                self._thread_dispatcher.dispatch_thread(service_builder.result, force_start=True)
+            # TODO: support config path or even config KVs in startup_services
+            self._thread_dispatcher.dispatch_thread(
+                emews.services.servicebuilder.ServiceBuilder.build(service_str), force_start=True)
 
     def _shutdown_signal_handler(self, signum, frame):
         """Signal handler for incoming signals (those which may imply we need to shutdown)."""
@@ -71,7 +65,7 @@ class SystemManager(emews.base.baseobject.BaseObject):
         # start any services specified
         self._startup_services()
 
-        if self.system.local:
+        if self.sys['local']:
             # local mode:  do not start ConnectionManager
             # TODO: implement blocking here so start() does not exit
             pass

@@ -15,10 +15,6 @@ import emews.base.import_tools
 class ServiceBuilder(emews.base.baseobject.BaseObject):
     """classdocs."""
 
-    def result(self):
-        """Return a new service."""
-        return self._build_service()
-
     @classmethod
     def build(cls, service_name, service_config_name=None):
         """Build the service."""
@@ -53,7 +49,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
             raise
 
         # build service modifiers
-        cls._build_modifiers(service_obj, service_config)
+        return cls._build_modifiers(service_obj, service_config)
 
     @classmethod
     def _build_modifiers(cls, service_obj, service_config):
@@ -62,7 +58,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         # TODO: Add 'name' to base_service_config as a new key.  Name is the service class name + an
         # ID which is unique to the service class (ie, AutoSSH will have it's own IDs starting from
         # zero).
-        prev_instantiation = service_obj  # starting instantiation is the service object
+        current_instantiation = service_obj  # starting instantiation is the service object
         # check config for modifiers, and if exists, add them in order
         for index, modifier_config in enumerate(service_config.get('modifiers', [])):
             # syntax validation
@@ -81,7 +77,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
             cls.logger.debug("Importing modifier '%s' for service '%s'.",
                              modifier_name, service_obj.__class__.__name__)
             modifier_config['inject'] = {}
-            modifier_config['inject']['_recipient_service'] = prev_instantiation
+            modifier_config['inject']['_recipient_service'] = current_instantiation
 
             module_name, class_name = emews.base.import_tools.format_path_and_class(
                 'emews.services.modifiers', modifier_name)
@@ -104,6 +100,5 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
 
             cls.logger.debug("Modifier '%s' applied to service '%s'.",
                              modifier_name, service_obj.__class__.__name__)
-            prev_instantiation = current_instantiation
 
         return current_instantiation

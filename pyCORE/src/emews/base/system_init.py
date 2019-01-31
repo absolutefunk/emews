@@ -54,13 +54,11 @@ def system_init(args):
     logger.debug("Logger initialized.")
 
     # create system properties
-    system_properties = {'logger': logger,
-                         'node_name': node_name,
-                         'root_path': root_path,
-                         'local': args.local}
-
-    # update the BaseObject class var
-    emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES = system_properties  # pylint: disable=W0212
+    emews.base.baseobject.BaseObject._SYSTEM_PROPERTIES = emews.base.config.ConfigDict(
+        {'logger': logger,
+         'node_name': node_name,
+         'root_path': root_path,
+         'local': args.local})
 
     return emews.base.system_manager.SystemManager(config_dict_system)
 
