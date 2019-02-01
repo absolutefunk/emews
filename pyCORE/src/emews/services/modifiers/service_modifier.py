@@ -9,6 +9,7 @@ Created on Mar 30, 2018
 """
 import emews.base.baseobject
 import emews.base.irunnable
+import emews.base.meta
 
 
 class ServiceModifier(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunnable):
@@ -16,7 +17,7 @@ class ServiceModifier(emews.base.baseobject.BaseObject, emews.base.irunnable.IRu
 
     __metaclass__ = type(
         'ServiceModifierMeta',
-        (type(emews.services.iservice.IService), emews.base.config.InjectionMeta), {})
+        (type(emews.services.iservice.IService), emews.base.meta.MetaInjection), {})
     __slots__ = ('_recipient_service')
 
     @property

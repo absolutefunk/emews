@@ -14,7 +14,6 @@ import emews.base.baseobject
 class BaseSampler(emews.base.baseobject.BaseObject):
     """classdocs."""
 
-    __metaclass_ = emews.base.config.InjectionMeta
     __slots__ = ()
 
     @abstractmethod

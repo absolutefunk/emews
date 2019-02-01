@@ -55,50 +55,6 @@ class ConfigDict(collections.Mapping):
         return iter(self._dct)
 
 
-# TODO: possibly move this to another module
-class InjectionMeta(type):
-    """
-    Meta class for configuration dependency injection.
-
-    Dependency Injection is performed before any child class __init__ methods are called.
-    Config object injected through constructor, but processed first using an __init__ override.
-    """
-
-    def __new__(mcs, name, bases, namespace, **kwargs):
-        """Override __init__ in subclass with below definition."""
-        new_cls = super(InjectionMeta, mcs).__new__(mcs, name, bases, namespace, **kwargs)
-        # store a reference to the subclass __init__
-        subcls_init = new_cls.__init__
-
-        def __init__(self, *args, **kwargs):
-            """
-            Injected Constructor from InjectionMeta.
-
-            Used to inject configuration before the original subclass __init__ is called.  This way
-            the configuration is available without the dev having to explicitly handle a config
-            object on __init__.
-            """
-            # As a derived class could pass their own '_inject' k/v, we not only check for the key,
-            # but whether the _config attribute exists already.
-            if '_inject' in kwargs and not hasattr(self, '_di_config'):
-                # pop the key so the class doesn't get it through **kwargs
-                inject_dict = kwargs.pop('_inject')
-                # 'config' is a required key
-                self._di_config = inject_dict['config']  # pylint: disable=W0212
-                # optional keys
-                if 'helpers' in inject_dict:
-                    self._di_helpers = inject_dict['helpers']  # pylint: disable=W0212
-                if 'extra' in inject_dict:
-                    # these are class-specific attributes, could be anything
-                    for attr_name, attr_value in inject_dict['extra']:
-                        setattr(self, attr_name, attr_value)
-
-            subcls_init(self, *args, **kwargs)
-
-        setattr(new_cls, '__init__', __init__)  # replace subclass init with this one
-        return new_cls
-
-
 # Config merging functions
 def merge_configs(*config_dicts):
     """

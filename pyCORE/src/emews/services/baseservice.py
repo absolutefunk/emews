@@ -17,17 +17,17 @@ from abc import abstractmethod
 from threading import Event
 
 import emews.base.baseobject
-import emews.base.config
+import emews.base.meta
 import emews.base.irunnable
 
 
 class BaseService(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunnable):
     """Classdocs."""
 
-    # config dependency injection pre-__init__
+    # attribute dependency injection pre-__init__
     # derive new type to get around meta conflict between the injector and ABCMeta
     __metaclass__ = type(
-        'BaseServiceMeta', (type(emews.base.irunnable.IRunnable), emews.base.config.InjectionMeta),
+        'BaseServiceMeta', (type(emews.base.irunnable.IRunnable), emews.base.meta.MetaInjection),
         {})
     __slots__ = ('name', 'interrupted', '_service_interrupt_event')
 
