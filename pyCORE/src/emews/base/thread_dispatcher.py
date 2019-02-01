@@ -5,10 +5,10 @@ Created on Mar 30, 2018
 @author: Brian Ricks
 """
 import threading
-from weakref import WeakSet
+import weakref
 
 import emews.base.baseobject
-from emews.base.threadwrapper import ThreadWrapper
+import emews.base.threadwrapper
 
 
 def thread_names_str():
@@ -32,7 +32,7 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
         super(ThreadDispatcher, self).__init__()
 
         # When a thread dies, it is automatically removed from the _active_threads set.
-        self._active_threads = WeakSet()
+        self._active_threads = weakref.WeakSet()
         self._deferred_threads = set()
 
         self._delay_timer = None
@@ -55,6 +55,11 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
         """Return a count of active threads."""
         return len(self._active_threads)
 
+    def join(self):
+        """Join all active threads."""
+        for active_thread in self._active_threads:
+            active_thread.join()
+
     def dispatch_thread(self, object_instance, force_start=False):
         """
         Create and dispatches a new ThreadWrapper.
@@ -68,12 +73,13 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
             # started.
             with self._delay_lock:
                 if self._delay_timer is not None:
-                    wrapped_object = ThreadWrapper(object_instance, autostart=False)
+                    wrapped_object = emews.base.threadwrapper.ThreadWrapper(
+                        object_instance, autostart=False)
                     self.logger.debug("Thread '%s' deferred for dispatching.", wrapped_object.name)
                     self._deferred_threads.add(wrapped_object)
                     return
 
-        wrapped_object = ThreadWrapper(object_instance)
+        wrapped_object = emews.base.threadwrapper.ThreadWrapper(object_instance)
         # we also need to store the thread reference itself, so shutting down all threads we can
         # join each thread
         self._active_threads.add(wrapped_object)

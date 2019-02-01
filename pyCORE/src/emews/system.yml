@@ -13,14 +13,6 @@ communication:  # communication related eMews daemon options
   host: localhost  # host to bind to (should be localhost or 127.0.0.1, etc)
   port: 32518      # port to use
 
-logging:  # logging configuration
-  logger: emews.distributed  # send log messages to a designated node across the network
-  message_level: DEBUG  # log messages of this level and above
-  logger_parameters:  # parameters specific to the chosen logger
-    host: 10.0.0.21  # host/IP to send log entries to (designated node)
-    port: 32519  # port on destination host to send log entries to
-
 startup_services:
-  # Any services which should start immediately can be placed here.  Per node startup services
-  # should be placed in the respective node config file.  # Services which do not need to be started
-  # immediately should be launched using a request client, to minimize initial memory spikes.
+  # Any services which should start, for all nodes, should be placed here.  Most services will start
+  # on a per node basis, using node configuration.  This is a list.

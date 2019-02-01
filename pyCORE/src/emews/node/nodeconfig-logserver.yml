@@ -4,5 +4,5 @@ general:
   node_name: logserver
 
 startup_services:
-  # null as value indicates using all defaults
-  logserver: null
+  # List of services that this node should start.
+- logserver: null

@@ -12,7 +12,6 @@ from abc import abstractmethod
 import socket
 
 import emews.base.baseobject
-import emews.base.exceptions
 import emews.base.inet
 
 

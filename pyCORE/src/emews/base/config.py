@@ -29,6 +29,8 @@ def _to_raw_dict(in_dict):
         if isinstance(value, collections.Mapping):
             # recursively replace with raw dictionary type
             out_dict[key] = _to_raw_dict(value)
+        else:
+            out_dict[key] = value
 
     return out_dict
 
@@ -42,15 +44,15 @@ class ConfigDict(collections.Mapping):
 
     def __getitem__(self, key):
         """Index notation."""
-        return self._data[key]
+        return self._dct[key]
 
     def __len__(self):
         """Size of _dct."""
-        return len(self._data)
+        return len(self._dct)
 
     def __iter__(self):
         """Provide _dct iterator."""
-        return iter(self._data)
+        return iter(self._dct)
 
 
 # TODO: possibly move this to another module
@@ -140,24 +142,20 @@ def _section_merge(sec1, sec2, keychain="root"):
 
         if isinstance(s1_val, collections.Mapping):
             # s1_val is a section
-            cur_kc = keychain + str(s1_key)
+            cur_kc = keychain + "-->" + str(s1_key)
 
-            if not isinstance(s2_val, collections.Mapping):
-                raise TypeError("While parsing configuration at %s: Attempted override of section"
-                                " with a non-section type." % cur_kc)
-
-            if s2_val is None:
-                # this ensures the resulting section is a basic dict
-                new_section[s1_key] = _section_merge(s1_val, {}, keychain=cur_kc)
-            else:
+            if s2_val is not None:
+                if not isinstance(s2_val, collections.Mapping):
+                    raise TypeError("While parsing configuration at %s: Attempted override of "
+                                    " section with a non-section type (%s)."
+                                    % (cur_kc, str(s2_val)))
                 new_section[s1_key] = _section_merge(s1_val, s2_val, keychain=cur_kc)
 
-        elif s2_val is not None:
-            if s1_val is not None and not isinstance(s1_val, s2_val.__class__):
-                # if s1_val is None, then just overwrite it with s2_val
-                raise ValueError("Type mismatch of config value for key '%s'. Must be %s." %
-                                 (s1_key, type(s2_val)))
+            else:
+                # this ensures the resulting section is a basic dict
+                new_section[s1_key] = _section_merge(s1_val, {}, keychain=cur_kc)
 
+        elif s2_val is not None:
             new_section[s1_key] = s2_val
         else:
             # s1_val not a section and s1_key either not present in sec2 or s2_val is None

@@ -12,7 +12,6 @@ import socket
 
 import emews.base.baseobject
 import emews.base.commandhandler
-import emews.base.exceptions
 import emews.base.irunnable
 
 class ClientSession(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunnable):

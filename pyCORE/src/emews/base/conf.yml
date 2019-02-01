@@ -1,5 +1,4 @@
 # Base configuration file for the eMews daemon.
-#
 # Editing this file could result in breaking eMews or core eMews functionality.
 
 # Init configuration skeleton.  Only used during system initialization.
@@ -13,7 +12,7 @@ init:
       node_name: null  # name of the node running this instance of eMews
     logging:
       file: False  # file name, if given, will log to the file.  Set to False to disable
-      stream: 'sys.stdout'  # stream, if given, will log to the stream.  Set to False to disable
+      stream: False  # stream, if given, will log to the stream.  Set to False to disable
       message_level: DEBUG  # log messages of this level and above (default)
 
 # System configuration skeleton.  This is the configuration structure after initialization.

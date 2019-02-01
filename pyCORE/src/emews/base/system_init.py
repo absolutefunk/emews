@@ -29,6 +29,7 @@ def system_init(args):
     if args.sys_config is None:
         if args.local:
             system_config = emews.base.config.parse(os.path.join(root_path, 'system_local.yml'))
+            print "Starting in local mode."
         else:
             system_config = emews.base.config.parse(os.path.join(root_path, 'system.yml'))
     else:
