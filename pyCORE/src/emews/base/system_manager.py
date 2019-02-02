@@ -4,7 +4,7 @@ Manages the eMews daemon execution.
 Created on June 8, 2018
 @author: Brian Ricks
 """
-import os
+import collections
 import signal
 
 import emews.base.baseobject
@@ -42,14 +42,38 @@ class SystemManager(emews.base.baseobject.BaseObject):
     def _startup_services(self):
         """Look in the config object to obtain any services present."""
         startup_services = self._config['startup_services']
-        self.logger.info("%s startup services.", str(len(startup_services)))
+        if len(startup_services) == 1:
+            self.logger.info("1 startup service.")
+        else:
+            self.logger.info("%s startup services.", str(len(startup_services)))
 
-        for service_str in startup_services:
-            self.logger.debug("Dispatching service '%s' ...", service_str)
+        for service_name in startup_services:
+            # services may have parameters, or just the service name
+            if isinstance(service_name, collections.Mapping):
+                # a dict can only contain one service
+                if len(service_name) != 1:
+                    err_str = "(startup services) Multiple services found in single " \
+                              "dictionary.  Check either a system or node configuration " \
+                              "file for a missing '-' prepending a service entry."
+                    self.logger.error(err_str)
+                    raise AttributeError(err_str)
+                s_dict = service_name.values()[0]
+                service_name = service_name.keys()[0]
+
+                if not isinstance(s_dict, collections.Mapping):
+                    # formatting issue in the config
+                    err_str = "(startup services) Service '%s' is defined in a dictionary, but " \
+                              "does not contain a valid parameters dictionary."
+                    self.logger.error(err_str, service_name)
+                    raise AttributeError(err_str % service_name)
+                service_parameters = service_name.values()[0]['parameters']
+                self.logger.debug("Service '%s' has parameters defined in the configuration.",
+                                  service_name)
+            self.logger.debug("Dispatching service '%s' ...", service_name)
 
             # TODO: support config path or even config KVs in startup_services
             self._thread_dispatcher.dispatch_thread(
-                emews.services.servicebuilder.ServiceBuilder.build(service_str), force_start=False)
+                emews.services.servicebuilder.ServiceBuilder.build(service_name), force_start=False)
 
     def _shutdown_signal_handler(self, signum, frame):
         """Signal handler for incoming signals (those which may imply we need to shutdown)."""

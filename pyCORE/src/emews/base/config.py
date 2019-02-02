@@ -10,29 +10,45 @@ from ruamel.yaml import YAML
 
 
 def parse(filename):
-    """Parse the given filename (if it exists), and returns a dictionary."""
-    if filename is None:
-        return None
-
+    """Parse the given filename, and returns a structure representative of the YAML."""
     f = open(filename)
 
     yaml = YAML()
-    dct = yaml.load(f)
+    strct = yaml.load(f)
 
-    return _to_raw_dict(dct)
+    return _to_raw(strct)
 
 
-def _to_raw_dict(in_dict):
-    """Recursively convert input dictionary to a raw dictionary type."""
-    out_dict = {}
-    for key, value in in_dict.items():
-        if isinstance(value, collections.Mapping):
-            # recursively replace with raw dictionary type
-            out_dict[key] = _to_raw_dict(value)
-        else:
-            out_dict[key] = value
+def _to_raw(in_type):
+    """Recursively convert input dictionary or list to a raw dictionary or list type."""
+    if isinstance(in_type, collections.Mapping):
+        # dict
+        out_type = {}
+        for key, value in in_type.iteritems():
+            if isinstance(value, collections.Mapping):
+                # dict
+                out_type[key] = _to_raw(value)
+            elif isinstance(value, list):
+                # list
+                out_type[key] = _to_raw(value)
+            else:
+                # primitive type
+                out_type[key] = value
+    else:
+        # list
+        out_type = []
+        for value in in_type:
+            if isinstance(value, collections.Mapping):
+                # dict
+                out_type.append(_to_raw(value))
+            elif isinstance(value, list):
+                # list
+                out_type.append(_to_raw(value))
+            else:
+                # primitive type
+                out_type.append(value)
 
-    return out_dict
+    return out_type
 
 
 class ConfigDict(collections.Mapping):
@@ -87,34 +103,31 @@ def merge_configs(*config_dicts):
 
 def _section_merge(sec1, sec2, keychain="root"):
     """
-    Merge the first section with the second section given.  A section is a dict.
+    Merge the first section with the second section given.
 
-    This is a recursive procedure; the section depth should not be that great.
+    A section is a dict.  Note that it is possible for a list to be passed that contains dicts.
+    Currently, only dicts are considered to be sections, so lists are processed shallow, ie, any
+    dicts or other lists, contained in the list will not be processed recursively.
     """
     new_section = {}
 
     for s1_key, s1_val in sec1.iteritems():
         s2_val = sec2.get(s1_key, None)  # if sec2 doesn't contain s1_key, or s1_key is None
 
-        if isinstance(s1_val, collections.Mapping):
-            # s1_val is a section
-            cur_kc = keychain + "-->" + str(s1_key)
+        if s2_val is not None:
+            if isinstance(s1_val, collections.Mapping):
+                # s1_val is a section
+                cur_kc = keychain + "-->" + str(s1_key)
 
-            if s2_val is not None:
                 if not isinstance(s2_val, collections.Mapping):
-                    raise TypeError("While parsing configuration at %s: Attempted override of "
-                                    " section with a non-section type (%s)."
+                    raise TypeError("While parsing configuration at %s: Attempted override of"
+                                    " section (map) with a non-section type (%s)."
                                     % (cur_kc, str(s2_val)))
                 new_section[s1_key] = _section_merge(s1_val, s2_val, keychain=cur_kc)
-
             else:
-                # this ensures the resulting section is a basic dict
-                new_section[s1_key] = _section_merge(s1_val, {}, keychain=cur_kc)
-
-        elif s2_val is not None:
-            new_section[s1_key] = s2_val
+                new_section[s1_key] = s2_val
         else:
-            # s1_val not a section and s1_key either not present in sec2 or s2_val is None
+            # nothing to merge
             new_section[s1_key] = s1_val
 
     return new_section

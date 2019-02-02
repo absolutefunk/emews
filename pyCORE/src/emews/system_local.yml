@@ -15,3 +15,6 @@ communication:  # communication related eMews daemon options
 
 logging:
   stream: 'sys.stdout'  # stream, if given, will log to the stream.
+
+startup_services:
+- AutoSSH
