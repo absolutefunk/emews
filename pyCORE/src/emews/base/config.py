@@ -51,6 +51,7 @@ def _to_raw(in_type):
     return out_type
 
 
+'''
 class ConfigDict(collections.Mapping):
     """Provides a read-only dict structure."""
 
@@ -69,6 +70,7 @@ class ConfigDict(collections.Mapping):
     def __iter__(self):
         """Provide _dct iterator."""
         return iter(self._dct)
+'''
 
 
 # Config merging functions

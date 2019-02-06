@@ -4,13 +4,11 @@ Listens for new client connections and spawns ClientSessions when appropriate.
 Created on Mar 24, 2018
 @author: Brian Ricks
 '''
-import emews.base.baseobject
 import emews.base.clientsession
 import emews.base.ihandlerlistener
 import emews.base.multilistener
 
-class ConnectionManager(emews.base.baseobject.BaseObject,
-                        emews.base.ihandlerlistener.IHandlerListener):
+class ConnectionManager(emews.base.ihandlerlistener.IHandlerListener):
     '''
     classdocs
     '''

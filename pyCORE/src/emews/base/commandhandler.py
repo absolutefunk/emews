@@ -6,7 +6,6 @@ Created on Apr 6, 2018
 
 @author: Brian Ricks
 '''
-import emews.base.baseobject
 from emews.services.servicebuilder import ServiceBuilder
 
 class CommandException(Exception):
@@ -15,7 +14,7 @@ class CommandException(Exception):
     '''
     pass
 
-class CommandHandler(emews.base.baseobject.BaseObject):
+class CommandHandler(object):
     '''
     classdocs
     '''
