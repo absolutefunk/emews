@@ -31,7 +31,7 @@ class MetaInjection(type):
                 # pop the key so the class doesn't get it through **kwargs
                 inject_dict = kwargs.pop('_inject')
                 # these are class-specific attributes, could be anything
-                for attr_name, attr_value in inject_dict:
+                for attr_name, attr_value in inject_dict.iteritems():
                     setattr(self, attr_name, attr_value)
 
             subcls_init(self, *args, **kwargs)

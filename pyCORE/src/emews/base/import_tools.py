@@ -51,7 +51,7 @@ def import_service(service_name):
     return import_class(class_path, service_name)
 
 
-def format_path_and_class(self, path_prefix, name):
+def format_path_and_class(path_prefix, name):
     """
     Format the full module path and class name.
 
@@ -62,4 +62,4 @@ def format_path_and_class(self, path_prefix, name):
         type_and_class[-1].lower()
     class_name = type_and_class[-1]
 
-    return zip(module_path, class_name)
+    return (module_path, class_name)

@@ -20,7 +20,7 @@ class TruncnormSampler(emews.components.samplers.basesampler.BaseSampler):
         """Constructor."""
         super(TruncnormSampler, self).__init__()
         self.upper_bound = config['upper_bound']
-        self.sigma = config['lower_bound']
+        self.sigma = config['sigma']
 
         self.lower_bound = 0
 

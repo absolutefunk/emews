@@ -8,11 +8,11 @@ duration to be infinite.
 Created on Mar 5, 2018
 @author: Brian Ricks
 """
-import emews.services.components.common
+import emews.components.importer
 import emews.services.modifiers.service_modifier
 
 
-class Looper(emews.services.modifers.service_modifier.ServiceModifier):
+class Looper(emews.services.modifiers.service_modifier.ServiceModifier):
     """classdocs."""
 
     __slots__ = ('_loop_sampler')
@@ -20,7 +20,7 @@ class Looper(emews.services.modifers.service_modifier.ServiceModifier):
     def __init__(self, config):
         """Constructor."""
         super(Looper, self).__init__()
-        self._loop_sampler = emews.services.components.common.instantiate(config['loop_sampler'])
+        self._loop_sampler = emews.components.importer.instantiate(config['loop_sampler'])
 
     def start(self):
         """@Override Run the service in a loop, based on the sampler."""

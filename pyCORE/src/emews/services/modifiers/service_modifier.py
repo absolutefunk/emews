@@ -17,7 +17,7 @@ class ServiceModifier(emews.base.baseobject.BaseObject, emews.base.irunnable.IRu
 
     __metaclass__ = type(
         'ServiceModifierMeta',
-        (type(emews.services.iservice.IService), emews.base.meta.MetaInjection), {})
+        (type(emews.base.irunnable.IRunnable), emews.base.meta.MetaInjection), {})
     __slots__ = ('_recipient_service')
 
     @property

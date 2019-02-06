@@ -32,6 +32,7 @@ parameters:  # instance variables
   command_sampler:  # the next command to execute
     component: samplers.TruncnormSampler
     parameters:
+      upper_bound: null
       sigma: 1.5
   command_delay_sampler:  # delay to execute next command
     component: samplers.UniformSampler
@@ -45,6 +46,6 @@ modifiers:  # decorators that extend core service behavior (one to one)
     parameters:
       loop_sampler:
         component: samplers.UniformSampler
-          parameters:
-            lower_bound: 5  # lower bound (sec)
-            upper_bound: 32  # upper bound (sec)
+        parameters:
+          lower_bound: 5  # lower bound (sec)
+          upper_bound: 32  # upper bound (sec)

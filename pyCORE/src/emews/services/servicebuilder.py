@@ -25,7 +25,8 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         if service_config_name is None:
             service_config_name = service_name.lower() + ".yml"
 
-        service_config_path = os.path.join(sys_prop['root_path'], "services", service_config_name)
+        service_config_path = os.path.join(
+            sys_prop['root_path'], "services", service_name.lower(), service_config_name)
 
         try:
             service_config = emews.base.config.parse(service_config_path)
@@ -42,10 +43,14 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
             logger.error("Service module '%s' could not be imported.", service_name)
             raise
 
+        # inject dict
+        service_config_inject = {}
+        service_config_inject['service_name'] = service_name
+
         # instantiate service object
         try:
             service_obj = service_class(service_config['parameters'],
-                                        _inject=service_config['inject'])
+                                        _inject=service_config_inject)
             logger.debug("Service class '%s' instantiated.", service_name)
         except StandardError:
             logger.error("Service '%s' could not be instantiated.", service_name)
@@ -58,9 +63,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
     def _build_modifiers(cls, service_obj, service_config):
         """Build the service."""
         # TODO: remove all helper code
-        # TODO: Add 'name' to base_service_config as a new key.  Name is the service class name + an
-        # ID which is unique to the service class (ie, AutoSSH will have it's own IDs starting from
-        # zero).
+        # TODO: Add global service identifiers (will need to have a central server for this)
         logger = cls._SYSTEM_PROPERTIES["logger"]
 
         current_instantiation = service_obj  # starting instantiation is the service object
@@ -81,23 +84,29 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
             modifier_name = modifier_config.keys()[0]
             logger.debug("Importing modifier '%s' for service '%s'.",
                          modifier_name, service_obj.__class__.__name__)
-            modifier_config['inject'] = {}
-            modifier_config['inject']['_recipient_service'] = current_instantiation
 
             module_name, class_name = emews.base.import_tools.format_path_and_class(
                 'emews.services.modifiers', modifier_name)
 
+            modifier_config = modifier_config[modifier_name]
+
             try:
-                current_instantiation = emews.base.import_tools.import_class(
+                current_instantiation = emews.base.import_tools.import_class_from_module(
                     module_name, class_name)
             except ImportError:
                 logger.error("Modifier module '%s' for service '%s' could not be imported.",
                              modifier_name.lower(), service_obj.__class__.__name__)
                 raise
 
+            modifier_config_inject = {}
+            modifier_config_inject['_recipient_service'] = current_instantiation
+
             try:
-                current_instantiation = current_instantiation(modifier_config['parameters'],
-                                                              _inject=modifier_config['inject'])
+                current_instantiation = current_instantiation(
+                    modifier_config['parameters'], _inject=modifier_config_inject) \
+                    if isinstance(modifier_config, collections.Mapping) and \
+                    'parameters' in modifier_config else current_instantiation(
+                        _inject=modifier_config_inject)
             except StandardError:
                 logger.error("Modifier '%s' for service '%s' could not be instantiated.",
                              modifier_name, service_obj.__class__.__name__)

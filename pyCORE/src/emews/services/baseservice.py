@@ -29,11 +29,10 @@ class BaseService(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunnab
     __metaclass__ = type(
         'BaseServiceMeta', (type(emews.base.irunnable.IRunnable), emews.base.meta.MetaInjection),
         {})
-    __slots__ = ('name', 'interrupted', '_service_interrupt_event')
+    __slots__ = ('service_name', 'interrupted', '_service_interrupt_event')
 
     def __init__(self):
         """Constructor."""
-        # self._config and self._helpers are injected by the metaclass before __init__ is invoked
         super(BaseService, self).__init__()
 
         self._service_interrupt_event = Event()  # used to interrupt Event.wait() on stop()
