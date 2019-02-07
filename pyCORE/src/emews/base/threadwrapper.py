@@ -34,6 +34,11 @@ class ThreadWrapper(emews.base.irunnable.IRunnable):
         """Return a given name for the thread."""
         return self._thread_name
 
+    @property
+    def interrupted(self):
+        """@Override Interrupted state of the service."""
+        return self._wrapped_object.interrupted
+
     def start(self):
         """@Override start the thread."""
         self._thread.start()

@@ -7,7 +7,7 @@ Created on June 8, 2018
 import collections
 import signal
 
-#import emews.base.connectionmanager
+# import emews.base.connectionmanager
 import emews.base.thread_dispatcher
 import emews.services.servicebuilder
 import emews.sys
@@ -36,10 +36,11 @@ class SystemManager(object):
         self._thread_dispatcher = None
         self.connection_manager = None
 
-        emews.sys.logger.info("Network node: %s, node id: ", emews.sys.node.name, emews.sys.node.id)
+        emews.sys.logger.info("Network node: %s, node id: %d",
+                              emews.sys.node.name, emews.sys.node.id)
 
         if emews.sys.local:
-            emews.sys.logger.info("Running in local mode ...")
+            emews.sys.logger.info("Running in local mode.")
 
     def _startup_services(self):
         """Look in the config object to obtain any services present."""

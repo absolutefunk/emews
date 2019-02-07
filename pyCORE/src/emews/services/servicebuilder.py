@@ -84,6 +84,7 @@ class ServiceBuilder(object):
                 'emews.services.modifiers', modifier_name)
 
             modifier_config = modifier_config[modifier_name]
+            prev_instantiation = current_instantiation
 
             try:
                 current_instantiation = emews.base.import_tools.import_class_from_module(
@@ -95,7 +96,7 @@ class ServiceBuilder(object):
                 raise
 
             modifier_config_inject = {}
-            modifier_config_inject['_recipient_service'] = current_instantiation
+            modifier_config_inject['_recipient_service'] = prev_instantiation
 
             try:
                 current_instantiation = current_instantiation(

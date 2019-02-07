@@ -8,10 +8,10 @@ Created on Feb 26, 2018
 """
 from abc import abstractmethod
 
-import emews.base.baseobject
+import emews.sys
 
 
-class BaseSampler(emews.base.baseobject.BaseObject):
+class BaseSampler(object):
     """classdocs."""
 
     __slots__ = ()
@@ -34,11 +34,11 @@ class BaseSampler(emews.base.baseobject.BaseObject):
                 setattr(self, param, val)
                 do_update = True
             except AttributeError:
-                self.logger.debug("Ignoring parameter '%s', which does not exist.")
+                emews.sys.logger.debug("Ignoring parameter '%s', which does not exist.")
                 continue
 
         if not do_update:
-            self.logger.debug("Not invoking update_sampler(), as no parameters updated.")
+            emews.sys.logger.debug("Not invoking update_sampler(), as no parameters updated.")
             return
 
         self.update_sampler()

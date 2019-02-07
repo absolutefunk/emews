@@ -7,8 +7,8 @@ Created on Mar 30, 2018
 import threading
 import weakref
 
-import emews.base.baseobject
 import emews.base.threadwrapper
+import emews.sys
 
 
 def thread_names_str():
@@ -20,7 +20,7 @@ def thread_names_str():
     return ", ".join(thread_names)
 
 
-class ThreadDispatcher(emews.base.baseobject.BaseObject):
+class ThreadDispatcher(object):
     """Dispatches and manages active threads."""
 
     __slots__ = ('_active_threads', '_deferred_threads', '_delay_timer', '_delay_lock',
@@ -42,13 +42,13 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
         if self._thread_shutdown_timeout <= 0:
             self._thread_shutdown_timeout = None
 
-        if not self.sys['local']:
+        if not emews.sys.local:
             start_delay = config['service_start_delay']
             if start_delay > 0:
-                self.logger.info("Beginning service start delay of %d seconds.", start_delay)
+                emews.sys.logger.info("Beginning service start delay of %d seconds.", start_delay)
                 self.delay_dispatch(start_delay)
         else:
-            self.logger.info("Service start delay ignored due to running in local mode.")
+            emews.sys.logger.info("Service start delay ignored due to running in local mode.")
 
     @property
     def count(self):
@@ -75,7 +75,8 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
                 if self._delay_timer is not None:
                     wrapped_object = emews.base.threadwrapper.ThreadWrapper(
                         object_instance, autostart=False)
-                    self.logger.debug("Thread '%s' deferred for dispatching.", wrapped_object.name)
+                    emews.sys.logger.debug(
+                        "Thread '%s' deferred for dispatching.", wrapped_object.name)
                     self._deferred_threads.add(wrapped_object)
                     return
 
@@ -84,24 +85,24 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
         # join each thread
         self._active_threads.add(wrapped_object)
 
-        self.logger.info("Dispatched thread '%s'.", wrapped_object.name)
-        self.logger.debug("Active dispatched thread count: %d", self.count)
-        self.logger.debug("Active threads: %s", thread_names_str())
+        emews.sys.logger.info("Dispatched thread '%s'.", wrapped_object.name)
+        emews.sys.logger.debug("Active dispatched thread count: %d", self.count)
+        emews.sys.logger.debug("Active threads: %s", thread_names_str())
 
     def dispatch_deferred_threads(self):
         """Dispatch threads which have been deferred for execution."""
         for wrapped_object in self._deferred_threads:
-            self.logger.info("Dispatched thread '%s'.", wrapped_object.name)
+            emews.sys.logger.info("Dispatched thread '%s'.", wrapped_object.name)
             wrapped_object.start()
             self._active_threads.add(wrapped_object)
 
         if self._deferred_threads > 0:
-            self.logger.debug("Dispatched all deferred threads.")
+            emews.sys.logger.debug("Dispatched all deferred threads.")
             self._deferred_threads.clear()
-            self.logger.debug("Active dispatched thread count: %d", self.count)
-            self.logger.debug("Active threads: %s", thread_names_str())
+            emews.sys.logger.debug("Active dispatched thread count: %d", self.count)
+            emews.sys.logger.debug("Active threads: %s", thread_names_str())
         else:
-            self.logger.debug("No deferred threads to dispatch.")
+            emews.sys.logger.debug("No deferred threads to dispatch.")
 
     def delay_dispatch(self, delay_time):
         """
@@ -131,22 +132,22 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
         # and invoking cancel().
         with self._delay_lock:
             if self._delay_timer is not None:
-                self.logger.debug("Delay dispatch timer is active, cancelling timer ...")
+                emews.sys.logger.debug("Delay dispatch timer is active, cancelling timer ...")
                 self._delay_timer.cancel()
                 self._delay_timer.join()
 
-        self.logger.info("%d dispatched thread(s) to shutdown.", self.count)
+        emews.sys.logger.info("%d dispatched thread(s) to shutdown.", self.count)
 
         if self.count > 0:
             for active_thread in self._active_threads:
                 active_thread.stop()
 
             if self._thread_shutdown_timeout is not None:
-                self.logger.info("Will wait a maximum of %d seconds for threads to shutdown.",
-                                 self._thread_shutdown_timeout)
+                emews.sys.logger.info("Will wait a maximum of %d seconds for threads to shutdown.",
+                                      self._thread_shutdown_timeout)
             else:
-                self.logger.info("No thread join timeout set.  Will wait until all running "
-                                 "threads shut down ...")
+                emews.sys.logger.info("No thread join timeout set.  Will wait until all running "
+                                      "threads shut down ...")
 
             for active_thread in self._active_threads:
                 # Wait for each service to shutdown.  We put this in a separate loop so each service
@@ -160,5 +161,6 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
                     thread_names.append(thr.name)
 
                 thr_names_str = ", ".join(thread_names)
-                self.logger.warning("The following threads did not shut down within the timeout "
-                                    "period: [%s].  Shutdown proceeding ...", thr_names_str)
+                emews.sys.logger.warning(
+                    "The following threads did not shut down within the timeout period: [%s].  "
+                    "Shutdown proceeding ...", thr_names_str)

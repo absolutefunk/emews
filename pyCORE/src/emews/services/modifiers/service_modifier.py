@@ -7,12 +7,11 @@ being overridden.
 Created on Mar 30, 2018
 @author: Brian Ricks
 """
-import emews.base.baseobject
 import emews.base.irunnable
 import emews.base.meta
 
 
-class ServiceModifier(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunnable):
+class ServiceModifier(emews.base.irunnable.IRunnable):
     """Classdocs."""
 
     __metaclass__ = type(

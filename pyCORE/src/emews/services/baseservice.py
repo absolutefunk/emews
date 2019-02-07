@@ -16,12 +16,12 @@ Created on Mar 5, 2018
 from abc import abstractmethod
 from threading import Event
 
-import emews.base.baseobject
 import emews.base.meta
 import emews.base.irunnable
+import emews.sys
 
 
-class BaseService(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunnable):
+class BaseService(emews.base.irunnable.IRunnable):
     """Classdocs."""
 
     # attribute dependency injection pre-__init__
@@ -43,7 +43,7 @@ class BaseService(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunnab
         if self._interrupted:
             return
 
-        self.logger.debug("%s sleeping for %s seconds.", self.name, time)
+        emews.sys.logger.debug("%s sleeping for %s seconds.", self.name, time)
         self._service_interrupt_event.wait(time)
 
     @abstractmethod
@@ -53,18 +53,18 @@ class BaseService(emews.base.baseobject.BaseObject, emews.base.irunnable.IRunnab
 
     def start(self):
         """@Override (IRunnable) Start the service."""
-        self.logger.debug("%s starting.", self.name)
+        emews.sys.logger.debug("%s starting.", self.name)
 
         try:
             self.run_service()
         except Exception as ex:
-            self.logger.error("%s terminated abruptly (exception: %s)", self.name, ex)
+            emews.sys.logger.error("%s terminated abruptly (exception: %s)", self.name, ex)
             raise
 
         if not self._interrupted:
-            self.logger.debug("%s stopping (finished)...", self.name)
+            emews.sys.logger.debug("%s stopping (finished)...", self.name)
         else:
-            self.logger.debug("%s stopping (requested) ...", self.name)
+            emews.sys.logger.debug("%s stopping (requested) ...", self.name)
 
     def stop(self):
         """@Override (IRunnable) Gracefully exit service."""

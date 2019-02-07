@@ -19,6 +19,11 @@ class IRunnable(ABC):
 
     __slots__ = ()
 
+    @abc.abstractproperty
+    def interrupted(self):
+        """Interrupted state of the service."""
+        pass
+
     @abc.abstractmethod
     def stop(self):
         """Signal that the implementing class needs to gracefully exit all tasks."""
