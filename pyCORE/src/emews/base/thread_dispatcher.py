@@ -8,7 +8,6 @@ import threading
 import weakref
 
 import emews.base.threadwrapper
-import emews.sys
 
 
 def thread_names_str():

@@ -9,6 +9,22 @@ import collections
 from ruamel.yaml import YAML
 
 
+class SysProp(object):
+    """Provides a read-only container for the system properties."""
+
+    # All system properties defined here
+    __slots__ = ('logger',
+                 'node_name',
+                 'node_id',
+                 'root_path',
+                 'local')
+
+    def __init__(self, **kwargs):
+        """Constructor."""
+        for key, value in kwargs.iteritems():
+            setattr(self, key, value)
+
+
 def parse(filename):
     """Parse the given filename, and returns a structure representative of the YAML."""
     f = open(filename)
@@ -49,28 +65,6 @@ def _to_raw(in_type):
                 out_type.append(value)
 
     return out_type
-
-
-'''
-class ConfigDict(collections.Mapping):
-    """Provides a read-only dict structure."""
-
-    def __init__(self, dct):
-        """Constructor."""
-        self._dct = dct
-
-    def __getitem__(self, key):
-        """Index notation."""
-        return self._dct[key]
-
-    def __len__(self):
-        """Size of _dct."""
-        return len(self._dct)
-
-    def __iter__(self):
-        """Provide _dct iterator."""
-        return iter(self._dct)
-'''
 
 
 # Config merging functions

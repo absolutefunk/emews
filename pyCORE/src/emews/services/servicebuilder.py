@@ -9,7 +9,6 @@ import os
 
 import emews.base.config
 import emews.base.import_tools
-import emews.sys
 
 
 class ServiceBuilder(object):

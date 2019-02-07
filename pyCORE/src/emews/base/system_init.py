@@ -7,7 +7,6 @@ system manager.
 Created on June 9, 2018
 @author: Brian Ricks
 """
-import collections
 import logging
 import os
 import socket
@@ -15,7 +14,6 @@ import sys
 
 import emews.base.config
 import emews.base.system_manager
-import emews.sys
 
 
 def system_init(args):
@@ -56,14 +54,14 @@ def system_init(args):
     logger.debug("Logger initialized.")
 
     # create system properties
-    cls_node = collections.namedtuple('SysPropNode', 'name id')
+    sysprop = emews.base.config.SysProp(
+        logger=logger,
+        node_name=node_name,
+        node_id=0,
+        root_path=root_path,
+        local=args.local)
 
-    emews.sys.logger = logger
-    emews.sys.node = cls_node(name=node_name, id=-1)
-    emews.sys.root_path = root_path
-    emews.sys.local = args.local
-
-    return emews.base.system_manager.SystemManager(config_dict_system)
+    return emews.base.system_manager.SystemManager(config_dict_system, sysprop)
 
 
 def _get_node_name(config_node_name, arg_name):

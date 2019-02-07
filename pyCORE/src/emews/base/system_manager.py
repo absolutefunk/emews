@@ -10,15 +10,14 @@ import signal
 # import emews.base.connectionmanager
 import emews.base.thread_dispatcher
 import emews.services.servicebuilder
-import emews.sys
 
 
 class SystemManager(object):
     """Classdocs."""
 
-    __slots__ = ('_config', '_thread_dispatcher', 'connection_manager')
+    __slots__ = ('_config', '_system_properties', '_thread_dispatcher', 'connection_manager')
 
-    def __init__(self, config):
+    def __init__(self, config, sysprop):
         """
         Constructor.
 
@@ -33,6 +32,7 @@ class SystemManager(object):
         signal.signal(signal.SIGINT, self._shutdown_signal_handler)
 
         self._config = config
+        self._system_properties = sysprop
         self._thread_dispatcher = None
         self.connection_manager = None
 
