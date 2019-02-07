@@ -8,6 +8,8 @@ general:  # general eMews daemon options
   service_start_delay: 120
   # Delay to wait for 'graceful' thread shutdown.  After this wait, continue shut down.
   thread_shutdown_wait: 5  # in seconds (-1 = disable)
+  # If true, then halt eMews on service-originated exceptions
+  halt_on_service_exceptions: False
 
 communication:  # communication related eMews daemon options
   host: localhost  # host to bind to (should be localhost or 127.0.0.1, etc)

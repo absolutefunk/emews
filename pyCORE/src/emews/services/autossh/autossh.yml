@@ -40,8 +40,7 @@ parameters:  # instance variables
       lower_bound: 1  # lower bound (sec)
       upper_bound: 48  # upper bound (sec)
 
-modifiers:  # decorators that extend core service behavior (one to one)
-- run.NoRaiseService: null # catches unhandled exceptions from service
+modifiers:
 - run.Looper:  # restarts service after expected termination
     parameters:
       loop_sampler:

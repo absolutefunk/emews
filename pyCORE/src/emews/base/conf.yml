@@ -26,6 +26,7 @@ system:
     general:  # general eMews daemon options
       service_start_delay: -1 # Delay (seconds) to start services from eMews daemon invocation.
       thread_shutdown_wait: -1 # Delay (seconds) to wait for 'graceful' thread shutdown.  After this wait, continue shut down.
+      halt_on_service_exceptions: True  # If true, then halt eMews on service-originated exceptions
     communication:  # communication related eMews daemon options
       host: 127.0.0.1  # host to bind to (should be localhost or 127.0.0.1, etc)
       port: 32518  # port to use

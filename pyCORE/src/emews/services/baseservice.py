@@ -29,14 +29,14 @@ class BaseService(emews.base.irunnable.IRunnable):
     __metaclass__ = type(
         'BaseServiceMeta', (type(emews.base.irunnable.IRunnable), emews.base.meta.MetaInjection),
         {})
-    __slots__ = ('service_name', 'interrupted', '_service_interrupt_event')
+    __slots__ = ('service_name', '_interrupted', '_service_interrupt_event')
 
     def __init__(self):
         """Constructor."""
         super(BaseService, self).__init__()
 
         self._service_interrupt_event = Event()  # used to interrupt Event.wait() on stop()
-        self.interrupted = False  # set to true on stop()
+        self._interrupted = False  # set to true on stop()
 
     def sleep(self, time):
         """Block the service for the given amount of time (in seconds)."""
@@ -45,6 +45,11 @@ class BaseService(emews.base.irunnable.IRunnable):
 
         emews.sys.logger.debug("%s sleeping for %s seconds.", self.name, time)
         self._service_interrupt_event.wait(time)
+
+    @property
+    def interrupted(self):
+        """@Override Interrupted state of the service."""
+        return self._interrupted
 
     @abstractmethod
     def run_service(self):
