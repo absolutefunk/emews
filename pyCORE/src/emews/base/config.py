@@ -12,6 +12,7 @@ from ruamel.yaml import YAML
 class SysProp(object):
     """Provides a read-only container for the system properties."""
 
+    # TODO: make this readonly
     # All system properties defined here
     __slots__ = ('logger',
                  'node_name',

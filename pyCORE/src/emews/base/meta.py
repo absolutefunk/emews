@@ -4,9 +4,10 @@ Meta classes.
 Created on Feb 1, 2019
 @author: Brian Ricks
 """
+import abc
 
 
-class MetaInjection(type):
+class InjectionMeta(type):
     """
     Meta class for class attribute dependency injection.
 
@@ -15,7 +16,7 @@ class MetaInjection(type):
 
     def __new__(mcs, name, bases, namespace, **kwargs):
         """Override __init__ in subclass with below definition."""
-        new_cls = super(MetaInjection, mcs).__new__(mcs, name, bases, namespace, **kwargs)
+        new_cls = super(InjectionMeta, mcs).__new__(mcs, name, bases, namespace, **kwargs)
         # store a reference to the subclass __init__
         subcls_init = new_cls.__init__
 
@@ -38,3 +39,7 @@ class MetaInjection(type):
 
         setattr(new_cls, '__init__', __init__)  # replace subclass init with this one
         return new_cls
+
+
+# Composition of InjectionMeta and ABCMeta
+InjectionMetaWithABC = type('InjectionMetaWithABC', (abc.ABCMeta, InjectionMeta), {})

@@ -18,18 +18,19 @@ from threading import Event
 
 import emews.base.meta
 import emews.base.irunnable
-import emews.sys
 
 
 class BaseService(emews.base.irunnable.IRunnable):
     """Classdocs."""
 
-    # attribute dependency injection pre-__init__
-    # derive new type to get around meta conflict between the injector and ABCMeta
-    __metaclass__ = type(
-        'BaseServiceMeta', (type(emews.base.irunnable.IRunnable), emews.base.meta.MetaInjection),
-        {})
-    __slots__ = ('service_name', '_interrupted', '_service_interrupt_event')
+    # TODO: test ABC to make sure unimplemented methods are actually being caught (note: this happens at instantiation time)
+    __metaclass__ = emews.base.meta.InjectionMetaWithABC
+    __slots__ = ('service_name',
+                 'service_id',
+                 'logger',
+                 '_sys',
+                 '_interrupted',
+                 '_service_interrupt_event')
 
     def __init__(self):
         """Constructor."""
@@ -43,13 +44,18 @@ class BaseService(emews.base.irunnable.IRunnable):
         if self._interrupted:
             return
 
-        emews.sys.logger.debug("%s sleeping for %s seconds.", self.name, time)
+        self.logger.debug("%s sleeping for %s seconds.", self.service_name, time)
         self._service_interrupt_event.wait(time)
 
     @property
     def interrupted(self):
         """@Override Interrupted state of the service."""
         return self._interrupted
+
+    @property
+    def sys(self):
+        """Return the system properties object."""
+        return self._sys
 
     @abstractmethod
     def run_service(self):
@@ -58,18 +64,18 @@ class BaseService(emews.base.irunnable.IRunnable):
 
     def start(self):
         """@Override (IRunnable) Start the service."""
-        emews.sys.logger.debug("%s starting.", self.name)
+        self.logger.debug("%s starting.", self.service_name)
 
         try:
             self.run_service()
         except Exception as ex:
-            emews.sys.logger.error("%s terminated abruptly (exception: %s)", self.name, ex)
+            self.logger.error("%s terminated abruptly (exception: %s)", self.service_name, ex)
             raise
 
         if not self._interrupted:
-            emews.sys.logger.debug("%s stopping (finished)...", self.name)
+            self.logger.debug("%s stopping (finished)...", self.service_name)
         else:
-            emews.sys.logger.debug("%s stopping (requested) ...", self.name)
+            self.logger.debug("%s stopping (requested) ...", self.service_name)
 
     def stop(self):
         """@Override (IRunnable) Gracefully exit service."""
