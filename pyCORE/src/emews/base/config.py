@@ -12,18 +12,43 @@ from ruamel.yaml import YAML
 class SysProp(object):
     """Provides a read-only container for the system properties."""
 
-    # TODO: make this readonly
     # All system properties defined here
-    __slots__ = ('logger',
-                 'node_name',
-                 'node_id',
-                 'root_path',
-                 'local')
+    __slots__ = ('_logger',
+                 '_node_name',
+                 '_node_id',
+                 '_root_path',
+                 '_local')
 
     def __init__(self, **kwargs):
         """Constructor."""
         for key, value in kwargs.iteritems():
             setattr(self, key, value)
+
+    # boilerplate for the properties (read-only)
+    @property
+    def logger(self):
+        """Property."""
+        return self._logger
+
+    @property
+    def node_name(self):
+        """Property."""
+        return self._node_name
+
+    @property
+    def node_id(self):
+        """Property."""
+        return self._node_id
+
+    @property
+    def root_path(self):
+        """Property."""
+        return self._root_path
+
+    @property
+    def local(self):
+        """Property."""
+        return self._local
 
 
 def parse(filename):

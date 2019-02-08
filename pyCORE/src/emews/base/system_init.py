@@ -55,11 +55,11 @@ def system_init(args):
 
     # create system properties
     sysprop = emews.base.config.SysProp(
-        logger=logger,
-        node_name=node_name,
-        node_id=0,
-        root_path=root_path,
-        local=args.local)
+        _logger=logger,
+        _node_name=node_name,
+        _node_id=0,
+        _root_path=root_path,
+        _local=args.local)
 
     return emews.base.system_manager.SystemManager(config_dict_system, sysprop)
 
