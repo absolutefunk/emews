@@ -69,7 +69,6 @@ class ServiceBuilder(object):
         # build service modifiers
         return self._build_modifiers(service_obj, service_config)
 
-    @classmethod
     def _build_modifiers(self, service_obj, service_config):
         """Build the service."""
         current_instantiation = service_obj  # starting instantiation is the service object

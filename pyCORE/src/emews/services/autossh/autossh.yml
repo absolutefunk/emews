@@ -40,11 +40,10 @@ parameters:  # instance variables
       lower_bound: 1  # lower bound (sec)
       upper_bound: 48  # upper bound (sec)
 
-modifiers:
-- run.Looper:  # restarts service after expected termination
+execution:
+  loop: True  # restarts service after expected termination
+  loop_using_sampler:
+    component: samplers.UniformSampler
     parameters:
-      loop_sampler:
-        component: samplers.UniformSampler
-        parameters:
-          lower_bound: 5  # lower bound (sec)
-          upper_bound: 32  # upper bound (sec)
+      lower_bound: 5  # lower bound (sec)
+      upper_bound: 32  # upper bound (sec)
