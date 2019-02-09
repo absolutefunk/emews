@@ -66,60 +66,7 @@ class ServiceBuilder(object):
             self._sys.logger.error("Service '%s' could not be instantiated.", service_name)
             raise
 
+        service_exec_config = service_config.get('execution', None)
+
         # build service modifiers
-        return self._build_modifiers(service_obj, service_config)
-
-    def _build_modifiers(self, service_obj, service_config):
-        """Build the service."""
-        current_instantiation = service_obj  # starting instantiation is the service object
-        # check config for modifiers, and if exists, add them in order
-        for index, modifier_config in enumerate(service_config.get('modifiers', [])):
-            # syntax validation
-            if not isinstance(modifier_config, collections.Mapping):
-                self._sys.logger.error("Modifier for '%s' at index %d not a dictionary.",
-                                       service_obj.__class__.__name__, index)
-                raise TypeError("Modifier for '%s' at index %d not a dictionary." %
-                                service_obj.__class__.__name__, index)
-            if len(modifier_config) > 1:
-                self._sys.logger.error("Modifier for '%s' at index %d contains multiple entries.",
-                                       service_obj.__class__.__name__, index)
-                raise AttributeError("Modifier for '%s' at index %d contains multiple entries." %
-                                     service_obj.__class__.__name__, index)
-
-            modifier_name = modifier_config.keys()[0]
-            self._sys.logger.debug("Importing modifier '%s' for service '%s'.",
-                                   modifier_name, service_obj.__class__.__name__)
-
-            module_name, class_name = emews.base.import_tools.format_path_and_class(
-                'emews.services.modifiers', modifier_name)
-
-            modifier_config = modifier_config[modifier_name]
-            prev_instantiation = current_instantiation
-
-            try:
-                current_instantiation = emews.base.import_tools.import_class_from_module(
-                    module_name, class_name)
-            except ImportError:
-                self._sys.logger.error(
-                    "Modifier module '%s' for service '%s' could not be imported.",
-                    modifier_name.lower(), service_obj.__class__.__name__)
-                raise
-
-            modifier_config_inject = {}
-            modifier_config_inject['_recipient_service'] = prev_instantiation
-
-            try:
-                current_instantiation = current_instantiation(
-                    modifier_config['parameters'], _inject=modifier_config_inject) \
-                    if isinstance(modifier_config, collections.Mapping) and \
-                    'parameters' in modifier_config else current_instantiation(
-                        _inject=modifier_config_inject)
-            except StandardError:
-                self._sys.logger.error("Modifier '%s' for service '%s' could not be instantiated.",
-                                       modifier_name, service_obj.__class__.__name__)
-                raise
-
-            self._sys.logger.debug("Modifier '%s' applied to service '%s'.",
-                                   modifier_name, service_obj.__class__.__name__)
-
-        return current_instantiation
+        return (service_obj, service_exec_config)

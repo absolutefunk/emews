@@ -8,7 +8,7 @@ import collections
 import signal
 
 # import emews.base.connectionmanager
-import emews.base.thread_dispatcher
+import emews.base.threading.thread_dispatcher
 import emews.services.servicebuilder
 
 
@@ -63,23 +63,17 @@ class SystemManager(object):
                               "file for a missing '-' prepending a service entry."
                     self._sys.logger.error(err_str)
                     raise AttributeError(err_str)
-                s_dict = service_name.values()[0]
+                service_parameters = service_name.values()[0]
                 service_name = service_name.keys()[0]
 
-                if not isinstance(s_dict, collections.Mapping) or 'parameters' not in s_dict:
-                    # formatting issue in the config
-                    err_str = "(startup services) Service '%s' is defined in a dictionary, but " \
-                              "does not contain a valid parameters dictionary."
-                    self._sys.logger.error(err_str, service_name)
-                    raise AttributeError(err_str % service_name)
-                service_parameters = s_dict
                 self._sys.logger.debug("Service '%s' has parameters defined in the configuration.",
                                        service_name)
             self._sys.logger.debug("Dispatching service '%s' ...", service_name)
 
-            self._thread_dispatcher.dispatch_thread(
-                service_builder.build(
-                    service_name, service_config_dict=service_parameters), force_start=False)
+            service_obj, service_exec_params = service_builder.build(
+                service_name, service_config_dict=service_parameters)
+
+            self._thread_dispatcher.dispatch_thread(service_exec_params, service_obj)
 
     def _shutdown_signal_handler(self, signum, frame):
         """Signal handler for incoming signals (those which may imply we need to shutdown)."""
@@ -91,7 +85,7 @@ class SystemManager(object):
         self._sys.logger.debug("Starting system manager ...")
 
         # instantiate thread dispatcher and connection manager
-        self._thread_dispatcher = emews.base.thread_dispatcher.ThreadDispatcher(
+        self._thread_dispatcher = emews.base.threading.thread_dispatcher.ThreadDispatcher(
             self._config['general'], self._sys)
 
         # start any services specified

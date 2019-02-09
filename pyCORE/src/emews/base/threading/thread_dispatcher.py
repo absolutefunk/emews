@@ -7,7 +7,7 @@ Created on Mar 30, 2018
 import threading
 import weakref
 
-import emews.base.threadwrapper
+import emews.base.threading.thread_spawn
 
 
 def thread_names_str():
@@ -61,9 +61,9 @@ class ThreadDispatcher(object):
         for active_thread in self._active_threads:
             active_thread.join()
 
-    def dispatch_thread(self, object_instance, force_start=False):
+    def dispatch_thread(self, exec_config, object_instance, force_start=False):
         """
-        Create and dispatches a new ThreadWrapper.
+        Create and possibly dispatch object_instance contained in a thread.
 
         object_instance is the object that we want to wrap around ThreadWrapper.  If 'force_start'
         is True, then dispatch thread anyway.
@@ -74,36 +74,48 @@ class ThreadDispatcher(object):
             # started.
             with self._delay_lock:
                 if self._delay_timer is not None:
-                    wrapped_object = emews.base.threadwrapper.ThreadWrapper(
-                        object_instance, autostart=False)
+                    wrapped_object = emews.base.threading.thread_spawn.ThreadSpawn(
+                        exec_config, object_instance)
                     self._sys.logger.debug(
                         "Thread '%s' deferred for dispatching.", wrapped_object.name)
                     self._deferred_threads.add(wrapped_object)
                     return
 
-        wrapped_object = emews.base.threadwrapper.ThreadWrapper(object_instance)
+        wrapped_object = emews.base.threading.thread_spawn.ThreadSpawn(
+            exec_config, object_instance)
+        wrapped_object.start()
         # we also need to store the thread reference itself, so shutting down all threads we can
         # join each thread
         self._active_threads.add(wrapped_object)
 
         self._sys.logger.info("Dispatched thread '%s'.", wrapped_object.name)
+        if wrapped_object.looped:
+            self._sys.logger.debug("Thread '%s' is looped.", wrapped_object.name)
+        self._dispatch_info()
+
+    def _dispatch_info(self):
+        """Display dispatch stats."""
         self._sys.logger.debug("Active dispatched thread count: %d", self.count)
         self._sys.logger.debug("Active threads: %s", thread_names_str())
 
     def dispatch_deferred_threads(self):
         """Dispatch threads which have been deferred for execution."""
+        if not len(self._deferred_threads):
+            self._sys.logger.debug("No deferred threads to dispatch.")
+            return
+
         for wrapped_object in self._deferred_threads:
             self._sys.logger.info("Dispatched thread '%s'.", wrapped_object.name)
             wrapped_object.start()
             self._active_threads.add(wrapped_object)
 
-        if self._deferred_threads > 0:
-            self._sys.logger.debug("Dispatched all deferred threads.")
-            self._deferred_threads.clear()
-            self._sys.logger.debug("Active dispatched thread count: %d", self.count)
-            self._sys.logger.debug("Active threads: %s", thread_names_str())
-        else:
-            self._sys.logger.debug("No deferred threads to dispatch.")
+            self._sys.logger.info("Dispatched deferred thread '%s'.", wrapped_object.name)
+            if wrapped_object.looped:
+                self._sys.logger.debug("Thread '%s' is looped.", wrapped_object.name)
+
+        self._sys.logger.debug("Dispatched all deferred threads.")
+        self._deferred_threads.clear()
+        self._dispatch_info()
 
     def delay_dispatch(self, delay_time):
         """

@@ -16,7 +16,7 @@ class ThreadSpawn(object):
     __slots__ = ('_thread_name', '_wrapped_object', '_thread', '_thread_loop')
     __current_thread_id = 0  # each thread has a unique id assigned (for logging)
 
-    def __init__(self, sysprop, config, wrapped_object):
+    def __init__(self, exec_config, wrapped_object):
         """Constructor."""
         self._thread_name = wrapped_object.__class__.__name__ + "-%d" % \
             ThreadSpawn.__current_thread_id
@@ -25,19 +25,19 @@ class ThreadSpawn(object):
 
         self._wrapped_object = wrapped_object
         self._thread = threading.Thread(name=self._thread_name, target=self._wrapped_object.start())
-        if 'loop' in config and config['loop']:
-            if 'loop_using_sampler' in config:
-                self._thread_loop = emews.components.importer.instantiate(
-                    config['loop']['loop_using_sampler'])
-            else:
-                self._thread_loop = emews.components.samplers.zerosampler.ZeroSampler()
-        else:
-            self._thread_loop = None
+        self._thread_loop = None
 
-        self._thread.setDaemon(config['daemon'])
+        if exec_config is not None:
+            # looping
+            if exec_config.get('loop', False):
+                # assume loop_config is a properly formatted dict
+                if 'loop_using_sampler' in exec_config:
+                    self._thread_loop = emews.components.importer.instantiate(
+                        exec_config['loop_using_sampler'])
+                else:
+                    self._thread_loop = emews.components.samplers.zerosampler.ZeroSampler()
 
-        if config['autostart']:
-            self.start()
+        self._thread.setDaemon(True)
 
     @property
     def name(self):
@@ -48,6 +48,11 @@ class ThreadSpawn(object):
     def interrupted(self):
         """Interrupted state of the wrapped_object."""
         return self._wrapped_object.interrupted
+
+    @property
+    def looped(self):
+        """Is this thread looped."""
+        return self._thread_loop is not None
 
     def start(self):
         """Start the thread."""
