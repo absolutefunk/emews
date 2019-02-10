@@ -11,15 +11,17 @@ Created on Mar 5, 2018
 from abc import abstractmethod
 
 import emews.base.meta
-import emews.base.threading.runnable
+import emews.base.runnable
 
 
-class BaseService(emews.base.threading.runnable.Runnable):
+class BaseService(emews.base.runnable.Runnable):
     """Classdocs."""
 
     __metaclass__ = emews.base.meta.InjectionMetaWithABC
     __slots__ = ('service_name',
                  'service_id',
+                 '_dispatcher',
+                 '_service_loop',
                  'logger',
                  '_sys')
 
@@ -28,6 +30,11 @@ class BaseService(emews.base.threading.runnable.Runnable):
         """Return the system properties object."""
         return self._sys
 
+    @property
+    def looped(self):
+        """Return if service is looped."""
+        return self._service_loop is not None
+
     @abstractmethod
     def run_service(self):
         """Where the service entrance code goes.  Must be implemented by child class."""
@@ -35,19 +42,36 @@ class BaseService(emews.base.threading.runnable.Runnable):
 
     def start(self):
         """Start the service."""
-        self.logger.debug("%s starting.", self.service_name)
+        self.logger.debug("%s starting [looped=%s].", self.service_name, self.looped)
 
         try:
-            self.run_service()
-        except Exception as ex:
-            self.logger.error("%s terminated abruptly (exception: %s)", self.service_name, ex)
+            if self._service_loop is not None:
+                # looped
+                while not self.interrupted:
+                    self.run_service()
+                    self.sleep(self._service_loop.sample())
+            else:
+                self.run_service()
+
+            self._dispatcher.cb_thread_exit(self)
+        except:  # noqa
+            # We need to catch everything here so we can call the exit callback of our dispatcher
+            # Don't worry, we reraise it.
+            self.logger.error("%s terminating due to exception.", self.service_name)
+            self._dispatcher.cb_thread_exit(self)
             raise
 
-        if not self.interrupted:
-            self.logger.debug("%s stopping (finished)...", self.service_name)
-        else:
-            self.logger.debug("%s stopping (requested) ...", self.service_name)
+        self.logger.debug("%s finished.", self.service_name)
 
     def stop(self):
         """Gracefully exit service."""
+        self.logger.debug("%s stopping (requested) ...", self.service_name)
         self.interrupt()
+
+    def register_dispatcher(self, dispatcher):
+        """Register the exit function of the dispatcher handling this service."""
+        self._dispatcher = dispatcher
+
+    def __str__(self):
+        """@Override print service name."""
+        return self.service_name

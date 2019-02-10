@@ -6,16 +6,14 @@ Created on June 8, 2018
 """
 import collections
 import signal
+import threading
 
-# import emews.base.connectionmanager
-import emews.base.threading.thread_dispatcher
+import emews.base.thread_dispatcher
 import emews.services.servicebuilder
 
 
 class SystemManager(object):
     """Classdocs."""
-
-    __slots__ = ('_config', '_sys', '_thread_dispatcher', 'connection_manager')
 
     def __init__(self, config, sysprop):
         """
@@ -35,6 +33,8 @@ class SystemManager(object):
         self._sys = sysprop
         self._thread_dispatcher = None
         self.connection_manager = None
+        self._interrupted = False
+        self._local_event = threading.Event()
 
         self._sys.logger.info("Network node: %s, node id: %d",
                               self._sys.node_name, self._sys.node_id)
@@ -70,14 +70,14 @@ class SystemManager(object):
                                        service_name)
             self._sys.logger.debug("Dispatching service '%s' ...", service_name)
 
-            service_obj, service_exec_params = service_builder.build(
-                service_name, service_config_dict=service_parameters)
-
-            self._thread_dispatcher.dispatch_thread(service_exec_params, service_obj)
+            self._thread_dispatcher.dispatch(service_builder.build(
+                service_name, service_config_dict=service_parameters))
 
     def _shutdown_signal_handler(self, signum, frame):
         """Signal handler for incoming signals (those which may imply we need to shutdown)."""
         self._sys.logger.info("Received signum %d, beginning shutdown...", signum)
+        self._interrupted = True
+        self._local_event.set()
         self.shutdown()
 
     def start(self):
@@ -85,7 +85,7 @@ class SystemManager(object):
         self._sys.logger.debug("Starting system manager ...")
 
         # instantiate thread dispatcher and connection manager
-        self._thread_dispatcher = emews.base.threading.thread_dispatcher.ThreadDispatcher(
+        self._thread_dispatcher = emews.base.thread_dispatcher.ThreadDispatcher(
             self._config['general'], self._sys)
 
         # start any services specified
@@ -94,12 +94,15 @@ class SystemManager(object):
         if self._sys.local:
             # local mode:  do not start ConnectionManager
             if self._thread_dispatcher.count == 0:
-                self._sys.logger.info("No services started, nothing to do, shutting down ...")
-                self.shutdown()
+                self._sys.logger.info("No services running, nothing to do, shutting down ...")
                 return
 
-            # Need to block here if any services are running.
-            self._thread_dispatcher.join()
+            self._sys.logger.info("Waiting while services are running ...")
+
+            while not self._interrupted and self._thread_dispatcher.count > 0:
+                self._local_event.wait(1)
+
+            self._sys.logger.info("All running services shut down.")
 
         else:
             self.connection_manager = emews.base.connectionmanager.ConnectionManager(

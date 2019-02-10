@@ -5,7 +5,7 @@ Created on Feb 8, 2019
 @author: Brian Ricks
 """
 
-from threading import Event
+import threading
 
 
 class Runnable(object):
@@ -15,7 +15,7 @@ class Runnable(object):
 
     def __init__(self):
         """Constructor."""
-        self._interrupt_event = Event()  # used to interrupt Event.wait() on stop()
+        self._interrupt_event = threading.Event()  # used to interrupt Event.wait() on stop()
         self._interrupted = False  # set to true on stop()
 
     @property
@@ -25,12 +25,12 @@ class Runnable(object):
 
     def interrupt(self):
         """Interrupt the runnable."""
-        self._service_interrupt_event.set()
+        self._interrupt_event.set()
         self._interrupted = True
 
     def sleep(self, time):
         """Block the runnable for the given amount of time (in seconds)."""
-        if self._interrupted:
+        if self._interrupted or time <= 0:
             return
 
-        self._service_interrupt_event.wait(time)
+        self._interrupt_event.wait(time)

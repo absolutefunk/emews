@@ -5,9 +5,6 @@ Created on Mar 30, 2018
 @author: Brian Ricks
 """
 import threading
-import weakref
-
-import emews.base.threading.thread_spawn
 
 
 def thread_names_str():
@@ -22,19 +19,15 @@ def thread_names_str():
 class ThreadDispatcher(object):
     """Dispatches and manages active threads."""
 
-    __slots__ = ('_active_threads', '_deferred_threads', '_delay_timer', '_delay_lock',
-                 '_thread_shutdown_timeout', '_sys')
     __dispatch_timer_id = 0  # each timer has a unique thread id in the name
+    __thread_id = 0  # each thread has a unique id
 
     def __init__(self, config, sysprop):
         """Constructor."""
-        super(ThreadDispatcher, self).__init__()
-
         self._sys = sysprop
 
-        # When a thread dies, it is automatically removed from the _active_threads set.
-        self._active_threads = weakref.WeakSet()
-        self._deferred_threads = set()
+        self._active_thread_map = {}  # object and its corresponding thread
+        self._deferred_objects = set()
 
         self._delay_timer = None
         self._delay_lock = threading.Lock()
@@ -54,44 +47,48 @@ class ThreadDispatcher(object):
     @property
     def count(self):
         """Return a count of active threads."""
-        return len(self._active_threads)
+        return len(self._active_thread_map)
 
-    def join(self):
-        """Join all active threads."""
-        for active_thread in self._active_threads:
-            active_thread.join()
+    def cb_thread_exit(self, object_instance):
+        """Unregisters an object that has terminated."""
+        del self._active_thread_map[object_instance]
 
-    def dispatch_thread(self, exec_config, object_instance, force_start=False):
+    def dispatch(self, object_instance, force_start=False):
         """
         Create and possibly dispatch object_instance contained in a thread.
 
         object_instance is the object that we want to wrap around ThreadWrapper.  If 'force_start'
         is True, then dispatch thread anyway.
         """
+        object_instance.register_dispatcher(self.cb_thread_exit)
+
         if not force_start:
             # The lock is required here as the timer could clear the self._delay_timer instance
             # right after we check it here, resulting possibly in a deferred thread that is never
             # started.
             with self._delay_lock:
                 if self._delay_timer is not None:
-                    wrapped_object = emews.base.threading.thread_spawn.ThreadSpawn(
-                        exec_config, object_instance)
-                    self._sys.logger.debug(
-                        "Thread '%s' deferred for dispatching.", wrapped_object.name)
-                    self._deferred_threads.add(wrapped_object)
+                    self._deferred_objects.add(object_instance)
+                    self._sys.logger.debug("'%s' deferred for dispatching.", str(object_instance))
                     return
 
-        wrapped_object = emews.base.threading.thread_spawn.ThreadSpawn(
-            exec_config, object_instance)
-        wrapped_object.start()
-        # we also need to store the thread reference itself, so shutting down all threads we can
-        # join each thread
-        self._active_threads.add(wrapped_object)
-
-        self._sys.logger.info("Dispatched thread '%s'.", wrapped_object.name)
-        if wrapped_object.looped:
-            self._sys.logger.debug("Thread '%s' is looped.", wrapped_object.name)
+        self._object_dispatch(object_instance)
         self._dispatch_info()
+
+    def _object_dispatch(self, object_instance):
+        """Dispatch an object instance."""
+        object_instance.register_dispatcher(self)
+
+        new_thread = threading.Thread(
+            name=str(object_instance) + '-' + str(ThreadDispatcher.__thread_id),
+            target=object_instance.start)
+
+        ThreadDispatcher.__thread_id += 1
+        self._active_thread_map[object_instance] = new_thread
+        new_thread.setDaemon(True)
+        new_thread.start()
+
+        self._sys.logger.info("Dispatched thread '%s'.", new_thread.name)
 
     def _dispatch_info(self):
         """Display dispatch stats."""
@@ -104,14 +101,8 @@ class ThreadDispatcher(object):
             self._sys.logger.debug("No deferred threads to dispatch.")
             return
 
-        for wrapped_object in self._deferred_threads:
-            self._sys.logger.info("Dispatched thread '%s'.", wrapped_object.name)
-            wrapped_object.start()
-            self._active_threads.add(wrapped_object)
-
-            self._sys.logger.info("Dispatched deferred thread '%s'.", wrapped_object.name)
-            if wrapped_object.looped:
-                self._sys.logger.debug("Thread '%s' is looped.", wrapped_object.name)
+        for object_instance in self._deferred_objects:
+            self._object_dispatch(object_instance)
 
         self._sys.logger.debug("Dispatched all deferred threads.")
         self._deferred_threads.clear()
@@ -152,8 +143,8 @@ class ThreadDispatcher(object):
         self._sys.logger.info("%d dispatched thread(s) to shutdown.", self.count)
 
         if self.count > 0:
-            for active_thread in self._active_threads:
-                active_thread.stop()
+            for active_object in self._active_thread_map.keys():
+                active_object.stop()
 
             if self._thread_shutdown_timeout is not None:
                 self._sys.logger.info("Will wait a maximum of %d seconds for threads to shutdown.",
@@ -162,7 +153,7 @@ class ThreadDispatcher(object):
                 self._sys.logger.info("No thread join timeout set.  Will wait until all running "
                                       "threads shut down ...")
 
-            for active_thread in self._active_threads:
+            for active_thread in self._active_thread_map.values():
                 # Wait for each service to shutdown.  We put this in a separate loop so each service
                 # will get the shutdown request first, and can shutdown concurrently.
                 active_thread.join(timeout=self._thread_shutdown_timeout)
@@ -170,8 +161,8 @@ class ThreadDispatcher(object):
             # check if any threads are still running
             if self._thread_shutdown_timeout is not None and self.count > 0:
                 thread_names = []
-                for thr in self._active_threads:
-                    thread_names.append(thr.name)
+                for active_thread in self._active_thread_map.values():
+                    thread_names.append(active_thread.name)
 
                 thr_names_str = ", ".join(thread_names)
                 self._sys.logger.warning(

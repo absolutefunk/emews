@@ -9,6 +9,8 @@ import os
 
 import emews.base.config
 import emews.base.import_tools
+import emews.components.importer
+import emews.components.samplers.zerosampler
 
 
 class ServiceBuilder(object):
@@ -23,6 +25,17 @@ class ServiceBuilder(object):
     def build(self, service_name, service_config_dict=None, service_config_file=None):
         """Build the service."""
         if service_config_dict is not None:
+            # checks
+            if not isinstance(service_config_dict, collections.Mapping):
+                err_str = "Service configuration passed as argument is not a dictionary."
+                self._sys.logger.error(err_str)
+                raise AttributeError(err_str)
+            if 'parameters' not in service_config_dict:
+                err_str = "Service configuration passed as argument missing required section " \
+                          "'parameters'."
+                self._sys.logger.error(err_str)
+                raise AttributeError(err_str)
+
             service_config = service_config_dict
             self._sys.logger.debug("Using service configuration passed as argument.")
         else:
@@ -48,12 +61,25 @@ class ServiceBuilder(object):
             self._sys.logger.error("Service module '%s' could not be imported.", service_name)
             raise
 
+        # configure execution
+        service_loop = None
+        if 'execution' in service_config:
+            # looping
+            if service_config['execution'].get('loop', False):
+                # assume loop_config is a properly formatted dict
+                if 'loop_using_sampler' in service_config['execution']:
+                    service_loop = emews.components.importer.instantiate(
+                        service_config['execution']['loop_using_sampler'])
+                else:
+                    service_loop = emews.components.samplers.zerosampler.ZeroSampler()
+
         # TODO: Add global service identifiers (will need to have a central server for this)
 
         # inject dict
         service_config_inject = {}
         service_config_inject['service_name'] = service_name
         service_config_inject['service_id'] = -1  # TODO: set this to the actual service id (global)
+        service_config_inject['_service_loop'] = service_loop
         service_config_inject['_sys'] = self._sys
         service_config_inject['logger'] = self._sys.logger
 
@@ -66,7 +92,4 @@ class ServiceBuilder(object):
             self._sys.logger.error("Service '%s' could not be instantiated.", service_name)
             raise
 
-        service_exec_config = service_config.get('execution', None)
-
-        # build service modifiers
-        return (service_obj, service_exec_config)
+        return service_obj
