@@ -42,7 +42,7 @@ class BaseService(emews.base.runnable.Runnable):
 
     def start(self):
         """Start the service."""
-        self.logger.debug("%s starting [looped=%s].", self.service_name, self.looped)
+        self.logger.debug("%s: starting [looped=%s].", self.service_name, self.looped)
 
         try:
             if self._service_loop is not None:
@@ -52,25 +52,25 @@ class BaseService(emews.base.runnable.Runnable):
                     self.sleep(self._service_loop.sample())
             else:
                 self.run_service()
-
-            self._dispatcher.cb_thread_exit(self)
         except:  # noqa
             # We need to catch everything here so we can call the exit callback of our dispatcher
             # Don't worry, we reraise it.
-            self.logger.error("%s terminating due to exception.", self.service_name)
-            self._dispatcher.cb_thread_exit(self)
+            self.interrupt()
+            self._dispatcher.cb_thread_exit(self, on_exception=True)
             raise
 
-        self.logger.debug("%s finished.", self.service_name)
+        self._dispatcher.cb_thread_exit(self)
 
     def stop(self):
         """Gracefully exit service."""
-        self.logger.debug("%s stopping (requested) ...", self.service_name)
-        self.interrupt()
+        if not self.interrupted:
+            self.logger.debug("%s: stopping (requested) ...", self.service_name)
+            self.interrupt()
 
     def register_dispatcher(self, dispatcher):
         """Register the exit function of the dispatcher handling this service."""
         self._dispatcher = dispatcher
+        self.logger.debug("%s: dispatcher '%s' registered.", self.service_name, str(dispatcher))
 
     def __str__(self):
         """@Override print service name."""

@@ -4,7 +4,9 @@ Handles thread management.  Acts as a dispatcher for threads.
 Created on Mar 30, 2018
 @author: Brian Ricks
 """
+import os
 import threading
+import signal
 
 
 def thread_names_str():
@@ -26,7 +28,7 @@ class ThreadDispatcher(object):
         """Constructor."""
         self._sys = sysprop
 
-        self._active_thread_map = {}  # object and its corresponding thread
+        self._thread_map = {}  # object and its corresponding thread
         self._deferred_objects = set()
 
         self._delay_timer = None
@@ -36,8 +38,11 @@ class ThreadDispatcher(object):
         if self._thread_shutdown_timeout <= 0:
             self._thread_shutdown_timeout = None
 
+        self._halt_on_exceptions = config['halt_on_service_exceptions']
+
         if not self._sys.local:
             start_delay = config['service_start_delay']
+            # NOTE: service start delay currently delays all objects
             if start_delay > 0:
                 self._sys.logger.info("Beginning service start delay of %d seconds.", start_delay)
                 self.delay_dispatch(start_delay)
@@ -47,11 +52,20 @@ class ThreadDispatcher(object):
     @property
     def count(self):
         """Return a count of active threads."""
-        return len(self._active_thread_map)
+        return threading.active_count() - 1
 
-    def cb_thread_exit(self, object_instance):
+    def cb_thread_exit(self, object_instance, on_exception=False):
         """Unregisters an object that has terminated."""
-        del self._active_thread_map[object_instance]
+        if on_exception:
+            self._sys.logger.error(
+                "object '%s' has expressed intent to terminate due to exception.",
+                str(object_instance))
+            if self._halt_on_exceptions:
+                self._sys.logger.info("Halt-on-exceptions enabled, throwing SIGINT ...")
+                os.kill(os.getpid(), signal.SIGINT)
+        else:
+            self._sys.logger.debug(
+                "object '%s' has expressed intent to terminate.", str(object_instance))
 
     def dispatch(self, object_instance, force_start=False):
         """
@@ -60,8 +74,6 @@ class ThreadDispatcher(object):
         object_instance is the object that we want to wrap around ThreadWrapper.  If 'force_start'
         is True, then dispatch thread anyway.
         """
-        object_instance.register_dispatcher(self.cb_thread_exit)
-
         if not force_start:
             # The lock is required here as the timer could clear the self._delay_timer instance
             # right after we check it here, resulting possibly in a deferred thread that is never
@@ -84,7 +96,7 @@ class ThreadDispatcher(object):
             target=object_instance.start)
 
         ThreadDispatcher.__thread_id += 1
-        self._active_thread_map[object_instance] = new_thread
+        self._thread_map[object_instance] = new_thread
         new_thread.setDaemon(True)
         new_thread.start()
 
@@ -134,6 +146,11 @@ class ThreadDispatcher(object):
         """Shut down all running threads."""
         # We need the lock to make sure the Timer instance doesn't clear between checking for None
         # and invoking cancel().
+        if threading.current_thread().__class__.__name__ != '_MainThread':
+            err_msg = "Must call 'shutdown_all_threads()' from MainThread."
+            self._sys.logger.error(err_msg)
+            raise RuntimeError(err_msg)
+
         with self._delay_lock:
             if self._delay_timer is not None:
                 self._sys.logger.debug("Delay dispatch timer is active, cancelling timer ...")
@@ -143,8 +160,9 @@ class ThreadDispatcher(object):
         self._sys.logger.info("%d dispatched thread(s) to shutdown.", self.count)
 
         if self.count > 0:
-            for active_object in self._active_thread_map.keys():
-                active_object.stop()
+            for t_object in self._thread_map.keys():
+                # send stop requests to all registered objects
+                t_object.stop()
 
             if self._thread_shutdown_timeout is not None:
                 self._sys.logger.info("Will wait a maximum of %d seconds for threads to shutdown.",
@@ -153,18 +171,21 @@ class ThreadDispatcher(object):
                 self._sys.logger.info("No thread join timeout set.  Will wait until all running "
                                       "threads shut down ...")
 
-            for active_thread in self._active_thread_map.values():
-                # Wait for each service to shutdown.  We put this in a separate loop so each service
-                # will get the shutdown request first, and can shutdown concurrently.
-                active_thread.join(timeout=self._thread_shutdown_timeout)
+            for active_thread in threading.enumerate():
+                # join all active threads except for the main thread
+                if active_thread is not threading.current_thread():
+                    # current_thread is main thread
+                    active_thread.join(timeout=self._thread_shutdown_timeout)
 
             # check if any threads are still running
             if self._thread_shutdown_timeout is not None and self.count > 0:
                 thread_names = []
-                for active_thread in self._active_thread_map.values():
-                    thread_names.append(active_thread.name)
+                for active_thread in threading.enumerate():
+                    if active_thread is not threading.current_thread() and active_thread.isAlive():
+                        thread_names.append(active_thread.name)
 
-                thr_names_str = ", ".join(thread_names)
-                self._sys.logger.warning(
-                    "The following threads did not shut down within the timeout period: [%s].  "
-                    "Shutdown proceeding ...", thr_names_str)
+                if len(thread_names) > 0:
+                    thr_names_str = ", ".join(thread_names)
+                    self._sys.logger.warning(
+                        "The following threads did not shut down within the timeout period: [%s].  "
+                        "Shutdown proceeding ...", thr_names_str)

@@ -102,12 +102,15 @@ class SystemManager(object):
             while not self._interrupted and self._thread_dispatcher.count > 0:
                 self._local_event.wait(1)
 
-            self._sys.logger.info("All running services shut down.")
+            if self._thread_dispatcher.count == 0:
+                self._sys.logger.info("No services running.")
 
         else:
             self.connection_manager = emews.base.connectionmanager.ConnectionManager(
                 self._config['communication'], self._thread_dispatcher)
             self.connection_manager.start()
+
+        self._sys.logger.info("Shutdown complete.")
 
     def shutdown(self):
         """Shut down daemon operation."""
