@@ -92,7 +92,7 @@ class ThreadDispatcher(object):
         object_instance.register_dispatcher(self)
 
         new_thread = threading.Thread(
-            name=str(object_instance) + '-' + str(ThreadDispatcher.__thread_id),
+            name=str(object_instance) + '[' + str(ThreadDispatcher.__thread_id) + ']',
             target=object_instance.start)
 
         ThreadDispatcher.__thread_id += 1

@@ -16,11 +16,12 @@ import emews.components.samplers.zerosampler
 class ServiceBuilder(object):
     """classdocs."""
 
-    __slots__ = ('_sys')
+    __slots__ = ('_sys', '_service_count')
 
     def __init__(self, sysprop):
         """Constructor."""
         self._sys = sysprop
+        self._service_count = {}  # mapping from service class to instantiation count
 
     def build(self, service_name, service_config_dict=None, service_config_file=None):
         """Build the service."""
@@ -77,7 +78,8 @@ class ServiceBuilder(object):
 
         # inject dict
         service_config_inject = {}
-        service_config_inject['service_name'] = service_name
+        service_count = self._service_count.get(service_name, -1) + 1
+        service_config_inject['service_name'] = service_name + '-' + str(service_count)
         service_config_inject['service_id'] = -1  # TODO: set this to the actual service id (global)
         service_config_inject['_service_loop'] = service_loop
         service_config_inject['_sys'] = self._sys
@@ -91,5 +93,7 @@ class ServiceBuilder(object):
         except StandardError:
             self._sys.logger.error("Service '%s' could not be instantiated.", service_name)
             raise
+
+        self._service_count.update(service_name=service_count)
 
         return service_obj

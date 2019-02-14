@@ -7,7 +7,7 @@ general:  # general eMews daemon options
   # Delay (seconds) to start services from eMews daemon invocation.
   service_start_delay: 120
   # Delay to wait for 'graceful' thread shutdown.  After this wait, continue shut down.
-  thread_shutdown_wait: 5  # in seconds (-1 = disable)
+  thread_shutdown_wait: 3  # in seconds (-1 = disable)
   # If true, then halt eMews on service-originated exceptions
   halt_on_service_exceptions: False
 
