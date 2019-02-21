@@ -79,7 +79,7 @@ class ServiceBuilder(object):
         # inject dict
         service_config_inject = {}
         service_count = self._service_count.get(service_name, -1) + 1
-        service_config_inject['service_name'] = service_name + '-' + str(service_count)
+        service_config_inject['service_name'] = service_name + '_' + str(service_count)
         service_config_inject['service_id'] = -1  # TODO: set this to the actual service id (global)
         service_config_inject['_service_loop'] = service_loop
         service_config_inject['_sys'] = self._sys

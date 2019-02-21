@@ -43,12 +43,13 @@ def system_init(args):
     config_dict_system = emews.base.config.merge_configs(
         base_config['system'], system_config, node_config)
 
-    # get the node name
+    # get the node name and id
     node_name = _get_node_name(config_dict_init['general']['node_name'], args.node_name)
+    node_id = 0
 
     # init the logger
     logger = logging.LoggerAdapter(
-        _init_base_logger(config_dict_init['logging']), {'nodename': node_name})
+        _init_base_logger(config_dict_init['logging']), {'nodename': node_name, 'nodeid': node_id})
 
     # now we have logging, so we can start outputting though the logger
     logger.debug("Logger initialized.")
@@ -57,7 +58,7 @@ def system_init(args):
     sysprop = emews.base.config.SysProp(
         _logger=logger,
         _node_name=node_name,
-        _node_id=0,
+        _node_id=node_id,
         _root_path=root_path,
         _local=args.local)
 

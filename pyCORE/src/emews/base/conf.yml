@@ -6,7 +6,7 @@ init:
   readonly:  # These K/Vs cannot be overwritten in a config file
     logging:
       logger_name: emews.base
-      message_format: '[%(asctime)s] %(nodename)-12.12s | %(threadName)-16.16s [%(levelname)-8.8s | %(module)-16.16s | %(funcName)-16.16s]: %(message)s'
+      message_format: '[%(asctime)s] %(nodename)-12.12s | %(nodeid)-5.5s | %(threadName)-16.16s [%(levelname)-8.8s | %(module)-16.16s | %(funcName)-16.16s]: %(message)s'
   overrides:  # These K/Vs can be overwritten in a config file
     general:  # general eMews daemon options
       node_name: null  # name of the node running this instance of eMews
