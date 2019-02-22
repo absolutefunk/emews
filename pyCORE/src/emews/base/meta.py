@@ -1,9 +1,3 @@
-"""
-Meta classes.
-
-Created on Feb 1, 2019
-@author: Brian Ricks
-"""
 import abc
 
 

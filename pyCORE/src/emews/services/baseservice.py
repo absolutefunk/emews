@@ -9,26 +9,31 @@ Created on Mar 5, 2018
 @author: Brian Ricks
 """
 from abc import abstractmethod
+import threading
 
 import emews.base.meta
-import emews.base.runnable
 
 
-class BaseService(emews.base.runnable.Runnable):
+class BaseService(object):
     """Classdocs."""
 
     __metaclass__ = emews.base.meta.InjectionMetaWithABC
-    __slots__ = ('service_name',
+    __slots__ = ('_sys',
+                 'logger',
+                 'service_name',
                  'service_id',
                  '_dispatcher',
-                 '_service_loop',
-                 'logger',
-                 '_sys')
+                 '_service_loop')
 
     @property
     def sys(self):
         """Return the system properties object."""
         return self._sys
+
+    @property
+    def interrupted(self):
+        """Interrupted state of the component."""
+        return self._interrupted
 
     @property
     def looped(self):
@@ -61,16 +66,27 @@ class BaseService(emews.base.runnable.Runnable):
 
         self._dispatcher.cb_thread_exit(self)
 
-    def stop(self):
-        """Gracefully exit service."""
-        if not self.interrupted:
-            self.logger.debug("%s: stopping (requested) ...", self.service_name)
-            self.interrupt()
-
     def register_dispatcher(self, dispatcher):
         """Register the exit function of the dispatcher handling this service."""
         self._dispatcher = dispatcher
         self.logger.debug("%s: dispatcher '%s' registered.", self.service_name, str(dispatcher))
+
+    def __init__(self):
+        """Constructor."""
+        self._interrupt_event = threading.Event()
+        self._interrupted = False
+
+    def interrupt(self):
+        """Interrupt the component."""
+        self._interrupt_event.set()
+        self._interrupted = True
+
+    def sleep(self, time):
+        """Block the runnable for the given amount of time (in seconds)."""
+        if self._interrupted or time <= 0:
+            return
+
+        self._interrupt_event.wait(time)
 
     def __str__(self):
         """@Override print service name."""

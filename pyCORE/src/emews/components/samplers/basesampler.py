@@ -8,14 +8,13 @@ Created on Feb 26, 2018
 """
 from abc import abstractmethod
 
-import emews.base.meta
+import emews.components.basecomponent
 
 
-class BaseSampler(object):
+class BaseSampler(emews.components.basecomponent.BaseComponent):
     """classdocs."""
 
-    __metaclass__ = emews.base.meta.InjectionMetaWithABC
-    __slots__ = ('logger', '_sys')
+    __slots__ = ()
 
     @abstractmethod
     def sample(self):

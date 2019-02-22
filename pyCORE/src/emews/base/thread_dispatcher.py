@@ -23,6 +23,8 @@ class ThreadDispatcher(object):
 
     __dispatch_timer_id = 0  # each timer has a unique thread id in the name
     __thread_id = 0  # each thread has a unique id
+    __slots__ = ('_sys', '_thread_map', '_deferred_objects', '_delay_timer', '_delay_lock',
+                 '_thread_shutdown_timeout', '_halt_on_exceptions')
 
     def __init__(self, config, sysprop):
         """Constructor."""

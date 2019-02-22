@@ -8,6 +8,8 @@ import collections
 
 from ruamel.yaml import YAML
 
+import emews.base.import_tools
+
 
 class SysProp(object):
     """Provides a read-only container for the system properties."""
@@ -23,6 +25,18 @@ class SysProp(object):
         """Constructor."""
         for key, value in kwargs.iteritems():
             setattr(self, key, value)
+
+    def import_component(self, config):
+        """Given a config dict, return an instantiated component."""
+        class_name = config['component'].split('.')[-1]
+        module_path = 'emews.components.' + config['component'].lower()
+
+        inject_dct = {}
+        inject_dct['_sys'] = self
+        inject_dct['logger'] = self._logger
+
+        return emews.base.import_tools.import_class_from_module(
+            module_path, class_name)(config['parameters'], _inject=inject_dct)
 
     # boilerplate for the properties (read-only)
     @property
