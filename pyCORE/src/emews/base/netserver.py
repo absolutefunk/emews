@@ -26,38 +26,38 @@ class NetServer(emews.components.net.basenet.BaseNet):
 
         # parameter checks
         if sock_host == '':
-            self.logger.warning(
+            self._sys.logger.warning(
                 "Host not specified. Listener may bind to any available interface.")
         if sock_port < 1 or sock_port > 65535:
             err_msg = "Port is out of range (must be between 1 and 65535, given: %d)"
-            self.logger.error(err_msg, sock_port)
+            self._sys.logger.error(err_msg, sock_port)
             raise ValueError(err_msg % sock_port)
         if sock_port < 1024:
-            self.logger.warning("Port is less than 1024 (given: %d).  "
-                                "Elevated permissions may be needed for binding.", sock_port)
+            self._sys.logger.warning("Port is less than 1024 (given: %d).  "
+                                     "Elevated permissions may be needed for binding.", sock_port)
 
         # initialize listener socket
         try:
             self._serv_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self._serv_sock.setblocking(0)
         except socket.error:
-            self.logger.error("Could not instantiate socket.")
+            self._sys.logger.error("Could not instantiate socket.")
             raise
 
         try:
             self._serv_sock.bind((self._host, self._port))
         except socket.error:
             self._serv_sock.close()
-            self.logger.error("Could not bind socket to interface.")
+            self._sys.logger.error("Could not bind socket to interface.")
             raise
         try:
             self._serv_sock.listen(5)
         except socket.error:
             self._serv_sock.close()
-            self.logger.error("Exception when setting up connection requests.")
+            self._sys.logger.error("Exception when setting up connection requests.")
             raise
 
-        self.logger.info("Listening on interface %s, port %d", sock_host, sock_port)
+        self._sys.logger.info("Listening on interface %s, port %d", sock_host, sock_port)
         self._sock_list.append(self._serv_sock)
 
     def readable_socket(self, sock):
@@ -69,25 +69,25 @@ class NetServer(emews.components.net.basenet.BaseNet):
                 acc_sock.setblocking(0)
             except socket.error as ex:
                 # ignore the exception, but dump the new connection
-                self.logger.warning("Socket exception while accepting connection: %s", ex)
+                self._sys.logger.warning("Socket exception while accepting connection: %s", ex)
                 return
 
-            self.logger.debug("Connection established from %s", src_addr)
+            self._sys.logger.debug("Connection established from %s", src_addr)
             self._r_socks.append(acc_sock)
         else:
             # readable socket we are managing
             try:
                 chunk = sock.recv(self._buf_size)
             except socket.error:
-                self.logger.warning("Socket error when receiving data, closing socket FD '%d' ...",
-                                    sock.fileno())
+                self._sys.logger.warning(
+                    "Socket error when receiving data, closing socket FD '%d' ...", sock.fileno())
                 self._r_socks.remove(sock)
                 sock.shutdown(socket.SHUT_RDWR)
                 return
 """
             if not len(chunk):
                 # zero length chunk, connection probably closed
-                self.logger.debug("Connection reset by peer, closing socket FD '%d' ...",
+                self._sys.logger.debug("Connection reset by peer, closing socket FD '%d' ...",
                                   sock.fileno())
                 self._r_socks.remove(sock)
                 sock.shutdown(socket.SHUT_RDWR)

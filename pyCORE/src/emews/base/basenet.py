@@ -1,37 +1,35 @@
 """
-Base class for node-to-node networking.
+Base class for backend daemon networking.
 
 Sockets in this framework are intialized to be non-blocking, enabling graceful shutdown from the
 daemon process.
 
-Created on Apr 22, 2018
+Created on Feb 21, 2019
 @author: Brian Ricks
 """
 import select
 
 
 """
-# once the listener is finished, then close the socket
-self._socket.close()
-
 NOTE:  Refactor this to be integrated into eMews node-to-node communication.  Do not use this as a
 general framework for services, as service devs can just use raw sockets, no sense doing all this
-extra work.  for services, self.sys.net.* functions for sending data to other nodes and stuff:
--- something like self.sys.net.send_to_node(node_id)
---- This isn't needed if the service has the socket already
--- maybe also: self.net.send_to_all_services(data)
----- Looks like I'm going to need a receive() method for BaseService, I dunno, think about all this.
+extra work.  for services, self.sys.net.* functions for network helper functions (stuff like
+resolving IP address by node name).
+
+Use netserver.py within ConnectionManager.  Delete other net classes that are no longer needed.
 """
 
 
 class BaseNet(object):
     """Classdocs."""
 
-    __slots__ = ('_r_socks', '_w_socks')
+    __slots__ = ('_sys', '_interrupted', '_r_socks', '_w_socks')
 
     def __init__(self, sysprop):
         """Constructor."""
         super(BaseNet, self).__init__()
+        self._sys = sysprop
+        self._interrupted = False
 
         # TODO: does select.select accept sets?
         self._r_socks = []  # list of socket objects to manage for a readable state
@@ -39,12 +37,12 @@ class BaseNet(object):
 
     def start(self):
         """Start the main net loop."""
-        while not self.interrupted:
+        while not self._interrupted:
             try:
                 r_sock_list, w_sock_list, _ = select.select(self._r_socks, self._w_socks, [])
             except select.error:
-                if not self.interrupted:
-                    self.logger.error("Select error while blocking on managed sockets.")
+                if not self._interrupted:
+                    self._sys.logger.error("Select error while blocking on managed sockets.")
                     raise
 
             for r_sock in r_sock_list:
