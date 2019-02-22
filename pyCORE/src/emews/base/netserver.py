@@ -6,13 +6,13 @@ Created on Feb 21, 2019
 """
 import socket
 
-import emews.components.net.basenet
+import emews.base.basenet
 
 
-class NetServer(emews.components.net.basenet.BaseNet):
+class NetServer(emews.base.basenet.BaseNet):
     """Classdocs."""
 
-    __slots__ = ('_buf_size', '_serv_sock', '_handler')
+    __slots__ = ('_serv_sock', '_handler')
 
     def __init__(self, config):
         """Constructor."""
