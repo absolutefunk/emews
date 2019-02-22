@@ -12,17 +12,17 @@ import emews.base.basenet
 class NetServer(emews.base.basenet.BaseNet):
     """Classdocs."""
 
-    __slots__ = ('_serv_sock', '_handler')
+    __slots__ = ('_buf_size', '_handler', '_serv_sock')
 
-    def __init__(self, config):
+    def __init__(self, config, sysprop, handler):
         """Constructor."""
-        super(NetServer, self).__init__()
+        super(NetServer, self).__init__(sysprop)
 
         sock_host = config['host']
         sock_port = config['port']
 
         self._buf_size = config['buf_size']
-        self._handler = config['handler']
+        self._handler = handler
 
         # parameter checks
         if sock_host == '':
@@ -81,17 +81,19 @@ class NetServer(emews.base.basenet.BaseNet):
             except socket.error:
                 self._sys.logger.warning(
                     "Socket error when receiving data, closing socket FD '%d' ...", sock.fileno())
-                self._r_socks.remove(sock)
-                sock.shutdown(socket.SHUT_RDWR)
+                self._close_socket(sock)
                 return
-"""
+
             if not len(chunk):
                 # zero length chunk, connection probably closed
-                self._sys.logger.debug("Connection reset by peer, closing socket FD '%d' ...",
-                                  sock.fileno())
-                self._r_socks.remove(sock)
-                sock.shutdown(socket.SHUT_RDWR)
+                self._sys.logger.debug("Connection closed remotely, closing socket FD '%d' ...",
+                                       sock.fileno())
+                self._close_socket(sock)
                 return
 
             self._handler.handle_received_data(sock.fileno(), chunk)
-"""
+
+    def _close_socket(self, sock):
+        """Close the passed socket."""
+        self._r_socks.remove(sock)
+        sock.shutdown(socket.SHUT_RDWR)

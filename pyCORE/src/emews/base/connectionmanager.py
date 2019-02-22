@@ -5,36 +5,21 @@ Created on Mar 24, 2018
 @author: Brian Ricks
 """
 import emews.base.clientsession
-import emews.base.ihandlerlistener
-import emews.base.multilistener
+import emews.base.netserver
 
 
-class ConnectionManager(emews.base.ihandlerlistener.IHandlerListener):
+class ConnectionManager(object):
     """Classdocs."""
 
-    def __init__(self, config, thread_dispatcher):
+    __slots__ = ('_netserver', '_thread_dispatcher')
+
+    def __init__(self, config, sysprop, thread_dispatcher):
         """Constructor."""
         super(ConnectionManager, self).__init__()
 
-        self._listener = emews.base.multilistener.MultiListener(config, self)
-
-        self._config = config
+        self._netserver = emews.base.netserver.NetServer(config, sysprop, self)
         self._thread_dispatcher = thread_dispatcher
-
-    def start(self):
-        """Start the ConnectionManager."""
-        self._listener.start()  # start the listener
 
     def stop(self):
         """Stop the ConnectionManager."""
-        self._listener.stop()  # shut down the listener
-
-    def handle_accepted_connection(self, sock):
-        """@Override start a ClientSession with this socket."""
-        self._thread_dispatcher.dispatch_thread(
-            emews.base.clientsession.ClientSession(self._config, sock, self._thread_dispatcher),
-            force_start=True)
-
-    def handle_readable_socket(self, sock):
-        """@Override not implemented due to listener not using this callback."""
-        pass
+        self._netserver.interrupt()

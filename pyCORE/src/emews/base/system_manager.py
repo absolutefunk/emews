@@ -108,7 +108,6 @@ class SystemManager(object):
         else:
             self.connection_manager = emews.base.connectionmanager.ConnectionManager(
                 self._config['communication'], self._thread_dispatcher)
-            self.connection_manager.start()
 
         self._sys.logger.info("Shutdown complete.")
 

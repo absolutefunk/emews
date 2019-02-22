@@ -68,3 +68,7 @@ class BaseNet(object):
         This method should be overridden by any subclass which handles writable sockets.
         """
         pass
+
+    def interrupt(self):
+        """Set the interrupt flag."""
+        self._interrupted = True
