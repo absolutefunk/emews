@@ -73,7 +73,7 @@ class ConnectionManager(emews.base.basenet.BaseNet):
                 return
 
             self._sys.logger.debug("Connection established from %s", src_addr)
-            self._r_socks.append(acc_sock)
+            self._r_socks.add(acc_sock)
             self._sock_map[acc_sock] = {}  # TODO: some state for the socket here
         else:
             # readable socket we are managing
@@ -82,6 +82,7 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             except socket.error:
                 self._sys.logger.warning(
                     "Socket error when receiving data, closing socket FD '%d' ...", sock.fileno())
+                self._r_socks.remove(sock)
                 self._close_socket(sock)
                 return
 
@@ -89,6 +90,7 @@ class ConnectionManager(emews.base.basenet.BaseNet):
                 # zero length chunk, connection probably closed
                 self._sys.logger.debug("Connection closed remotely, closing socket FD '%d' ...",
                                        sock.fileno())
+                self._r_socks.remove(sock)
                 self._close_socket(sock)
                 return
 
@@ -101,5 +103,5 @@ class ConnectionManager(emews.base.basenet.BaseNet):
 
     def _close_socket(self, sock):
         """Close the passed socket."""
-        self._r_socks.remove(sock)
+        del self._sock_map[sock]
         sock.shutdown(socket.SHUT_RDWR)

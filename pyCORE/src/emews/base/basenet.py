@@ -32,8 +32,8 @@ class BaseNet(object):
         self._interrupted = False
 
         # TODO: does select.select accept sets?
-        self._r_socks = []  # list of socket objects to manage for a readable state
-        self._w_socks = []  # list of socket objects to manage for a writable state
+        self._r_socks = set()  # set of socket objects to manage for a readable state
+        self._w_socks = set()  # set of socket objects to manage for a writable state
 
     def start(self):
         """Start the main net loop."""
