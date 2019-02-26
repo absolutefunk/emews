@@ -94,12 +94,14 @@ class ConnectionManager(emews.base.basenet.BaseNet):
                 self._close_socket(sock)
                 return
 
-            # handle the chunk (adapt ClientSession for this)
-            # TODO: In ClientSession, handle log messages also.
+            # handle the chunk
+            self._sock_map[sock].handle_read(chunk)
 
     def writable_socket(self, sock):
         """@Override Given a socket in a writable state, do something with it."""
-
+        sock.send(self._sock_map[sock].handle_write())
+        self._w_socks.remove(sock)
+        self._r_socks.add(sock)
 
     def _close_socket(self, sock):
         """Close the passed socket."""
