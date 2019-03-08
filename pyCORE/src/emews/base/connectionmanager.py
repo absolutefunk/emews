@@ -98,8 +98,17 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             self._sock_map[sock].handle_read(chunk)
 
     def writable_socket(self, sock):
-        """@Override Given a socket in a writable state, do something with it."""
-        sock.send(self._sock_map[sock].handle_write())
+        """
+        @Override Given a socket in a writable state, do something with it.
+
+        Send whatever data is returned from the socket's associated handle_write() callback, and
+        then switch the socket from being writable to readable.
+        """
+        s_data = self._sock_map[sock].handle_write()
+
+        if s_data is not None:
+            sock.send(s_data)
+
         self._w_socks.remove(sock)
         self._r_socks.add(sock)
 
