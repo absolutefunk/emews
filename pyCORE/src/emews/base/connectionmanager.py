@@ -19,6 +19,9 @@ class ConnectionManager(emews.base.basenet.BaseNet):
         super(ConnectionManager, self).__init__(sysprop)
 
         self._host = config['host']
+        if self._host is None:
+            self._host = ''
+
         if self._host == '':
             self._sys.logger.warning(
                 "Host not specified. Listener may bind to any available interface.")
@@ -85,15 +88,14 @@ class ConnectionManager(emews.base.basenet.BaseNet):
 
     def add_listener(self, port):
         """Add a new listener (server socket) to this connection manager."""
-
         # parameter checks
-        if sock_port < 1 or sock_port > 65535:
+        if port < 1 or port > 65535:
             err_msg = "Port is out of range (must be between 1 and 65535, given: %d)"
-            self._sys.logger.error(err_msg, sock_port)
-            raise ValueError(err_msg % sock_port)
-        if sock_port < 1024:
+            self._sys.logger.error(err_msg, port)
+            raise ValueError(err_msg % port)
+        if port < 1024:
             self._sys.logger.warning("Port is less than 1024 (given: %d).  "
-                                     "Elevated permissions may be needed for binding.", sock_port)
+                                     "Elevated permissions may be needed for binding.", port)
 
         # initialize listener socket
         try:
