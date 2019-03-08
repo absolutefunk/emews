@@ -29,9 +29,11 @@ class ConnectionManager(emews.base.basenet.BaseNet):
         self._buf_size = config['buf_size']
         self._sock_map = {}
 
+        self.add_listener(config['port'])  # add listener socket for daemon listener
+
     def readable_socket(self, sock):
         """@Override Given a socket in a readable state, do something with it."""
-        if sock is self._serv_sock:
+        if sock is serv_sock:
             # accept incoming connection
             try:
                 acc_sock, src_addr = sock.accept()
@@ -99,24 +101,24 @@ class ConnectionManager(emews.base.basenet.BaseNet):
 
         # initialize listener socket
         try:
-            self._serv_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self._serv_sock.setblocking(0)
+            serv_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            serv_sock.setblocking(0)
         except socket.error:
-            self._sys.logger.error("Could not instantiate socket.")
+            self._sys.logger.error("Could not instantiate new listener socket.")
             raise
 
         try:
-            self._serv_sock.bind((self._host, self._port))
+            serv_sock.bind((self._host, port))
         except socket.error:
-            self._serv_sock.close()
-            self._sys.logger.error("Could not bind socket to interface.")
+            serv_sock.close()
+            self._sys.logger.error("Could not bind new listener socket to interface.")
             raise
         try:
-            self._serv_sock.listen(5)
+            serv_sock.listen(5)
         except socket.error:
-            self._serv_sock.close()
-            self._sys.logger.error("Exception when setting up connection requests.")
+            serv_sock.close()
+            self._sys.logger.error("New listener socket threw socket.error on listen().")
             raise
 
-        self._sys.logger.info("Listening on interface %s, port %d", sock_host, sock_port)
-        self._sock_list.append(self._serv_sock)
+        self._sys.logger.info("New listener socket on interface %s, port %d.", self._host, port)
+        self._r_socks.add(serv_sock)
