@@ -12,7 +12,7 @@ import emews.base.basenet
 class ConnectionManager(emews.base.basenet.BaseNet):
     """Classdocs."""
 
-    __slots__ = ('_host', '_buf_size', '_sock_map')
+    __slots__ = ('_host', '_buf_size', '_sock_handlers', '_serv_socks')
 
     def __init__(self, config, sysprop):
         """Constructor."""
@@ -27,13 +27,14 @@ class ConnectionManager(emews.base.basenet.BaseNet):
                 "Host not specified. Listener may bind to any available interface.")
 
         self._buf_size = config['buf_size']
-        self._sock_map = {}
+        self._sock_handlers = {}
+        self._serv_socks = set()
 
         self.add_listener(config['port'])  # add listener socket for daemon listener
 
     def readable_socket(self, sock):
         """@Override Given a socket in a readable state, do something with it."""
-        if sock is serv_sock:
+        if sock in self._serv_socks:
             # accept incoming connection
             try:
                 acc_sock, src_addr = sock.accept()
@@ -45,7 +46,7 @@ class ConnectionManager(emews.base.basenet.BaseNet):
 
             self._sys.logger.debug("Connection established from %s", src_addr)
             self._r_socks.add(acc_sock)
-            self._sock_map[acc_sock] = {}  # TODO: some state for the socket here
+            self._sock_handlers[acc_sock] = self._sock_handlers[sock]  # listener handler used
         else:
             # readable socket we are managing
             try:
@@ -66,7 +67,7 @@ class ConnectionManager(emews.base.basenet.BaseNet):
                 return
 
             # handle the chunk
-            self._sock_map[sock].handle_read(chunk)
+            self._sock_handlers[sock].handle_read(chunk)
 
     def writable_socket(self, sock):
         """
@@ -75,7 +76,7 @@ class ConnectionManager(emews.base.basenet.BaseNet):
         Send whatever data is returned from the socket's associated handle_write() callback, and
         then switch the socket from being writable to readable.
         """
-        s_data = self._sock_map[sock].handle_write()
+        s_data = self._sock_handlers[sock].handle_write()
 
         if s_data is not None:
             sock.send(s_data)
@@ -85,11 +86,11 @@ class ConnectionManager(emews.base.basenet.BaseNet):
 
     def _close_socket(self, sock):
         """Close the passed socket."""
-        del self._sock_map[sock]
+        del self._sock_handlers[sock]
         sock.shutdown(socket.SHUT_RDWR)
 
-    def add_listener(self, port):
-        """Add a new listener (server socket) to this connection manager."""
+    def add_listener(self, port, handler):
+        """Add a new listener (server socket) to manage."""
         # parameter checks
         if port < 1 or port > 65535:
             err_msg = "Port is out of range (must be between 1 and 65535, given: %d)"
@@ -122,3 +123,5 @@ class ConnectionManager(emews.base.basenet.BaseNet):
 
         self._sys.logger.info("New listener socket on interface %s, port %d.", self._host, port)
         self._r_socks.add(serv_sock)
+        self._serv_socks.add(serv_sock)
+        self._sock_handlers[serv_sock] = handler
