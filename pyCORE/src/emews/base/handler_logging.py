@@ -69,6 +69,7 @@ class HandlerLogging(emews.base.basehandler.BaseHandler):
 
             if len(self._sock_state[sock]['msg']) == self._sock_state[sock]['slen']:
                 # received the entire message
+                # TODO: I think the socket closes at this point ...
                 self.process_message(self._sock_state[sock]['msg'])  # handle the msg
                 self._sock_state[sock]['stage'] = 0
                 self._sock_state[sock]['msg'] = ""
