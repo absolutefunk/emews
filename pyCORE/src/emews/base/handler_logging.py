@@ -6,13 +6,12 @@ Created on Apr 22, 2018
 """
 import logging
 import pickle
-import socket
 import struct
 
 import emews.base.basehandler
 
 
-class LogHandler(emews.base.basehandler.BaseHandler):
+class HandlerLogging(emews.base.basehandler.BaseHandler):
     """Classdocs."""
 
     __slots__ = ()
