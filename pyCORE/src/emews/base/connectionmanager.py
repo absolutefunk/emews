@@ -7,6 +7,7 @@ Created on Feb 21, 2019
 import socket
 
 import emews.base.basenet
+import emews.base.handler_netmanager
 
 
 class HandlerCB(object):
@@ -44,7 +45,9 @@ class ConnectionManager(emews.base.basenet.BaseNet):
         self._cb.append(self._close_socket)   # request socket close    [0]
         self._cb.append(self._request_write)  # request socket writable [1]
 
-        self.add_listener(config['port'])  # add listener socket for daemon listener
+        # create listener socket for the ConnectionManager
+        self.add_listener(config['port'],
+                          emews.base.handler_netmanager.HandlerNetManager(self._sys))
 
     def _close_socket(self, sock):
         """Close the passed socket.  Should not be used on listener sockets."""
@@ -53,16 +56,6 @@ class ConnectionManager(emews.base.basenet.BaseNet):
         except KeyError:
             self._sys.logger.warning("Closing socket that is not managed.  "
                                      "Is this a listener socket?")
-        # We don't know if this socket is in the r_socks or w_socks lists, so try to delete from
-        # both.
-        try:
-            del self._r_socks[sock]
-        except ValueError:
-            pass
-        try:
-            del self._w_socks[sock]
-        except ValueError:
-            pass
 
         sock.shutdown(socket.SHUT_RDWR)
 
@@ -70,6 +63,15 @@ class ConnectionManager(emews.base.basenet.BaseNet):
         """Request passed socket as writable."""
         self._r_socks.remove(sock)
         self._w_socks.append(sock)
+
+    def stop(self):
+        """Stop the ConnectionManager."""
+        self.interrupt()
+
+        for sock in self._serv_socks.keys():
+            self._close_socket(sock)
+        for sock in self._socks.keys():
+            self._close_socket(sock)
 
     def readable_socket(self, sock):
         """Given a socket in a readable state, do something with it."""

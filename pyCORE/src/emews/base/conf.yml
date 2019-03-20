@@ -30,4 +30,7 @@ system:
     communication:  # communication related eMews daemon options
       host: 127.0.0.1  # host to bind to (should be localhost or 127.0.0.1, etc)
       port: 32518  # port to use
+    logging:
+      server: null  # name of the node to host distributed logging
+      port: 32519  # port for distributed logging
     startup_services: []

@@ -31,9 +31,9 @@ class BaseNet(object):
         self._sys = sysprop
         self._interrupted = False
 
-        # TODO: does select.select accept sets?
-        self._r_socks = set()  # set of socket objects to manage for a readable state
-        self._w_socks = set()  # set of socket objects to manage for a writable state
+        # TODO: use sets here (maybe wrap a set in a class compatible with list method calls)
+        self._r_socks = []  # list of socket objects to manage for a readable state
+        self._w_socks = []  # list of socket objects to manage for a writable state
 
     def start(self):
         """Start the main net loop."""
@@ -44,6 +44,7 @@ class BaseNet(object):
                 if not self._interrupted:
                     self._sys.logger.error("Select error while blocking on managed sockets.")
                     raise
+                self._sys.logger.debug("Select interrupted.")
 
             for r_sock in r_sock_list:
                 # readable sockets
@@ -72,3 +73,5 @@ class BaseNet(object):
     def interrupt(self):
         """Set the interrupt flag."""
         self._interrupted = True
+
+        # TODO: have a way to unblock the select()

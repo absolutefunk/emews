@@ -15,6 +15,9 @@ communication:  # communication related eMews daemon options
   host: localhost  # host to bind to (should be localhost or 127.0.0.1, etc)
   port: 32518      # port to use
 
+logging:
+  server: n1  # name of the node to host distributed logging
+
 startup_services:
   # Any services which should start, for all nodes, should be placed here.  Most services will start
   # on a per node basis, using node configuration.  This is a list.

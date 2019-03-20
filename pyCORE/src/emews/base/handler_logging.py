@@ -56,7 +56,7 @@ class HandlerLogging(object):
                 self.process_message(self._sock_state['msg'])  # handle the msg
                 return HandlerCB.REQUEST_CLOSE
             elif len(state_dict['msg']) > state_dict['slen']:
-                # too much data received, probably due to remote reset that we are not aware of
+                # too much data received, synchronization between stages may be off
                 self._sys.logger.warning("Log message larger than expected length.")
                 return HandlerCB.REQUEST_CLOSE
 

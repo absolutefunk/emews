@@ -8,12 +8,16 @@ import collections
 import signal
 import threading
 
+import emews.base.handler_logging
 import emews.base.thread_dispatcher
 import emews.services.servicebuilder
 
 
 class SystemManager(object):
     """Classdocs."""
+
+    __slots__ = ('_sys', '_config', '_thread_dispatcher', '_connection_manager', '_interrupted',
+                 '_local_event')
 
     def __init__(self, config, sysprop):
         """
@@ -32,11 +36,11 @@ class SystemManager(object):
         self._config = config
         self._sys = sysprop
         self._thread_dispatcher = None
-        self.connection_manager = None
+        self._connection_manager = None
         self._interrupted = False
         self._local_event = threading.Event()
 
-        self._sys.logger.info("Network node: %s, node id: %d",
+        self._sys.logger.info("[Network node] name: %s, node id: %d",
                               self._sys.node_name, self._sys.node_id)
 
         if self._sys.local:
@@ -106,15 +110,24 @@ class SystemManager(object):
                 self._sys.logger.info("No services running.")
 
         else:
-            self.connection_manager = emews.base.connectionmanager.ConnectionManager(
-                self._config['communication'], self._thread_dispatcher)
+            self._connection_manager = emews.base.connectionmanager.ConnectionManager(
+                self._config['communication'], self._sys)
+
+            if self._config['logging']['server'] == self._sys.node_name:
+                # this node is running the distributed logging server
+                self._sys.logger.info("Starting distributed logging server ...")
+                self._connection_manager.add_listener(
+                    self._config['logging']['port'],
+                    emews.base.handler_logging.HandlerLogging(self._sys))
+
+            self._connection_manager.start()  # blocks here
 
         self._sys.logger.info("Shutdown complete.")
 
     def shutdown(self):
         """Shut down daemon operation."""
         if not self._sys.local:
-            self.connection_manager.stop()
+            self._connection_manager.stop()
 
         # shut down any dispatched threads that may be running
         self._thread_dispatcher.shutdown_all_threads()
