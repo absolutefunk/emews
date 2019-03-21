@@ -21,7 +21,7 @@ class HandlerCB(object):
 class ConnectionManager(emews.base.basenet.BaseNet):
     """Classdocs."""
 
-    __slots__ = ('_host', '_buf_size', '_socks', '_serv_socks', '_cb')
+    __slots__ = ('_host', '_buf_size', '_socks', '_serv_socks', '_cb', 'is_hub')
 
     def __init__(self, config, sysprop):
         """Constructor."""
@@ -48,6 +48,19 @@ class ConnectionManager(emews.base.basenet.BaseNet):
         # create listener socket for the ConnectionManager
         self.add_listener(config['port'],
                           emews.base.handler_netmanager.HandlerNetManager(self._sys))
+
+        if config['hub'] == self._sys.node_name:
+            # this node is acting as the hub (central server)
+            self._sys.logger.info("This node is acting as the hub.")
+            self.is_hub = True
+        else:
+            self.is_hub = False
+            # TODO: add code to broadcast requests on the network to obtain the IP of the hub node
+            # This should be a socket which periodically sends the broadcast until it hears from the
+            # hub.
+            # init socket-->add to w_socks-->send broadcast-->add to r_socks-->(timeout)-->add to
+            # w_socks-->send broadcast (etc)
+            # Whne reply is received, close socket. 
 
     def _close_socket(self, sock):
         """Close the passed socket.  Should not be used on listener sockets."""

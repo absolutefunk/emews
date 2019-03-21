@@ -44,7 +44,9 @@ class BaseNet(object):
                 if not self._interrupted:
                     self._sys.logger.error("Select error while blocking on managed sockets.")
                     raise
-                self._sys.logger.debug("Select interrupted.")
+                # if run in the main thread, a KeyboardInterrupt should unblock select
+                self._sys.logger.debug("Select interrupted by signal.")
+                break
 
             for r_sock in r_sock_list:
                 # readable sockets
@@ -73,5 +75,3 @@ class BaseNet(object):
     def interrupt(self):
         """Set the interrupt flag."""
         self._interrupted = True
-
-        # TODO: have a way to unblock the select()
