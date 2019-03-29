@@ -1,7 +1,7 @@
 """
-eMews web site crawler service.
+eMews web site crawler service with intelligence.
 
-Created on Jan 19, 2018
+Created on Mar 28, 2019
 @author: Brian Ricks
 """
 import ssl
@@ -11,7 +11,7 @@ import mechanize
 import emews.services.baseservice
 
 
-class SiteCrawler(emews.services.baseservice.BaseService):
+class SiteCrawlerAgent(emews.services.baseservice.BaseAgent):
     """Classdocs."""
 
     __slots__ = ('_br',
@@ -25,7 +25,7 @@ class SiteCrawler(emews.services.baseservice.BaseService):
 
     def __init__(self, config):
         """Constructor."""
-        super(SiteCrawler, self).__init__()
+        super(SiteCrawlerAgent, self).__init__()
 
         self._br = mechanize.Browser()
         # no, I am not a robot ;-)
