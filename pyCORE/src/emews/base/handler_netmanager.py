@@ -19,7 +19,7 @@ class HandlerNetManager(object):
 
     def handle_init(self, state_dict):
         """Initialize state dict."""
-        pass
+        state_dict['proto'] = -1  # protocol of incoming connnection (don't know it yet)
 
     def handle_read(self, chunk, state_dict):
         """Handle a chunk of data."""
