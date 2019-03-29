@@ -28,7 +28,7 @@ class BaseAgent(emews.services.baseservice.BaseService):
 
     __slots__ = ('_environment', 'oracle')
 
-    def __init__(self, config):
+    def __init__(self):
         """Constructor."""
         super(BaseAgent, self).__init__()
 
