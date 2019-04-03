@@ -5,26 +5,26 @@ Created on March 20, 2019
 @author: Brian Ricks
 """
 
-from emews.base.connectionmanager import HandlerCB
+import emews.base.basehandler
 
 
-class HandlerNetManager(object):
+class HandlerNetManager(emews.base.basehandler.BaseHandler):
     """Classdocs."""
 
-    __slots__ = ('_sys')
+    __slots__ = ()
 
-    def __init__(self, sysprop):
-        """Constructor."""
-        self._sys = sysprop
+    def handle_init(self, id):
+        """Return number of bytes expected (buf) to determine protocol."""
+        return (self._proto_dispatch, 1)
 
-    def handle_init(self, state_dict):
-        """Initialize state dict."""
-        state_dict['proto'] = -1  # protocol of incoming connnection (don't know it yet)
+    def handle_write(self, id):
+        """Handle the case when a socket is writable."""
+        pass
 
-    def handle_read(self, chunk, state_dict):
-        """Handle a chunk of data."""
-        return HandlerCB.NO_REQUEST
+    def handle_close(self, id):
+        """Handle the case when a socket is closed."""
+        pass
 
-    def handle_write(self, state_dict):
-        """Handle a writable event."""
-        return HandlerCB.NO_REQUEST
+    def _proto_dispatch(self, id, chunk):
+        """Chunk contains the protocol.  Dispatch appropriate handler."""
+        pass

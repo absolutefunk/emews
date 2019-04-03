@@ -8,61 +8,38 @@ import logging
 import pickle
 import struct
 
-from emews.base.connectionmanager import HandlerCB
+import emews.base.basehandler
 
 
-class HandlerLogging(object):
+class HandlerLogging(emews.base.basehandler.BaseHandler):
     """Classdocs."""
 
-    __slots__ = ('_sys')
+    __slots__ = ()
 
-    def __init__(self, sysprop):
-        """Constructor."""
-        self._sys = sysprop
+    def handle_init(self, id):
+        """Return the expected number of bytes to receive first and the callback."""
+        return (self._msg_length, 4)
 
-    def handle_init(self, state_dict):
-        """Initialize state dict."""
-        state_dict['stage'] = self._read_stage_0
-        state_dict['msg'] = ""
+    def handle_write(self, id):
+        """Handle the case when a socket is writable."""
+        pass
 
-    def handle_read(self, chunk, state_dict):
-        """Handle a chunk of data."""
-        state_dict['stage'](chunk, state_dict)
+    def handle_close(self, id):
+        """Handle the case when a socket is closed."""
+        pass
 
-        return HandlerCB.NO_REQUEST
+    def _msg_length(self, id, chunk):
+        """Log message length (4 bytes)."""
+        try:
+            slen = struct.unpack('>L', chunk)[0]
+        except struct.error as ex:
+            self.logger.warning("Struct error when unpacking log message length: %s", ex)
+            return None
 
-    def _read_stage_0(self, chunk, state_dict):
-        """Read stage 0: log message length (4 bytes)."""
-        state_dict['msg'] = state_dict['msg'] + chunk
-        if len(state_dict['msg']) == 4:
-            try:
-                slen = struct.unpack('>L', state_dict['msg'])[0]
-            except struct.error as ex:
-                self._sys.logger.warning("Struct error when unpacking log message length: %s",
-                                         ex)
-                return HandlerCB.REQUEST_CLOSE
-            state_dict['stage'] = self._read_stage_1
-            state_dict['slen'] = slen
-            state_dict['msg'] = ""
-        elif len(state_dict['msg']) > 4:
-            # what we received is not a valid struct
-            self._sys.logger.warning("Log message length struct larger than expected length.")
-            return HandlerCB.REQUEST_CLOSE
+        return (self._process_message, slen)
 
-    def _read_stage_1(self, chunk, state_dict):
-        """Read stage 1: partial or whole log message."""
-        state_dict['msg'] = state_dict['msg'] + chunk
-
-        if len(state_dict['msg']) == state_dict['slen']:
-            # received the entire message
-            self.process_message(self._sock_state['msg'])  # handle the msg
-            return HandlerCB.REQUEST_CLOSE
-        elif len(state_dict['msg']) > state_dict['slen']:
-            # too much data received, synchronization between stages may be off
-            self._sys.logger.warning("Log message larger than expected length.")
-            return HandlerCB.REQUEST_CLOSE
-
-    def process_message(self, msg):
+    def _process_message(self, id, chunk):
         """Process the complete log message."""
-        log_record = logging.makeLogRecord(pickle.loads(msg))
-        self._sys.logger.handle(log_record)
+        log_record = logging.makeLogRecord(pickle.loads(chunk))
+        self.logger.handle(log_record)
+        return (self._msg_length, 4)

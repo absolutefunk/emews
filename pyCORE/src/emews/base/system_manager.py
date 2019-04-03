@@ -117,7 +117,7 @@ class SystemManager(object):
                 # add distributed logging listener
                 self._connection_manager.add_listener(
                     self._config['logging']['port'],
-                    emews.base.handler_logging.HandlerLogging(self._sys))
+                    emews.base.handler_logging.HandlerLogging)
 
             self._connection_manager.start()  # blocks here
 

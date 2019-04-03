@@ -11,17 +11,16 @@ import emews.base.handler_netmanager
 
 
 class HandlerCB(object):
-    """Enumerations of return values for handlers."""
+    """Enumerations for ConnectionManager handler methods."""
 
-    NO_REQUEST = -1
     REQUEST_CLOSE = 0
-    REQUEST_WRITEABLE = 1
+    REQUEST_WRITE = 1
 
 
 class ConnectionManager(emews.base.basenet.BaseNet):
     """Classdocs."""
 
-    __slots__ = ('_host', '_buf_size', '_socks', '_serv_socks', '_cb', 'is_hub')
+    __slots__ = ('_host', '_socks', '_serv_socks', 'is_hub', '_cb')
 
     def __init__(self, config, sysprop):
         """Constructor."""
@@ -35,19 +34,15 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             self._sys.logger.warning(
                 "Host not specified. Listener may bind to any available interface.")
 
-        self._buf_size = config['buf_size']
-
         self._socks = {}
         self._serv_socks = {}
 
-        # callback mapping (ret_val for handlers)
-        self._cb = []
-        self._cb.append(self._close_socket)   # request socket close    [0]
-        self._cb.append(self._request_write)  # request socket writable [1]
+        self._cb = []  # should match with enumerations in HandlerCB
+        self._cb.append(self._request_close)  # index 0
+        self._cb.append(self._request_write)  # index 1
 
         # create listener socket for the ConnectionManager
-        self.add_listener(config['port'],
-                          emews.base.handler_netmanager.HandlerNetManager(self._sys))
+        self.add_listener(config['port'], emews.base.handler_netmanager.HandlerNetManager)
 
         if config['hub'] == self._sys.node_name:
             # this node is acting as the hub (central server)
@@ -60,22 +55,29 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             # hub.
             # init socket-->add to w_socks-->send broadcast-->add to r_socks-->(timeout)-->add to
             # w_socks-->send broadcast (etc)
-            # Whne reply is received, close socket. 
+            # When reply is received, close socket.
 
     def _close_socket(self, sock):
         """Close the passed socket.  Should not be used on listener sockets."""
         try:
+            self._w_socks.remove(sock)
+        except ValueError:
+            pass
+
+        self._r_socks.remove(sock)
+
+        if sock in self._socks:
+            self._socks[sock].handle_close()
             del self._socks[sock]
-        except KeyError:
-            self._sys.logger.warning("Closing socket that is not managed.  "
-                                     "Is this a listener socket?")
+        else:
+            self._sys.logger.debug("Closing listener socket FD: %d", sock.fileno())
 
         sock.shutdown(socket.SHUT_RDWR)
 
     def _request_write(self, sock):
         """Request passed socket as writable."""
-        self._r_socks.remove(sock)
-        self._w_socks.append(sock)
+        if sock not in self._w_socks:
+            self._w_socks.append(sock)
 
     def stop(self):
         """Stop the ConnectionManager."""
@@ -100,19 +102,24 @@ class ConnectionManager(emews.base.basenet.BaseNet):
 
             self._sys.logger.debug("Connection established from %s", src_addr)
             self._r_socks.append(acc_sock)
-            self._socks[acc_sock] = []
-            self._socks[acc_sock].append(self._serv_socks[sock])  # handler used [0]
-            self._socks[acc_sock].append({})  # state [1]
 
-            self._socks[acc_sock][0].handle_init(self._socks[acc_sock][1])
+            sock_lst = []
+            sock_lst.append(self._serv_socks[sock].handle_init)  # current handler cb [0]
+            sock_lst.append(0)  # expected number of bytes to receive next (buf) [1]
+            sock_lst.append(None)  # recv cache [2]
+
+            sock_lst[0](sock_lst[1])  # call stage_init(), passing state dict
+
+            self._socks[acc_sock] = sock_lst
         else:
             # readable socket we are managing
+            sock_state = self._socks[sock]
+
             try:
-                chunk = sock.recv(self._buf_size)
+                chunk = sock.recv(sock_state[1])  # recv at most the current buf size
             except socket.error:
                 self._sys.logger.warning(
                     "Socket error when receiving data, closing socket FD '%d' ...", sock.fileno())
-                self._r_socks.remove(sock)
                 self._close_socket(sock)
                 return
 
@@ -120,15 +127,29 @@ class ConnectionManager(emews.base.basenet.BaseNet):
                 # zero length chunk, connection probably closed
                 self._sys.logger.debug("Connection closed remotely, closing socket FD '%d' ...",
                                        sock.fileno())
-                self._r_socks.remove(sock)
                 self._close_socket(sock)
-                return
+            elif len(chunk) < sock_state[1]:
+                # num bytes recv is less than what is expected.
+                sock_state[1] = sock_state[1] - len(chunk)  # bytes remaining
+                sock_state[2] = sock_state[2] + chunk
+            else:
+                # received all expected bytes
+                if sock_state[2] is not None:
+                    chunk = sock_state[2] + chunk
+                    sock_state[2] = None  # clear cache
 
-            # handle the chunk (size > 0)
-            ret_val = self._socks[sock][0].handle_read(chunk, self._socks[sock][1])
-            if ret_val != HandlerCB.NO_REQUEST:
-                # post processing
-                self._cb[ret_val](sock)
+                try:
+                    ret_tup = sock_state[0](sock.fileno(), chunk)  # handle the chunk
+                except TypeError:
+                    self._sys.logger.error("Handler callback is not callable.")
+                    raise
+
+                if ret_tup is None:
+                    # close the socket
+                    self._close_socket(sock)
+                else:
+                    sock_state[0] = ret_tup[0]  # callback
+                    sock_state[1] = ret_tup[1]  # buf size
 
     def writable_socket(self, sock):
         """
@@ -137,15 +158,14 @@ class ConnectionManager(emews.base.basenet.BaseNet):
         Send whatever data is returned from the socket's associated handle_write() callback, and
         then switch the socket from being writable to readable.
         """
-        s_data = self._socks[sock].handle_write()
+        s_data = self._socks[sock].handle_write()  # returns data to be written
 
         if s_data is not None:
             sock.send(s_data)
 
         self._w_socks.remove(sock)
-        self._r_socks.append(sock)
 
-    def add_listener(self, port, handler):
+    def add_listener(self, port, handler_cls):
         """Add a new listener (server socket) to manage."""
         # parameter checks
         if port < 1 or port > 65535:
@@ -179,4 +199,10 @@ class ConnectionManager(emews.base.basenet.BaseNet):
 
         self._sys.logger.info("New listener socket on interface %s, port %d.", self._host, port)
         self._r_socks.append(serv_sock)
-        self._serv_socks[serv_sock] = handler
+
+        # initialize the handler and assign
+        self._serv_socks[serv_sock] = handler_cls(_inject={
+            '_sys': self._sys,
+            'logger': self._sys.logger,
+            'request_write': self._request_write
+        })

@@ -48,13 +48,13 @@ class BaseNet(object):
                 self._sys.logger.debug("Select interrupted by signal.")
                 break
 
-            for r_sock in r_sock_list:
-                # readable sockets
-                self.handle_readable_socket(r_sock)
-
             for w_sock in w_sock_list:
                 # writable sockets
                 self.handle_writable_socket(w_sock)
+
+            for r_sock in r_sock_list:
+                # readable sockets
+                self.handle_readable_socket(r_sock)
 
     def readable_socket(self, sock):
         """

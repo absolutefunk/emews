@@ -19,8 +19,6 @@ init:
 system:
   readonly:
     communication:  # communication related eMews daemon options
-      receive_buffer: 128     # buffer for incoming characters from an eMews client
-      command_delimiter: ' '  # delimit commands using this
       recv_timeout: 20  # in seconds - wait this long for a timeout in expected response
   overrides:
     general:  # general eMews daemon options
