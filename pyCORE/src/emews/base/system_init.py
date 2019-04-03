@@ -60,6 +60,7 @@ def system_init(args):
         _node_name=node_name,
         _node_id=node_id,
         _root_path=root_path,
+        _is_hub=True if node_name == config_dict_init['general']['hub'] else False,
         _local=args.local)
 
     return emews.base.system_manager.SystemManager(config_dict_system, sysprop)

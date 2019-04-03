@@ -4,6 +4,8 @@
 # needed, as this file would be unique to each node.
 # YAML 1.2 compliant
 general:  # general eMews daemon options
+  # name of the node to act as the hub
+  hub: n1
   # Delay (seconds) to start services from eMews daemon invocation.
   service_start_delay: 120
   # Delay to wait for 'graceful' thread shutdown.  After this wait, continue shut down.
@@ -12,7 +14,6 @@ general:  # general eMews daemon options
   halt_on_service_exceptions: False
 
 communication:  # communication related eMews daemon options
-  hub: n1  # name of the node to act as the hub
   host: localhost  # host to bind to (should be localhost or 127.0.0.1, etc)
   port: 32518      # port to use
 

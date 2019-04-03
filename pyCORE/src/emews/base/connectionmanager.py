@@ -10,17 +10,10 @@ import emews.base.basenet
 import emews.base.handler_netmanager
 
 
-class HandlerCB(object):
-    """Enumerations for ConnectionManager handler methods."""
-
-    REQUEST_CLOSE = 0
-    REQUEST_WRITE = 1
-
-
 class ConnectionManager(emews.base.basenet.BaseNet):
     """Classdocs."""
 
-    __slots__ = ('_host', '_socks', '_serv_socks', 'is_hub', '_cb')
+    __slots__ = ('_host', '_socks', '_serv_socks', '_cb')
 
     def __init__(self, config, sysprop):
         """Constructor."""
@@ -37,25 +30,13 @@ class ConnectionManager(emews.base.basenet.BaseNet):
         self._socks = {}
         self._serv_socks = {}
 
-        self._cb = []  # should match with enumerations in HandlerCB
-        self._cb.append(self._request_close)  # index 0
-        self._cb.append(self._request_write)  # index 1
+        # Handler callbacks
+        self._cb = [None] * emews.base.basenet.HandlerCB.ENUM_SIZE
+        self._cb.insert(emews.base.basenet.HandlerCB.REQUEST_CLOSE, self._request_close)
+        self._cb.insert(emews.base.basenet.HandlerCB.REQUEST_WRITE, self._request_write)
 
         # create listener socket for the ConnectionManager
         self.add_listener(config['port'], emews.base.handler_netmanager.HandlerNetManager)
-
-        if config['hub'] == self._sys.node_name:
-            # this node is acting as the hub (central server)
-            self._sys.logger.info("This node is acting as the hub.")
-            self.is_hub = True
-        else:
-            self.is_hub = False
-            # TODO: add code to broadcast requests on the network to obtain the IP of the hub node
-            # This should be a socket which periodically sends the broadcast until it hears from the
-            # hub.
-            # init socket-->add to w_socks-->send broadcast-->add to r_socks-->(timeout)-->add to
-            # w_socks-->send broadcast (etc)
-            # When reply is received, close socket.
 
     def _close_socket(self, sock):
         """Close the passed socket.  Should not be used on listener sockets."""

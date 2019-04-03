@@ -19,6 +19,7 @@ class SysProp(object):
                  '_node_name',
                  '_node_id',
                  '_root_path',
+                 '_is_hub',
                  '_local')
 
     def __init__(self, **kwargs):
@@ -58,6 +59,11 @@ class SysProp(object):
     def root_path(self):
         """Property."""
         return self._root_path
+
+    @property
+    def is_hub(self):
+        """Property."""
+        return self._is_hub
 
     @property
     def local(self):

@@ -11,13 +11,37 @@ import select
 
 
 """
-NOTE:  Refactor this to be integrated into eMews node-to-node communication.  Do not use this as a
+TODO:  Refactor this to be integrated into eMews node-to-node communication.  Do not use this as a
 general framework for services, as service devs can just use raw sockets, no sense doing all this
 extra work.  for services, self.sys.net.* functions for network helper functions (stuff like
 resolving IP address by node name).
 
 Use netserver.py within ConnectionManager.  Delete other net classes that are no longer needed.
 """
+
+
+class NetProto(object):
+    """Enumerations for supported protocols."""
+
+    __slots__ = ()
+
+    ENUM_SIZE = 4
+
+    NET_NONE = 0   # placeholder
+    NET_CC_1 = 1   # CC channel (future)
+    NET_CC_2 = 2   # CC channel (future)
+    NET_AGENT = 3  # Agent-based communication
+
+
+class HandlerCB(object):
+    """Enumerations for ConnectionManager handler methods."""
+
+    __slots__ = ()
+
+    ENUM_SIZE = 2
+
+    REQUEST_CLOSE = 0
+    REQUEST_WRITE = 1
 
 
 class BaseNet(object):

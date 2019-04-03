@@ -113,7 +113,8 @@ class SystemManager(object):
             self._connection_manager = emews.base.connectionmanager.ConnectionManager(
                 self._config['communication'], self._sys)
 
-            if self._connection_manager.is_hub:
+            if self._sys.is_hub:
+                self._sys.logger.info("This node is the hub.")
                 # add distributed logging listener
                 self._connection_manager.add_listener(
                     self._config['logging']['port'],
