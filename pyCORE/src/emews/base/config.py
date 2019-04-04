@@ -8,68 +8,6 @@ import collections
 
 from ruamel.yaml import YAML
 
-import emews.base.import_tools
-
-
-class SysProp(object):
-    """Provides a read-only container for the system properties."""
-
-    # All system properties defined here
-    __slots__ = ('_logger',
-                 '_node_name',
-                 '_node_id',
-                 '_root_path',
-                 '_is_hub',
-                 '_local')
-
-    def __init__(self, **kwargs):
-        """Constructor."""
-        for key, value in kwargs.iteritems():
-            setattr(self, key, value)
-
-    def import_component(self, config):
-        """Given a config dict, return an instantiated component."""
-        class_name = config['component'].split('.')[-1]
-        module_path = 'emews.components.' + config['component'].lower()
-
-        inject_dct = {}
-        inject_dct['_sys'] = self
-        inject_dct['logger'] = self._logger
-
-        return emews.base.import_tools.import_class_from_module(
-            module_path, class_name)(config['parameters'], _inject=inject_dct)
-
-    # boilerplate for the properties (read-only)
-    @property
-    def logger(self):
-        """Property."""
-        return self._logger
-
-    @property
-    def node_name(self):
-        """Property."""
-        return self._node_name
-
-    @property
-    def node_id(self):
-        """Property."""
-        return self._node_id
-
-    @property
-    def root_path(self):
-        """Property."""
-        return self._root_path
-
-    @property
-    def is_hub(self):
-        """Property."""
-        return self._is_hub
-
-    @property
-    def local(self):
-        """Property."""
-        return self._local
-
 
 def parse(filename):
     """Parse the given filename, and returns a structure representative of the YAML."""

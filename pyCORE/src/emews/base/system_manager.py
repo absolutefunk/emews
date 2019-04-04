@@ -5,6 +5,7 @@ Created on June 8, 2018
 @author: Brian Ricks
 """
 import collections
+import ipaddress
 import signal
 import threading
 
@@ -16,8 +17,47 @@ import emews.services.servicebuilder
 class SystemManager(object):
     """Classdocs."""
 
+    class NodeCache(object):
+        """Container for caching what we currently know about other nodes."""
+
+        # Enums
+        CACHE_SIZE = 3  # number of dicts in the cache
+
+        INDEX_NAME_ID = 0
+        INDEX_ID_NAME = 1
+        INDEX_NAME_ADDR = 2
+
+        __slots__ = ('_node_cache', '_cache_miss_cb')
+
+        def __init__(self):
+            """Constructor."""
+            self._node_cache = [None] * self.CACHE_SIZE
+            self._cache_miss_cb = [None] * self.CACHE_SIZE
+
+            self._node_cache.insert(self.INDEX_NAME_ADDR, {})
+            self._cache_miss_cb.insert(self.INDEX_NAME_ADDR, None)  # TODO: put cb method here
+
+        def get(self, index, key):
+            """
+            Return value at key in dict at index.
+
+            If key missing, fill in k/v.
+            """
+            try:
+                val = self._node_cache[index][key]
+            except KeyError:
+                # cache miss
+                val = self._cache_miss_cb[index](key)
+                self._node_cache[index][key] = val
+
+            return val
+
+        def add(self, index, key, val):
+            """Add the k/v at index."""
+            self._node_cache[index][key] = val
+
     __slots__ = ('_sys', '_config', '_thread_dispatcher', '_connection_manager', '_interrupted',
-                 '_local_event')
+                 '_local_event', '_node_cache')
 
     def __init__(self, config, sysprop):
         """
@@ -45,6 +85,9 @@ class SystemManager(object):
 
         if self._sys.local:
             self._sys.logger.info("Running in local mode.")
+            self._node_cache = None
+        else:
+            self._node_cache = emews.base.system_manager.SystemManager.NodeCache()
 
     def _startup_services(self):
         """Look in the config object to obtain any services present."""
@@ -92,11 +135,9 @@ class SystemManager(object):
         self._thread_dispatcher = emews.base.thread_dispatcher.ThreadDispatcher(
             self._config['general'], self._sys)
 
-        # start any services specified
-        self._startup_services()
-
         if self._sys.local:
             # local mode:  do not start ConnectionManager
+            self._startup_services()
             if self._thread_dispatcher.count == 0:
                 self._sys.logger.info("No services running, nothing to do, shutting down ...")
                 return
@@ -120,6 +161,20 @@ class SystemManager(object):
                     self._config['logging']['port'],
                     emews.base.handler_logging.HandlerLogging)
 
+            # cache the hub node's network address
+            hub_addr = self._config['hub']['node_addr']
+            if hub_addr is None:
+                # TODO: implement hub node address broadcasting to other nodes
+                raise NotImplementedError(
+                    "Hub broadcast not implemented yet.  Please define hub address in config.")
+
+            self._node_cache.add(self._node_cache.INDEX_NAME_ADDR,
+                                 self._config['hub']['node_name'],
+                                 ipaddress.IPv4Address(hub_addr))
+
+            self._sysprop_augment()
+            self._startup_services()
+
             self._connection_manager.start()  # blocks here
 
         self._sys.logger.info("Shutdown complete.")
@@ -131,3 +186,20 @@ class SystemManager(object):
 
         # shut down any dispatched threads that may be running
         self._thread_dispatcher.shutdown_all_threads()
+
+    # SysProp augment
+    def _sysprop_augment(self):
+        """Augments the SysProp object with missing methods."""
+        if self._sys.local:
+            self._sys.net.get_hub_addr = self._local_ret
+        else:
+            self._sys.net.get_hub_addr = self._get_hub_addr
+
+    def _local_ret(self):
+        """Sysprop methods that are not supported in local mode."""
+        return None
+
+    def _get_hub_addr(self):
+        """Return the network address of the hub node."""
+        return self._node_cache.get(
+            self._node_cache.INDEX_NAME_ADDR, self._config['hub']['node_name'])

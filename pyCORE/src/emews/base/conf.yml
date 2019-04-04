@@ -9,7 +9,6 @@ init:
       message_format: '[%(asctime)s] %(nodename)-12.12s | %(nodeid)-5.5s | %(threadName)-16.16s [%(levelname)-8.8s | %(module)-16.16s | %(funcName)-16.16s]: %(message)s'
   overrides:  # These K/Vs can be overwritten in a config file
     general:  # general eMews daemon options
-      hub: n1  # name of the node to act as the hub
       node_name: null  # name of the node running this instance of eMews
     logging:
       file: False  # file name, if given, will log to the file.  Set to False to disable
@@ -26,6 +25,9 @@ system:
       service_start_delay: -1 # Delay (seconds) to start services from eMews daemon invocation.
       thread_shutdown_wait: -1 # Delay (seconds) to wait for 'graceful' thread shutdown.  After this wait, continue shut down.
       halt_on_service_exceptions: True  # If true, then halt eMews on service-originated exceptions
+    hub:
+      node_name: n1  # name of the node to act as the hub
+      node_addr: null  # address of the hub (if null, then look it up)
     communication:  # communication related eMews daemon options
       host: 127.0.0.1  # host to bind to (should be localhost or 127.0.0.1, etc)
       port: 32518  # port to use

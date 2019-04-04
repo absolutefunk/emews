@@ -18,12 +18,15 @@ class HandlerNetManager(emews.base.basehandler.BaseHandler):
 
     def __init__(self):
         """Constructor."""
+        super(HandlerNetManager, self).__init__()
+
         p_inj = {
             '_sys': self.sys,
             'logger': self.logger
         }
         # protocol mappings
         self._proto_cb = [None] * emews.base.basenet.NetProto.ENUM_SIZE
+        self._proto_cb.insert(emews.base.basenet.NetProto.NET_NONE, self._unsupported_invalid)
         self._proto_cb.insert(emews.base.basenet.NetProto.NET_CC_1, self._cc_comm)
         self._proto_cb.insert(emews.base.basenet.NetProto.NET_CC_2, self._cc_comm)
         if self.sys.is_hub:
@@ -49,11 +52,6 @@ class HandlerNetManager(emews.base.basehandler.BaseHandler):
         """Handle the case when a socket is closed."""
         pass
 
-    def _unsupported_nonhub(self, id, chunk):
-        """Future use for cc channels."""
-        self.logger.warning("This protocol server not running: this node is not the hub.")
-        return None
-
     def _proto_dispatch(self, id, chunk):
         """Chunk contains the protocol.  Dispatch appropriate handler."""
         try:
@@ -63,6 +61,17 @@ class HandlerNetManager(emews.base.basehandler.BaseHandler):
             return None
 
         return self._proto_cb[proto_id](id, node_id, service_id)
+
+    # callbacks
+    def _unsupported_invalid(self, id, chunk):
+        """Invalid protocol id (or reserved)."""
+        self.logger.warning("Protocol not supported or reserved.")
+        return None
+
+    def _unsupported_nonhub(self, id, chunk):
+        """Future use for cc channels."""
+        self.logger.warning("This protocol server not running: this node is not the hub.")
+        return None
 
     def _cc_comm(self, id, chunk):
         """Future use for cc channels."""
