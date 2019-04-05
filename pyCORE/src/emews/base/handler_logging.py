@@ -20,10 +20,6 @@ class HandlerLogging(emews.base.basehandler.BaseHandler):
         """Return the expected number of bytes to receive first and the callback."""
         return (self._msg_length, 4)
 
-    def handle_write(self, id):
-        """Handle the case when a socket is writable."""
-        pass
-
     def handle_close(self, id):
         """Handle the case when a socket is closed."""
         pass

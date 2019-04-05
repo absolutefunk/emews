@@ -44,10 +44,6 @@ class HandlerNetManager(emews.base.basehandler.BaseHandler):
         """
         return (self._proto_dispatch, 8)
 
-    def handle_write(self, id):
-        """Handle the case when a socket is writable."""
-        pass
-
     def handle_close(self, id):
         """Handle the case when a socket is closed."""
         pass

@@ -15,31 +15,33 @@ class BaseAgent(emews.services.baseservice.BaseService):
 
     __slots__ = ('_net_handler')
 
-    class HandlerAgent(emews.base.basehandler.BaseClientHandler):
-        """Handler for networking tasks.""""
+    class HandlerAgent(emews.base.basehandler.BaseHandler):
+        """Handler for networking tasks."""
 
         __slots__ = ()
 
         def handle_init(self, id):
-            """Connection established, prepare to write."""
-            pass
-
-        def handle_write(self, id):
-            """Handle writable socket."""
-            pass
+            """Post connection established, prepare to write."""
+            return (self._send_query, 0)  # zero buf designates write mode
 
         def handle_close(self, id):
             """Handle connection close."""
             pass
 
+        def _send_query(self, id):
+            """Send the query."""
+            return ("", self._recv_response, 8)  # TODO: put in actual query and expected bytes of response
+
+        def _recv_response(self, id, chunk):
+            """Response received from query."""
+
     def __init__(self):
         """Constructor."""
         super(BaseAgent, self).__init__()
-        self._net_handler = HandlerAgent(_inject={
+        self._net_handler = emews.services.baseagent.BaseAgent.HandlerAgent(_inject={
             '_sys': self._sys,
             'logger': self._sys.logger
         })
-
 
     def sense(self, context):
         """

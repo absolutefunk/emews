@@ -10,10 +10,10 @@ import emews.base.meta
 
 
 class BaseHandler(object):
-    """Classdocs."""
+    """Base class for network handlers."""
 
     __metaclass__ = emews.base.meta.InjectionMetaWithABC
-    __slots__ = ("_sys", "logger", "request_write")
+    __slots__ = ("_sys", "logger")
 
     @property
     def sys(self):
@@ -30,29 +30,6 @@ class BaseHandler(object):
         pass
 
     @abstractmethod
-    def handle_write(self, id):
-        """
-        Handle the case when a socket is writable.
-
-        Return type is a string of bytes to send, or None.
-        """
-        pass
-
-    @abstractmethod
     def handle_close(self, id):
         """Handle the case when a socket is closed.  No return type."""
         pass
-
-
-class BaseClientHandler(BaseHandler):
-    """Base class for client handlers."""
-
-    __slots__ = ()
-
-    def __init__(self):
-        """Constructor."""
-        self.request_write = None
-
-    def set_request_write(self, req_func):
-        """Assign the callback for request_write()."""
-        self.request_write = req_func

@@ -61,11 +61,6 @@ class ConnectionManager(emews.base.basenet.BaseNet):
 
         sock.shutdown(socket.SHUT_RDWR)
 
-    def _request_write(self, sock):
-        """Request passed socket as writable."""
-        if sock not in self._w_socks:
-            self._w_socks.append(sock)
-
     def stop(self):
         """Stop the ConnectionManager."""
         self.interrupt()
@@ -136,21 +131,34 @@ class ConnectionManager(emews.base.basenet.BaseNet):
                     self._close_socket(sock)
                 else:
                     sock_state[0] = ret_tup[0]  # callback
-                    sock_state[1] = ret_tup[1]  # buf size
+                    if ret_tup[1] == 0:
+                        # write mode
+                        self._w_socks.append(sock)
+                    else:
+                        sock_state[1] = ret_tup[1]  # buf size
 
     def writable_socket(self, sock):
         """
         Given a socket in a writable state, do something with it.
 
-        Send whatever data is returned from the socket's associated handle_write() callback, and
+        Send whatever data is returned from the socket's associated callback, and
         then switch the socket from being writable to readable.
         """
-        s_data = self._socks[sock].handle_write()  # returns data to be written
+        sock_state = self._socks[sock]
+        ret_tup = sock_state[0](sock.fileno())  # returns (data, cb, buf)
 
-        if s_data is not None:
-            sock.send(s_data)
+        if ret_tup is None:
+            # close the socket
+            self._close_socket(sock)
+        else:
+            sock.send(ret_tup[0])
+            sock_state[0] = ret_tup[1]  # callback
+            if ret_tup[2] == 0:
+                # write mode (sock is already in the write list)
+                return
 
-        self._w_socks.remove(sock)
+            sock_state[1] = ret_tup[2]  # buf size
+            self._w_socks.remove(sock)
 
     def add_listener(self, port, handler_cls):
         """Add a new listener (server socket) to manage."""
@@ -190,8 +198,7 @@ class ConnectionManager(emews.base.basenet.BaseNet):
         # initialize the handler and assign
         self._serv_socks[serv_sock] = handler_cls(_inject={
             '_sys': self._sys,
-            'logger': self._sys.logger,
-            'request_write': self._request_write
+            'logger': self._sys.logger
         })
 
         def connect_node(self, node_name, handler_obj):
