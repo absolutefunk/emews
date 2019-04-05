@@ -193,12 +193,15 @@ class SystemManager(object):
         if self._sys.local:
             self._sys.net.get_hub_addr = self._local_ret
             self._sys.net.get_addr_from_name = self._local_ret
+            self._sys.net.connect_node = self._local_ret
         else:
             self._sys.net.get_hub_addr = self._get_hub_addr
             self._sys.net.get_addr_from_name = self._get_addr_from_name
+            self._sys.net.connect_node = self._connection_manager.connect_node
 
     def _local_ret(self):
         """Use for sysprop methods that are not supported in local mode."""
+        self._sys.logger.debug("This method is not supported in local mode.")
         return None
 
     def _get_hub_addr(self):

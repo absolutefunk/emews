@@ -14,7 +14,7 @@ import emews.base.handler_netmanager
 class ConnectionManager(emews.base.basenet.BaseNet):
     """Classdocs."""
 
-    __slots__ = ('_host', '_port', '_socks', '_serv_socks', '_cb')
+    __slots__ = ('_host', '_port', '_socks', '_serv_socks', '_pending_ids', '_cb')
 
     def __init__(self, config, sysprop):
         """Constructor."""
@@ -29,8 +29,9 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             self._sys.logger.warning(
                 "Host not specified. Listener may bind to any available interface.")
 
-        self._socks = {}
-        self._serv_socks = {}
+        self._socks = {}  # accepted sockets
+        self._serv_socks = {}  # listener sockets
+        self._pending_ids = {}  # FDs (socks) that are pending an established connection
 
         # Handler callbacks
         self._cb = [None] * emews.base.basenet.HandlerCB.ENUM_SIZE
@@ -52,6 +53,11 @@ class ConnectionManager(emews.base.basenet.BaseNet):
         if sock in self._socks:
             self._socks[sock].handle_close()
             del self._socks[sock]
+
+            if sock.fileno() in self._pending_ids:
+                # connection could not be established
+                del self._pending_ids[sock.fileno()]
+                self._sys.logger.debug("Connection refused from remote for FD '%d'.", sock.fileno())
 
         sock.shutdown(socket.SHUT_RDWR)
 
@@ -89,7 +95,7 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             sock_lst.append(0)  # expected number of bytes to receive next (buf) [1]
             sock_lst.append(None)  # recv cache [2]
 
-            sock_lst[0](sock_lst[1])  # call stage_init(), passing state dict
+            sock_lst[0](acc_sock.fileno())  # call handle_init(), passing the sock FD as the ID
 
             self._socks[acc_sock] = sock_lst
         else:
@@ -188,8 +194,12 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             'request_write': self._request_write
         })
 
-        def connect_node(self, node_name):
-            """Establish a connection using the passed node name."""
+        def connect_node(self, node_name, handler_obj):
+            """
+            Establish a connection using the passed node name.
+
+            handler_obj is the callback object to use once connected.
+            """
             try:
                 cli_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 cli_sock.setblocking(0)
@@ -204,7 +214,11 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             sock_lst.append(self._cli_conn_ack)  # current handler cb [0]
             sock_lst.append(1)  # expected number of bytes to receive next (buf) [1]
             sock_lst.append(None)  # recv cache [2]
-            self._r_socks.append(serv_sock)  # wait until we receive an ack from the receiving node
+            self._socks[cli_sock] = sock_lst
+
+            self._pending_ids[cli_sock.fileno()] = handler_obj
+
+            self._r_socks.append(cli_sock)  # wait until we receive an ack from the receiving node
 
         def _cli_conn_ack(self, id, chunk):
             """Acknowledgment from remote when successful connection."""
@@ -216,3 +230,9 @@ class ConnectionManager(emews.base.basenet.BaseNet):
 
             if recv_state != emews.base.basenet.HandlerCB.STATE_ACK:
                 # invalid response
+                self._sys.logger.warning("Invalid response from remote for FD '%d'.", id)
+                return None
+
+            handler_obj = self._pending_ids.pop(id)
+            handler_obj.set_request_write(self._request_write)
+            return handler_obj.handle_init(id)  # return next cb

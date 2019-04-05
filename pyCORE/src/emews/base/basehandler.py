@@ -42,3 +42,17 @@ class BaseHandler(object):
     def handle_close(self, id):
         """Handle the case when a socket is closed.  No return type."""
         pass
+
+
+class BaseClientHandler(BaseHandler):
+    """Base class for client handlers."""
+
+    __slots__ = ()
+
+    def __init__(self):
+        """Constructor."""
+        self.request_write = None
+
+    def set_request_write(self, req_func):
+        """Assign the callback for request_write()."""
+        self.request_write = req_func
