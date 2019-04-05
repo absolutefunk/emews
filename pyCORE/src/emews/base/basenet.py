@@ -43,6 +43,9 @@ class HandlerCB(object):
     REQUEST_CLOSE = 0
     REQUEST_WRITE = 1
 
+    # state constants
+    STATE_ACK = 17
+
 
 class BaseNet(object):
     """Classdocs."""

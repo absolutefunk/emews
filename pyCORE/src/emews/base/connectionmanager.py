@@ -5,6 +5,7 @@ Created on Feb 21, 2019
 @author: Brian Ricks
 """
 import socket
+import struct
 
 import emews.base.basenet
 import emews.base.handler_netmanager
@@ -51,8 +52,6 @@ class ConnectionManager(emews.base.basenet.BaseNet):
         if sock in self._socks:
             self._socks[sock].handle_close()
             del self._socks[sock]
-        else:
-            self._sys.logger.debug("Closing listener socket FD: %d", sock.fileno())
 
         sock.shutdown(socket.SHUT_RDWR)
 
@@ -201,4 +200,19 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             conn_addr = self._sys.net.get_addr_from_name(node_name)
             cli_sock.connect_ex((conn_addr, self._port))  # use the default eMews daemon port
 
+            sock_lst = []
+            sock_lst.append(self._cli_conn_ack)  # current handler cb [0]
+            sock_lst.append(1)  # expected number of bytes to receive next (buf) [1]
+            sock_lst.append(None)  # recv cache [2]
             self._r_socks.append(serv_sock)  # wait until we receive an ack from the receiving node
+
+        def _cli_conn_ack(self, id, chunk):
+            """Acknowledgment from remote when successful connection."""
+            try:
+                recv_state = struct.unpack('>H', chunk)
+            except struct.error as ex:
+                self.logger.warning("Struct error when unpacking protocol info: %s", ex)
+                return None
+
+            if recv_state != emews.base.basenet.HandlerCB.STATE_ACK:
+                # invalid response
