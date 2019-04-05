@@ -13,11 +13,12 @@ class SysProp(object):
     class NetProp(object):
         """Container for net properties."""
 
-        __slots__ = ('get_hub_addr')
+        __slots__ = ('get_hub_addr', 'get_addr_from_name')
 
         def __init__(self):
             """Constructor."""
             self.get_hub_addr = None  # to be redefined when method is available
+            self.get_addr_from_name = None
 
     # All system properties defined here
     __slots__ = ('logger',

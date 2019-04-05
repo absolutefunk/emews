@@ -13,12 +13,13 @@ import emews.base.handler_netmanager
 class ConnectionManager(emews.base.basenet.BaseNet):
     """Classdocs."""
 
-    __slots__ = ('_host', '_socks', '_serv_socks', '_cb')
+    __slots__ = ('_host', '_port', '_socks', '_serv_socks', '_cb')
 
     def __init__(self, config, sysprop):
         """Constructor."""
         super(ConnectionManager, self).__init__(sysprop)
 
+        self._port = config['port']
         self._host = config['host']
         if self._host is None:
             self._host = ''
@@ -36,7 +37,7 @@ class ConnectionManager(emews.base.basenet.BaseNet):
         self._cb.insert(emews.base.basenet.HandlerCB.REQUEST_WRITE, self._request_write)
 
         # create listener socket for the ConnectionManager
-        self.add_listener(config['port'], emews.base.handler_netmanager.HandlerNetManager)
+        self.add_listener(self._port, emews.base.handler_netmanager.HandlerNetManager)
 
     def _close_socket(self, sock):
         """Close the passed socket.  Should not be used on listener sockets."""
@@ -187,3 +188,17 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             'logger': self._sys.logger,
             'request_write': self._request_write
         })
+
+        def connect_node(self, node_name):
+            """Establish a connection using the passed node name."""
+            try:
+                cli_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                cli_sock.setblocking(0)
+            except socket.error as ex:
+                self._sys.logger.error("Could not instantiate new client socket: %s", ex)
+                raise
+
+            conn_addr = self._sys.net.get_addr_from_name(node_name)
+            cli_sock.connect_ex((conn_addr, self._port))  # use the default eMews daemon port
+
+            self._r_socks.append(serv_sock)  # wait until we receive an ack from the receiving node

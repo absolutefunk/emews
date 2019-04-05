@@ -192,14 +192,21 @@ class SystemManager(object):
         """Augments the SysProp object with missing methods."""
         if self._sys.local:
             self._sys.net.get_hub_addr = self._local_ret
+            self._sys.net.get_addr_from_name = self._local_ret
         else:
             self._sys.net.get_hub_addr = self._get_hub_addr
+            self._sys.net.get_addr_from_name = self._get_addr_from_name
 
     def _local_ret(self):
-        """Sysprop methods that are not supported in local mode."""
+        """Use for sysprop methods that are not supported in local mode."""
         return None
 
     def _get_hub_addr(self):
         """Return the network address of the hub node."""
         return self._node_cache.get(
             self._node_cache.INDEX_NAME_ADDR, self._config['hub']['node_name'])
+
+    def _get_addr_from_name(self, node_name):
+        """Return the network address of the given node by name."""
+        return self._node_cache.get(
+            self._node_cache.INDEX_NAME_ADDR, node_name)
