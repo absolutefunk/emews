@@ -13,7 +13,6 @@ import socket
 import sys
 
 import emews.base.config
-import emews.base.sysprop
 import emews.base.system_manager
 
 
@@ -56,15 +55,16 @@ def system_init(args):
     logger.debug("Logger initialized.")
 
     # create system properties
-    sysprop = emews.base.sysprop.SysProp(
-        logger=logger,
-        node_name=node_name,
-        node_id=node_id,
-        root_path=root_path,
-        is_hub=True if node_name == config_dict_system['hub']['node_name'] else False,
-        local=args.local)
+    sysprop_dict = {
+        'logger': logger,
+        'node_name': node_name,
+        'node_id': node_id,
+        'root_path': root_path,
+        'is_hub': True if node_name == config_dict_system['hub']['node_name'] else False,
+        'local': args.local
+    }
 
-    return emews.base.system_manager.SystemManager(config_dict_system, sysprop)
+    return emews.base.system_manager.SystemManager(config_dict_system, sysprop_dict)
 
 
 def _get_node_name(config_node_name, arg_name):

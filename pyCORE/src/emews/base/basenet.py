@@ -50,12 +50,12 @@ class HandlerCB(object):
 class BaseNet(object):
     """Classdocs."""
 
-    __slots__ = ('_sys', '_interrupted', '_r_socks', '_w_socks')
+    __slots__ = ('logger', '_interrupted', '_r_socks', '_w_socks')
 
-    def __init__(self, sysprop):
+    def __init__(self, sysprop_dict):
         """Constructor."""
         super(BaseNet, self).__init__()
-        self._sys = sysprop
+        self.logger = sysprop_dict['logger']
         self._interrupted = False
 
         # TODO: use sets here (maybe wrap a set in a class compatible with list method calls)
@@ -69,10 +69,10 @@ class BaseNet(object):
                 r_sock_list, w_sock_list, _ = select.select(self._r_socks, self._w_socks, [])
             except select.error:
                 if not self._interrupted:
-                    self._sys.logger.error("Select error while blocking on managed sockets.")
+                    self.logger.error("Select error while blocking on managed sockets.")
                     raise
                 # if run in the main thread, a KeyboardInterrupt should unblock select
-                self._sys.logger.debug("Select interrupted by signal.")
+                self.logger.debug("Select interrupted by signal.")
                 break
 
             for w_sock in w_sock_list:

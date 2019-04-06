@@ -23,12 +23,12 @@ class ThreadDispatcher(object):
 
     __dispatch_timer_id = 0  # each timer has a unique thread id in the name
     __thread_id = 0  # each thread has a unique id
-    __slots__ = ('_sys', '_thread_map', '_deferred_objects', '_delay_timer', '_delay_lock',
+    __slots__ = ('logger', '_thread_map', '_deferred_objects', '_delay_timer', '_delay_lock',
                  '_thread_shutdown_timeout', '_halt_on_exceptions')
 
-    def __init__(self, config, sysprop):
+    def __init__(self, config, sysprop_dict):
         """Constructor."""
-        self._sys = sysprop
+        self.logger = sysprop_dict['logger']
 
         self._thread_map = {}  # object and its corresponding thread
         self._deferred_objects = set()
@@ -42,14 +42,14 @@ class ThreadDispatcher(object):
 
         self._halt_on_exceptions = config['halt_on_service_exceptions']
 
-        if not self._sys.local:
+        if not sysprop_dict['local']:
             start_delay = config['service_start_delay']
             # NOTE: service start delay currently delays all objects
             if start_delay > 0:
-                self._sys.logger.info("Beginning service start delay of %d seconds.", start_delay)
+                self.logger.info("Beginning service start delay of %d seconds.", start_delay)
                 self.delay_dispatch(start_delay)
         else:
-            self._sys.logger.info("Service start delay ignored due to running in local mode.")
+            self.logger.info("Service start delay ignored due to running in local mode.")
 
     @property
     def count(self):
@@ -59,14 +59,14 @@ class ThreadDispatcher(object):
     def cb_thread_exit(self, object_instance, on_exception=False):
         """Unregisters an object that has terminated."""
         if on_exception:
-            self._sys.logger.error(
+            self.logger.error(
                 "object '%s' has expressed intent to terminate due to exception.",
                 str(object_instance))
             if self._halt_on_exceptions:
-                self._sys.logger.info("Halt-on-exceptions enabled, throwing SIGINT ...")
+                self.logger.info("Halt-on-exceptions enabled, throwing SIGINT ...")
                 os.kill(os.getpid(), signal.SIGINT)
         else:
-            self._sys.logger.debug(
+            self.logger.debug(
                 "object '%s' has expressed intent to terminate.", str(object_instance))
 
     def dispatch(self, object_instance, force_start=False):
@@ -83,7 +83,7 @@ class ThreadDispatcher(object):
             with self._delay_lock:
                 if self._delay_timer is not None:
                     self._deferred_objects.add(object_instance)
-                    self._sys.logger.debug("'%s' deferred for dispatching.", str(object_instance))
+                    self.logger.debug("'%s' deferred for dispatching.", str(object_instance))
                     return
 
         self._object_dispatch(object_instance)
@@ -102,23 +102,23 @@ class ThreadDispatcher(object):
         new_thread.setDaemon(True)
         new_thread.start()
 
-        self._sys.logger.info("Dispatched thread '%s'.", new_thread.name)
+        self.logger.info("Dispatched thread '%s'.", new_thread.name)
 
     def _dispatch_info(self):
         """Display dispatch stats."""
-        self._sys.logger.debug("Active dispatched thread count: %d", self.count)
-        self._sys.logger.debug("Active threads: %s", thread_names_str())
+        self.logger.debug("Active dispatched thread count: %d", self.count)
+        self.logger.debug("Active threads: %s", thread_names_str())
 
     def dispatch_deferred_threads(self):
         """Dispatch threads which have been deferred for execution."""
         if not len(self._deferred_threads):
-            self._sys.logger.debug("No deferred threads to dispatch.")
+            self.logger.debug("No deferred threads to dispatch.")
             return
 
         for object_instance in self._deferred_objects:
             self._object_dispatch(object_instance)
 
-        self._sys.logger.debug("Dispatched all deferred threads.")
+        self.logger.debug("Dispatched all deferred threads.")
         self._deferred_threads.clear()
         self._dispatch_info()
 
@@ -150,16 +150,16 @@ class ThreadDispatcher(object):
         # and invoking cancel().
         if threading.current_thread().__class__.__name__ != '_MainThread':
             err_msg = "Must call 'shutdown_all_threads()' from MainThread."
-            self._sys.logger.error(err_msg)
+            self.logger.error(err_msg)
             raise RuntimeError(err_msg)
 
         with self._delay_lock:
             if self._delay_timer is not None:
-                self._sys.logger.debug("Delay dispatch timer is active, cancelling timer ...")
+                self.logger.debug("Delay dispatch timer is active, cancelling timer ...")
                 self._delay_timer.cancel()
                 self._delay_timer.join()
 
-        self._sys.logger.info("%d dispatched thread(s) to shutdown.", self.count)
+        self.logger.info("%d dispatched thread(s) to shutdown.", self.count)
 
         if self.count > 0:
             for t_object in self._thread_map.keys():
@@ -167,10 +167,10 @@ class ThreadDispatcher(object):
                 t_object.stop()
 
             if self._thread_shutdown_timeout is not None:
-                self._sys.logger.info("Will wait a maximum of %d seconds for threads to shutdown.",
+                self.logger.info("Will wait a maximum of %d seconds for threads to shutdown.",
                                       self._thread_shutdown_timeout)
             else:
-                self._sys.logger.info("No thread join timeout set.  Will wait until all running "
+                self.logger.info("No thread join timeout set.  Will wait until all running "
                                       "threads shut down ...")
 
             for active_thread in threading.enumerate():
@@ -188,6 +188,6 @@ class ThreadDispatcher(object):
 
                 if len(thread_names) > 0:
                     thr_names_str = ", ".join(thread_names)
-                    self._sys.logger.warning(
+                    self.logger.warning(
                         "The following threads did not shut down within the timeout period: [%s].  "
                         "Shutdown proceeding ...", thr_names_str)

@@ -14,20 +14,20 @@ import emews.base.handler_netmanager
 class ConnectionManager(emews.base.basenet.BaseNet):
     """Classdocs."""
 
-    __slots__ = ('_host', '_port', '_socks', '_serv_socks', '_pending_ids', '_cb')
+    __slots__ = ('sys', '_host', '_port', '_socks', '_serv_socks', '_pending_ids', '_cb')
 
-    def __init__(self, config, sysprop):
+    def __init__(self, config, sysprop_dict):
         """Constructor."""
-        super(ConnectionManager, self).__init__(sysprop)
+        super(ConnectionManager, self).__init__(sysprop_dict)
 
+        self.sys = None  # will be set once sysprop is created
         self._port = config['port']
         self._host = config['host']
         if self._host is None:
             self._host = ''
 
         if self._host == '':
-            self._sys.logger.warning(
-                "Host not specified. Listener may bind to any available interface.")
+            self.logger.warning("Host not specified. Listener may bind to any available interface.")
 
         self._socks = {}  # accepted sockets
         self._serv_socks = {}  # listener sockets
@@ -37,9 +37,6 @@ class ConnectionManager(emews.base.basenet.BaseNet):
         self._cb = [None] * emews.base.basenet.HandlerCB.ENUM_SIZE
         self._cb.insert(emews.base.basenet.HandlerCB.REQUEST_CLOSE, self._request_close)
         self._cb.insert(emews.base.basenet.HandlerCB.REQUEST_WRITE, self._request_write)
-
-        # create listener socket for the ConnectionManager
-        self.add_listener(self._port, emews.base.handler_netmanager.HandlerNetManager)
 
     def _close_socket(self, sock):
         """Close the passed socket.  Should not be used on listener sockets."""
@@ -57,9 +54,31 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             if sock.fileno() in self._pending_ids:
                 # connection could not be established
                 del self._pending_ids[sock.fileno()]
-                self._sys.logger.debug("Connection refused from remote for FD '%d'.", sock.fileno())
+                self.logger.debug("Connection refused from remote for FD '%d'.", sock.fileno())
 
         sock.shutdown(socket.SHUT_RDWR)
+
+    def set_sys(self, sysprop):
+        """
+        Set the system properties.
+
+        Need method-based dependency injection as SysProp has method pointers from this class, so
+        ConnectionManager must be instantiated before Sysprop is created.
+        """
+        if self.sys is not None:
+            raise AttributeError("System properties already set")
+
+        self.sys = sysprop
+
+    def start(self):
+        """Start the ConnectionManager."""
+        if self.sys is None:
+            raise AttributeError("System properties are not set.")
+
+        # create listener socket for the ConnectionManager
+        self.add_listener(self._port, emews.base.handler_netmanager.HandlerNetManager)
+
+        super(ConnectionManager, self).start()
 
     def stop(self):
         """Stop the ConnectionManager."""
@@ -79,10 +98,10 @@ class ConnectionManager(emews.base.basenet.BaseNet):
                 acc_sock.setblocking(0)
             except socket.error as ex:
                 # ignore the exception, but dump the new connection
-                self._sys.logger.warning("Socket exception while accepting connection: %s", ex)
+                self.logger.warning("Socket exception while accepting connection: %s", ex)
                 return
 
-            self._sys.logger.debug("Connection established from %s", src_addr)
+            self.logger.debug("Connection established from %s", src_addr)
             self._r_socks.append(acc_sock)
 
             sock_lst = []
@@ -100,15 +119,15 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             try:
                 chunk = sock.recv(sock_state[1])  # recv at most the current buf size
             except socket.error:
-                self._sys.logger.warning(
+                self.logger.warning(
                     "Socket error when receiving data, closing socket FD '%d' ...", sock.fileno())
                 self._close_socket(sock)
                 return
 
             if not len(chunk):
                 # zero length chunk, connection probably closed
-                self._sys.logger.debug("Connection closed remotely, closing socket FD '%d' ...",
-                                       sock.fileno())
+                self.logger.debug("Connection closed remotely, closing socket FD '%d' ...",
+                                  sock.fileno())
                 self._close_socket(sock)
             elif len(chunk) < sock_state[1]:
                 # num bytes recv is less than what is expected.
@@ -123,7 +142,7 @@ class ConnectionManager(emews.base.basenet.BaseNet):
                 try:
                     ret_tup = sock_state[0](sock.fileno(), chunk)  # handle the chunk
                 except TypeError:
-                    self._sys.logger.error("Handler callback is not callable.")
+                    self.logger.error("Handler callback is not callable.")
                     raise
 
                 if ret_tup is None:
@@ -165,40 +184,40 @@ class ConnectionManager(emews.base.basenet.BaseNet):
         # parameter checks
         if port < 1 or port > 65535:
             err_msg = "Port is out of range (must be between 1 and 65535, given: %d)"
-            self._sys.logger.error(err_msg, port)
+            self.logger.error(err_msg, port)
             raise ValueError(err_msg % port)
         if port < 1024:
-            self._sys.logger.warning("Port is less than 1024 (given: %d).  "
-                                     "Elevated permissions may be needed for binding.", port)
+            self.logger.warning("Port is less than 1024 (given: %d).  "
+                                "Elevated permissions may be needed for binding.", port)
 
         # initialize listener socket
         try:
             serv_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             serv_sock.setblocking(0)
         except socket.error as ex:
-            self._sys.logger.error("Could not instantiate new listener socket: %s", ex)
+            self.logger.error("Could not instantiate new listener socket: %s", ex)
             raise
 
         try:
             serv_sock.bind((self._host, port))
         except socket.error as ex:
             serv_sock.shutdown(socket.SHUT_RDWR)
-            self._sys.logger.error("Could not bind new listener socket to interface: %s", ex)
+            self.logger.error("Could not bind new listener socket to interface: %s", ex)
             raise
         try:
             serv_sock.listen(5)
         except socket.error as ex:
             serv_sock.shutdown(socket.SHUT_RDWR)
-            self._sys.logger.error("New listener socket threw socket.error on listen(): %s", ex)
+            self.logger.error("New listener socket threw socket.error on listen(): %s", ex)
             raise
 
-        self._sys.logger.info("New listener socket on interface %s, port %d.", self._host, port)
+        self.logger.info("New listener socket on interface %s, port %d.", self._host, port)
         self._r_socks.append(serv_sock)
 
         # initialize the handler and assign
         self._serv_socks[serv_sock] = handler_cls(_inject={
-            '_sys': self._sys,
-            'logger': self._sys.logger
+            '_sys': self.sys,
+            'logger': self.logger
         })
 
         def connect_node(self, node_name, handler_obj):
@@ -211,10 +230,10 @@ class ConnectionManager(emews.base.basenet.BaseNet):
                 cli_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 cli_sock.setblocking(0)
             except socket.error as ex:
-                self._sys.logger.error("Could not instantiate new client socket: %s", ex)
+                self.logger.error("Could not instantiate new client socket: %s", ex)
                 raise
 
-            conn_addr = self._sys.net.get_addr_from_name(node_name)
+            conn_addr = self.sys.net.get_addr_from_name(node_name)
             cli_sock.connect_ex((conn_addr, self._port))  # use the default eMews daemon port
 
             sock_lst = []
@@ -237,7 +256,7 @@ class ConnectionManager(emews.base.basenet.BaseNet):
 
             if recv_state != emews.base.basenet.HandlerCB.STATE_ACK:
                 # invalid response
-                self._sys.logger.warning("Invalid response from remote for FD '%d'.", id)
+                self.logger.warning("Invalid response from remote for FD '%d'.", id)
                 return None
 
             handler_obj = self._pending_ids.pop(id)

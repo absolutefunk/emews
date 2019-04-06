@@ -10,6 +10,7 @@ import signal
 import threading
 
 import emews.base.handler_logging
+import emews.base.sysprop
 import emews.base.thread_dispatcher
 import emews.services.servicebuilder
 
@@ -56,10 +57,17 @@ class SystemManager(object):
             """Add the k/v at index."""
             self._node_cache[index][key] = val
 
-    __slots__ = ('_sys', '_config', '_thread_dispatcher', '_connection_manager', '_interrupted',
-                 '_local_event', '_node_cache')
+    __slots__ = ('logger',
+                 'sys',
+                 '_sysprop_dict'
+                 '_config',
+                 '_thread_dispatcher',
+                 '_connection_manager',
+                 '_interrupted',
+                 '_local_event',
+                 '_node_cache')
 
-    def __init__(self, config, sysprop):
+    def __init__(self, config, sysprop_dict):
         """
         Constructor.
 
@@ -69,22 +77,25 @@ class SystemManager(object):
         """
         super(SystemManager, self).__init__()
 
+        self.logger = sysprop_dict['logger']
+
         # register signals
         signal.signal(signal.SIGHUP, self._shutdown_signal_handler)
         signal.signal(signal.SIGINT, self._shutdown_signal_handler)
 
+        self._sysprop_dict = sysprop_dict
         self._config = config
-        self._sys = sysprop
+        self._sys = None  # will contain the sysprop object once created
         self._thread_dispatcher = None
         self._connection_manager = None
         self._interrupted = False
         self._local_event = threading.Event()
 
-        self._sys.logger.info("[Network node] name: %s, node id: %d",
-                              self._sys.node_name, self._sys.node_id)
+        self.logger.info("[Network node] name: %s, node id: %d",
+                         self._sys.node_name, self._sys.node_id)
 
-        if self._sys.local:
-            self._sys.logger.info("Running in local mode.")
+        if self._sysprop_dict['local']:
+            self.logger.info("Running in local mode.")
             self._node_cache = None
         else:
             self._node_cache = emews.base.system_manager.SystemManager.NodeCache()
@@ -93,9 +104,9 @@ class SystemManager(object):
         """Look in the config object to obtain any services present."""
         startup_services = self._config['startup_services']
         if len(startup_services) == 1:
-            self._sys.logger.info("1 startup service.")
+            self.logger.info("1 startup service.")
         else:
-            self._sys.logger.info("%s startup services.", str(len(startup_services)))
+            self.logger.info("%s startup services.", str(len(startup_services)))
 
         service_builder = emews.services.servicebuilder.ServiceBuilder(self._sys)
 
@@ -108,54 +119,54 @@ class SystemManager(object):
                     err_str = "(startup services) Multiple services found in single " \
                               "dictionary.  Check either a system or node configuration " \
                               "file for a missing '-' prepending a service entry."
-                    self._sys.logger.error(err_str)
+                    self.logger.error(err_str)
                     raise AttributeError(err_str)
                 service_parameters = service_name.values()[0]
                 service_name = service_name.keys()[0]
 
-                self._sys.logger.debug("Service '%s' has parameters defined in the configuration.",
-                                       service_name)
-            self._sys.logger.debug("Dispatching service '%s' ...", service_name)
+                self.logger.debug("Service '%s' has parameters defined in the configuration.",
+                                  service_name)
+            self.logger.debug("Dispatching service '%s' ...", service_name)
 
             self._thread_dispatcher.dispatch(service_builder.build(
                 service_name, service_config_dict=service_parameters))
 
     def _shutdown_signal_handler(self, signum, frame):
         """Signal handler for incoming signals (those which may imply we need to shutdown)."""
-        self._sys.logger.info("Received signum %d, beginning shutdown...", signum)
+        self.logger.info("Received signum %d, beginning shutdown...", signum)
         self._interrupted = True
         self._local_event.set()
         self.shutdown()
 
     def start(self):
         """Start the daemon."""
-        self._sys.logger.debug("Starting system manager ...")
+        self.logger.debug("Starting system manager ...")
 
         # instantiate thread dispatcher and connection manager
         self._thread_dispatcher = emews.base.thread_dispatcher.ThreadDispatcher(
-            self._config['general'], self._sys)
+            self._config['general'], self._sysprop_dict)
 
-        if self._sys.local:
+        if self._sysprop_dict['local']:
             # local mode:  do not start ConnectionManager
             self._startup_services()
             if self._thread_dispatcher.count == 0:
-                self._sys.logger.info("No services running, nothing to do, shutting down ...")
+                self.logger.info("No services running, nothing to do, shutting down ...")
                 return
 
-            self._sys.logger.info("Waiting while services are running ...")
+            self.logger.info("Waiting while services are running ...")
 
             while not self._interrupted and self._thread_dispatcher.count > 0:
                 self._local_event.wait(1)
 
             if self._thread_dispatcher.count == 0:
-                self._sys.logger.info("No services running.")
+                self.logger.info("No services running.")
 
         else:
             self._connection_manager = emews.base.connectionmanager.ConnectionManager(
-                self._config['communication'], self._sys)
+                self._config['communication'], self._sysprop_dict)
 
-            if self._sys.is_hub:
-                self._sys.logger.info("This node is the hub.")
+            if self._sysprop_dict['is_hub']:
+                self.logger.info("This node is the hub.")
                 # add distributed logging listener
                 self._connection_manager.add_listener(
                     self._config['logging']['port'],
@@ -172,12 +183,13 @@ class SystemManager(object):
                                  self._config['hub']['node_name'],
                                  ipaddress.IPv4Address(hub_addr))
 
-            self._sysprop_augment()
+            self._build_sysprop()
             self._startup_services()
 
+            self._connection_manager.set_sys(self.sys)
             self._connection_manager.start()  # blocks here
 
-        self._sys.logger.info("Shutdown complete.")
+        self.logger.info("Shutdown complete.")
 
     def shutdown(self):
         """Shut down daemon operation."""
@@ -187,21 +199,25 @@ class SystemManager(object):
         # shut down any dispatched threads that may be running
         self._thread_dispatcher.shutdown_all_threads()
 
-    # SysProp augment
-    def _sysprop_augment(self):
-        """Augments the SysProp object with missing methods."""
-        if self._sys.local:
-            self._sys.net.get_hub_addr = self._local_ret
-            self._sys.net.get_addr_from_name = self._local_ret
-            self._sys.net.connect_node = self._local_ret
+    # sysprop methods
+    def _build_sysprop(self):
+        """Build the sysprop object."""
+        self._sysprop_dict['net'] = {}
+        if not self._sysprop_dict['local']:
+            self._sysprop_dict['net']['get_hub_addr'] = self._get_hub_addr
+            self._sysprop_dict['net']['get_addr_from_name'] = self._get_addr_from_name
+            self._sysprop_dict['net']['connect_node'] = self._connection_manager.connect_node
         else:
-            self._sys.net.get_hub_addr = self._get_hub_addr
-            self._sys.net.get_addr_from_name = self._get_addr_from_name
-            self._sys.net.connect_node = self._connection_manager.connect_node
+            self._sysprop_dict['net']['get_hub_addr'] = self._local_ret
+            self._sysprop_dict['net']['get_addr_from_name'] = self._local_ret
+            self._sysprop_dict['net']['connect_node'] = self._local_ret
+
+        self.sys = emews.base.sysprop.SysProp(self._sysprop_dict)
+        self._sysprop_dict = None
 
     def _local_ret(self):
         """Use for sysprop methods that are not supported in local mode."""
-        self._sys.logger.debug("This method is not supported in local mode.")
+        self.logger.debug("This method is not supported in local mode.")
         return None
 
     def _get_hub_addr(self):
