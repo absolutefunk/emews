@@ -220,11 +220,11 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             'logger': self.logger
         })
 
-        def connect_node(self, node_name, handler_obj):
+        def connect_node(self, node_name, callback_obj):
             """
             Establish a connection using the passed node name.
 
-            handler_obj is the callback object to use once connected.
+            callback_obj is the callback object to use once connected.
             """
             try:
                 cli_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -233,7 +233,7 @@ class ConnectionManager(emews.base.basenet.BaseNet):
                 self.logger.error("Could not instantiate new client socket: %s", ex)
                 raise
 
-            conn_addr = self.sys.net.get_addr_from_name(node_name)
+            conn_addr = self.sys.get_addr_from_name(node_name)
             cli_sock.connect_ex((conn_addr, self._port))  # use the default eMews daemon port
 
             sock_lst = []
@@ -242,7 +242,7 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             sock_lst.append(None)  # recv cache [2]
             self._socks[cli_sock] = sock_lst
 
-            self._pending_ids[cli_sock.fileno()] = handler_obj
+            self._pending_ids[cli_sock.fileno()] = callback_obj
 
             self._r_socks.append(cli_sock)  # wait until we receive an ack from the receiving node
 

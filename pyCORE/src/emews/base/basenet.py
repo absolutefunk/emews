@@ -31,6 +31,7 @@ class NetProto(object):
     NET_CC_1 = 1   # CC channel (future)
     NET_CC_2 = 2   # CC channel (future)
     NET_AGENT = 3  # Agent-based communication
+    NET_HUB = 4    # Hub-based communication
 
 
 class HandlerCB(object):

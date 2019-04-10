@@ -9,6 +9,7 @@ import struct
 import emews.base.basehandler
 import emews.base.basenet
 import emews.base.serv_agent
+import emews.base.serv_hub
 
 
 class HandlerNetManager(emews.base.basehandler.BaseHandler):
@@ -30,11 +31,14 @@ class HandlerNetManager(emews.base.basehandler.BaseHandler):
         self._proto_cb.insert(emews.base.basenet.NetProto.NET_CC_1, self._cc_comm)
         self._proto_cb.insert(emews.base.basenet.NetProto.NET_CC_2, self._cc_comm)
         if self.sys.is_hub:
-            # use the agent server
+            # Hub node runs the following servers:
             serv_inst = emews.base.serv_agent.ServAgent(_inject=p_inj)
             self._proto_cb.insert(emews.base.basenet.NetProto.NET_AGENT, serv_inst.serv_init)
+            serv_inst = emews.base.serv_hub.ServHub(_inject=p_inj)
+            self._proto_cb.insert(emews.base.basenet.NetProto.NET_HUB, serv_inst.serv_init)
         else:
             self._proto_cb.insert(emews.base.basenet.NetProto.NET_AGENT, self._unsupported_nonhub)
+            self._proto_cb.insert(emews.base.basenet.NetProto.NET_HUB, self._unsupported_nonhub)
 
     def handle_init(self, id):
         """

@@ -18,45 +18,6 @@ import emews.services.servicebuilder
 class SystemManager(object):
     """Classdocs."""
 
-    class NodeCache(object):
-        """Container for caching what we currently know about other nodes."""
-
-        # Enums
-        CACHE_SIZE = 3  # number of dicts in the cache
-
-        INDEX_NAME_ID = 0
-        INDEX_ID_NAME = 1
-        INDEX_NAME_ADDR = 2
-
-        __slots__ = ('_node_cache', '_cache_miss_cb')
-
-        def __init__(self):
-            """Constructor."""
-            self._node_cache = [None] * self.CACHE_SIZE
-            self._cache_miss_cb = [None] * self.CACHE_SIZE
-
-            self._node_cache.insert(self.INDEX_NAME_ADDR, {})
-            self._cache_miss_cb.insert(self.INDEX_NAME_ADDR, None)  # TODO: put cb method here
-
-        def get(self, index, key):
-            """
-            Return value at key in dict at index.
-
-            If key missing, fill in k/v.
-            """
-            try:
-                val = self._node_cache[index][key]
-            except KeyError:
-                # cache miss
-                val = self._cache_miss_cb[index](key)
-                self._node_cache[index][key] = val
-
-            return val
-
-        def add(self, index, key, val):
-            """Add the k/v at index."""
-            self._node_cache[index][key] = val
-
     __slots__ = ('logger',
                  'sys',
                  '_sysprop_dict'
@@ -65,7 +26,7 @@ class SystemManager(object):
                  '_connection_manager',
                  '_interrupted',
                  '_local_event',
-                 '_node_cache')
+                 '_hub_addr')
 
     def __init__(self, config, sysprop_dict):
         """
@@ -90,15 +51,13 @@ class SystemManager(object):
         self._connection_manager = None
         self._interrupted = False
         self._local_event = threading.Event()
+        self._hub_addr = None  # will contain the hub node's IP address if not running in local mode
 
         self.logger.info("[Network node] name: %s, node id: %d",
                          self._sys.node_name, self._sys.node_id)
 
         if self._sysprop_dict['local']:
             self.logger.info("Running in local mode.")
-            self._node_cache = None
-        else:
-            self._node_cache = emews.base.system_manager.SystemManager.NodeCache()
 
     def _startup_services(self):
         """Look in the config object to obtain any services present."""
@@ -179,9 +138,7 @@ class SystemManager(object):
                 raise NotImplementedError(
                     "Hub broadcast not implemented yet.  Please define hub address in config.")
 
-            self._node_cache.add(self._node_cache.INDEX_NAME_ADDR,
-                                 self._config['hub']['node_name'],
-                                 ipaddress.IPv4Address(hub_addr))
+            self._hub_addr = ipaddress.IPv4Address(hub_addr)
 
             self._build_sysprop()
             self._startup_services()
@@ -202,15 +159,10 @@ class SystemManager(object):
     # sysprop methods
     def _build_sysprop(self):
         """Build the sysprop object."""
-        self._sysprop_dict['net'] = {}
         if not self._sysprop_dict['local']:
-            self._sysprop_dict['net']['get_hub_addr'] = self._get_hub_addr
-            self._sysprop_dict['net']['get_addr_from_name'] = self._get_addr_from_name
-            self._sysprop_dict['net']['connect_node'] = self._connection_manager.connect_node
+            self._sysprop_dict['hub_address'] = self._get_hub_addr
         else:
-            self._sysprop_dict['net']['get_hub_addr'] = self._local_ret
-            self._sysprop_dict['net']['get_addr_from_name'] = self._local_ret
-            self._sysprop_dict['net']['connect_node'] = self._local_ret
+            self._sysprop_dict['hub_address'] = self._local_ret
 
         self.sys = emews.base.sysprop.SysProp(self._sysprop_dict)
         self._sysprop_dict = None
@@ -220,12 +172,6 @@ class SystemManager(object):
         self.logger.debug("This method is not supported in local mode.")
         return None
 
-    def _get_hub_addr(self):
-        """Return the network address of the hub node."""
-        return self._node_cache.get(
-            self._node_cache.INDEX_NAME_ADDR, self._config['hub']['node_name'])
-
-    def _get_addr_from_name(self, node_name):
-        """Return the network address of the given node by name."""
-        return self._node_cache.get(
-            self._node_cache.INDEX_NAME_ADDR, node_name)
+    def _get_hub_addr(self, query):
+        """Return the hub node's network address."""
+        return self._hub_addr

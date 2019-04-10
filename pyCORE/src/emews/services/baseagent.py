@@ -43,9 +43,9 @@ class BaseAgent(emews.services.baseservice.BaseService):
             'logger': self._sys.logger
         })
 
-    def sense(self, context):
+    def ask(self, context):
         """
-        Sense the environment, returning an environment state.
+        Ask (sense) the environment, returning an environment state.
 
         Environmental 'sensing' is accomplished by asking eMews what the environment looks like
         given some context, such as a webpage and other state.

@@ -12,22 +12,6 @@ class SysProp(object):
 
     MSG_RO = "System properties are read-only."
 
-    class NetProp(object):
-        """Container for net properties."""
-
-        __slots__ = ('get_hub_addr',
-                     'get_addr_from_name',
-                     'connect_node')
-
-        def __init__(self, **kwargs):
-            """Constructor."""
-            for key, value in kwargs.iteritems():
-                object.__setattr__(self, key, value)
-
-        def __setattr__(self, attr, value):
-            """Attributes are not mutable."""
-            raise AttributeError(SysProp.MSG_RO)
-
     # All system properties defined here
     __slots__ = ('logger',
                  'node_name',
@@ -35,16 +19,14 @@ class SysProp(object):
                  'root_path',
                  'is_hub',
                  'local',
-                 'net')
+                 'get_hub_addr',
+                 'get_addr_from_name',
+                 'connect_node')
 
     def __init__(self, **kwargs):
         """Constructor."""
-        netprop = kwargs.pop('net')
-
         for key, value in kwargs.iteritems():
             object.__setattr__(self, key, value)
-
-        self.net = emews.base.sysprop.SysProp.NetProp(netprop)
 
     def __setattr__(self, attr, value):
         """Attributes are not mutable."""
