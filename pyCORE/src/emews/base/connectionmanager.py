@@ -109,8 +109,8 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             sock_lst.append(0)  # expected number of bytes to receive next (buf) [1]
             sock_lst.append(None)  # recv cache [2]
 
-            sock_lst[0](acc_sock.fileno())  # call handle_init(), passing the sock FD as the ID
-
+            # call handle_init(), sock FD as session_id, IPv4 address as int
+            sock_lst[0](acc_sock.fileno(), struct.unpack(">I", socket.inet_aton(src_addr[0]))[0])
             self._socks[acc_sock] = sock_lst
         else:
             # readable socket we are managing

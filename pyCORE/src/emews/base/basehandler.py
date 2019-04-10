@@ -21,7 +21,7 @@ class BaseHandler(object):
         return self._sys
 
     @abstractmethod
-    def handle_init(self, id):
+    def handle_init(self, id, int_addr):
         """
         Handle any initialization.
 
