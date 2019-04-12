@@ -5,11 +5,10 @@ Created on June 8, 2018
 @author: Brian Ricks
 """
 import collections
-import ipaddress
 import signal
 import threading
 
-import emews.base.handler_logging
+import emews.base.logger
 import emews.base.sysprop
 import emews.base.thread_dispatcher
 import emews.services.servicebuilder
@@ -19,16 +18,14 @@ class SystemManager(object):
     """Classdocs."""
 
     __slots__ = ('logger',
-                 'sys',
-                 '_sysprop_dict'
+                 'sys'
                  '_config',
                  '_thread_dispatcher',
                  '_connection_manager',
                  '_interrupted',
-                 '_local_event',
-                 '_hub_addr')
+                 '_local_event')
 
-    def __init__(self, config, sysprop_dict):
+    def __init__(self, config, sysprop):
         """
         Constructor.
 
@@ -38,25 +35,23 @@ class SystemManager(object):
         """
         super(SystemManager, self).__init__()
 
-        self.logger = sysprop_dict['logger']
+        self.logger = emews.base.logger.get_logger()
 
         # register signals
         signal.signal(signal.SIGHUP, self._shutdown_signal_handler)
         signal.signal(signal.SIGINT, self._shutdown_signal_handler)
 
-        self._sysprop_dict = sysprop_dict
+        self.sys = sysprop
         self._config = config
-        self._sys = None  # will contain the sysprop object once created
         self._thread_dispatcher = None
         self._connection_manager = None
         self._interrupted = False
         self._local_event = threading.Event()
-        self._hub_addr = None  # will contain the hub node's IP address if not running in local mode
 
         self.logger.info("[Network node] name: %s, node id: %d",
-                         self._sys.node_name, self._sys.node_id)
+                         self.sys.node_name, self.sys.node_id)
 
-        if self._sysprop_dict['local']:
+        if self.sys.local:
             self.logger.info("Running in local mode.")
 
     def _startup_services(self):
@@ -67,7 +62,7 @@ class SystemManager(object):
         else:
             self.logger.info("%s startup services.", str(len(startup_services)))
 
-        service_builder = emews.services.servicebuilder.ServiceBuilder(self._sys)
+        service_builder = emews.services.servicebuilder.ServiceBuilder(self.sys)
 
         for service_name in startup_services:
             # services may have parameters, or just the service name
@@ -103,9 +98,9 @@ class SystemManager(object):
 
         # instantiate thread dispatcher and connection manager
         self._thread_dispatcher = emews.base.thread_dispatcher.ThreadDispatcher(
-            self._config['general'], self._sysprop_dict)
+            self._config['general'], self.sys)
 
-        if self._sysprop_dict['local']:
+        if self.sys.local:
             # local mode:  do not start ConnectionManager
             self._startup_services()
             if self._thread_dispatcher.count == 0:
@@ -122,56 +117,18 @@ class SystemManager(object):
 
         else:
             self._connection_manager = emews.base.connectionmanager.ConnectionManager(
-                self._config['communication'], self._sysprop_dict)
+                self._config['communication'], self.sys)
 
-            if self._sysprop_dict['is_hub']:
-                self.logger.info("This node is the hub.")
-                # add distributed logging listener
-                self._connection_manager.add_listener(
-                    self._config['logging']['port'],
-                    emews.base.handler_logging.HandlerLogging)
-
-            # cache the hub node's network address
-            hub_addr = self._config['hub']['node_addr']
-            if hub_addr is None:
-                # TODO: implement hub node address broadcasting to other nodes
-                raise NotImplementedError(
-                    "Hub broadcast not implemented yet.  Please define hub address in config.")
-
-            self._hub_addr = ipaddress.IPv4Address(hub_addr)
-
-            self._build_sysprop()
             self._startup_services()
 
-            self._connection_manager.set_sys(self.sys)
             self._connection_manager.start()  # blocks here
 
         self.logger.info("Shutdown complete.")
 
     def shutdown(self):
         """Shut down daemon operation."""
-        if not self._sys.local:
+        if not self.sys.local:
             self._connection_manager.stop()
 
         # shut down any dispatched threads that may be running
         self._thread_dispatcher.shutdown_all_threads()
-
-    # sysprop methods
-    def _build_sysprop(self):
-        """Build the sysprop object."""
-        if not self._sysprop_dict['local']:
-            self._sysprop_dict['hub_address'] = self._get_hub_addr
-        else:
-            self._sysprop_dict['hub_address'] = self._local_ret
-
-        self.sys = emews.base.sysprop.SysProp(self._sysprop_dict)
-        self._sysprop_dict = None
-
-    def _local_ret(self):
-        """Use for sysprop methods that are not supported in local mode."""
-        self.logger.debug("This method is not supported in local mode.")
-        return None
-
-    def _get_hub_addr(self, query):
-        """Return the hub node's network address."""
-        return self._hub_addr

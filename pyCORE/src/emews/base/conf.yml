@@ -7,30 +7,24 @@ init:
     logging:
       logger_name: emews.base
       message_format: '[%(asctime)s] %(nodename)-12.12s | %(nodeid)-5.5s | %(threadName)-16.16s [%(levelname)-8.8s | %(module)-16.16s | %(funcName)-16.16s]: %(message)s'
+      stream: 'sys.stdout'  # stdout stream
   overrides:  # These K/Vs can be overwritten in a config file
+    communication:  # communication related eMews daemon options
+      host: 127.0.0.1  # host to bind to (should be localhost or 127.0.0.1, etc)
+      port: 32518  # port to use
     general:  # general eMews daemon options
       node_name: null  # name of the node running this instance of eMews
+    hub:
+      node_name: n1  # name of the node to act as the hub
+      node_addr: null  # address of the hub (if null, then look it up)
     logging:
-      file: False  # file name, if given, will log to the file.  Set to False to disable
-      stream: False  # stream, if given, will log to the stream.  Set to False to disable
       message_level: DEBUG  # log messages of this level and above (default)
 
 # System configuration skeleton.  This is the configuration structure after initialization.
 system:
-  readonly:
-    communication:  # communication related eMews daemon options
-      recv_timeout: 20  # in seconds - wait this long for a timeout in expected response
   overrides:
     general:  # general eMews daemon options
       service_start_delay: -1 # Delay (seconds) to start services from eMews daemon invocation.
       thread_shutdown_wait: -1 # Delay (seconds) to wait for 'graceful' thread shutdown.  After this wait, continue shut down.
       halt_on_service_exceptions: True  # If true, then halt eMews on service-originated exceptions
-    hub:
-      node_name: n1  # name of the node to act as the hub
-      node_addr: null  # address of the hub (if null, then look it up)
-    communication:  # communication related eMews daemon options
-      host: 127.0.0.1  # host to bind to (should be localhost or 127.0.0.1, etc)
-      port: 32518  # port to use
-    logging:
-      port: 32519  # port for distributed logging
     startup_services: []

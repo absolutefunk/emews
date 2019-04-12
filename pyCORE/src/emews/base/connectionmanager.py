@@ -1,5 +1,5 @@
 """
-Manages all backend connections between eMews nodes and the MasterNode.
+Manages all backend connections between eMews nodes and the Hub node.
 
 Created on Feb 21, 2019
 @author: Brian Ricks
@@ -8,30 +8,28 @@ import socket
 import struct
 
 import emews.base.basenet
-import emews.base.handler_netmanager
+import emews.base.netmanager
 
 
 class ConnectionManager(emews.base.basenet.BaseNet):
     """Classdocs."""
 
-    __slots__ = ('sys', '_host', '_port', '_socks', '_serv_socks', '_pending_ids', '_cb')
+    __slots__ = ('sys', '_host', '_port', '_socks', '_listener_sock', '_net_manager',
+                 '_pending_ids', '_cb',)
 
-    def __init__(self, config, sysprop_dict):
+    def __init__(self, config, sysprop):
         """Constructor."""
-        super(ConnectionManager, self).__init__(sysprop_dict)
+        self.sys = sysprop
 
-        self.sys = None  # will be set once sysprop is created
         self._port = config['port']
         self._host = config['host']
         if self._host is None:
-            self._host = ''
-
-        if self._host == '':
-            self.logger.warning("Host not specified. Listener may bind to any available interface.")
+            self._host = ''  # any available interface
 
         self._socks = {}  # accepted sockets
-        self._serv_socks = {}  # listener sockets
         self._pending_ids = {}  # FDs (socks) that are pending an established connection
+        self._listener_sock = None  # listener socket (will be instantiated on start())
+        self._net_manager = emews.base.netmanager.NetManager(self.sys)
 
         # Handler callbacks
         self._cb = [None] * emews.base.basenet.HandlerCB.ENUM_SIZE
@@ -58,25 +56,10 @@ class ConnectionManager(emews.base.basenet.BaseNet):
 
         sock.shutdown(socket.SHUT_RDWR)
 
-    def set_sys(self, sysprop):
-        """
-        Set the system properties.
-
-        Need method-based dependency injection as SysProp has method pointers from this class, so
-        ConnectionManager must be instantiated before Sysprop is created.
-        """
-        if self.sys is not None:
-            raise AttributeError("System properties already set")
-
-        self.sys = sysprop
-
     def start(self):
         """Start the ConnectionManager."""
-        if self.sys is None:
-            raise AttributeError("System properties are not set.")
-
         # create listener socket for the ConnectionManager
-        self.add_listener(self._port, emews.base.handler_netmanager.HandlerNetManager)
+        self._setup_listener(self._host, self._port)
 
         super(ConnectionManager, self).start()
 
@@ -84,14 +67,13 @@ class ConnectionManager(emews.base.basenet.BaseNet):
         """Stop the ConnectionManager."""
         self.interrupt()
 
-        for sock in self._serv_socks.keys():
-            self._close_socket(sock)
+        self._close_socket(self._listener_sock)
         for sock in self._socks.keys():
             self._close_socket(sock)
 
     def readable_socket(self, sock):
         """Given a socket in a readable state, do something with it."""
-        if sock in self._serv_socks:
+        if sock is self._listener_sock:
             # listener socket, accept incoming connection
             try:
                 acc_sock, src_addr = sock.accept()
@@ -105,7 +87,7 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             self._r_socks.append(acc_sock)
 
             sock_lst = []
-            sock_lst.append(self._serv_socks[sock].handle_init)  # current handler cb [0]
+            sock_lst.append(self._net_manager.handle_init)  # current handler cb [0]
             sock_lst.append(0)  # expected number of bytes to receive next (buf) [1]
             sock_lst.append(None)  # recv cache [2]
 
@@ -179,13 +161,11 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             sock_state[1] = ret_tup[2]  # buf size
             self._w_socks.remove(sock)
 
-    def add_listener(self, port, handler_cls):
-        """Add a new listener (server socket) to manage."""
+    def _setup_listener(self, host, port):
+        """Create listener (server socket) to manage."""
         # parameter checks
         if port < 1 or port > 65535:
-            err_msg = "Port is out of range (must be between 1 and 65535, given: %d)"
-            self.logger.error(err_msg, port)
-            raise ValueError(err_msg % port)
+            raise ValueError("Port is out of range (must be between 1 and 65535, given: %d)" % port)
         if port < 1024:
             self.logger.warning("Port is less than 1024 (given: %d).  "
                                 "Elevated permissions may be needed for binding.", port)
@@ -199,7 +179,7 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             raise
 
         try:
-            serv_sock.bind((self._host, port))
+            serv_sock.bind((host, port))
         except socket.error as ex:
             serv_sock.shutdown(socket.SHUT_RDWR)
             self.logger.error("Could not bind new listener socket to interface: %s", ex)
@@ -212,53 +192,49 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             raise
 
         self.logger.info("New listener socket on interface %s, port %d.", self._host, port)
+
         self._r_socks.append(serv_sock)
+        self._listener_sock = serv_sock
 
-        # initialize the handler and assign
-        self._serv_socks[serv_sock] = handler_cls(_inject={
-            '_sys': self.sys,
-            'logger': self.logger
-        })
+    def connect_node(self, node_name, callback_obj):
+        """
+        Establish a connection using the passed node name.
 
-        def connect_node(self, node_name, callback_obj):
-            """
-            Establish a connection using the passed node name.
+        callback_obj is the callback object to use once connected.
+        """
+        try:
+            cli_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            cli_sock.setblocking(0)
+        except socket.error as ex:
+            self.logger.error("Could not instantiate new client socket: %s", ex)
+            raise
 
-            callback_obj is the callback object to use once connected.
-            """
-            try:
-                cli_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                cli_sock.setblocking(0)
-            except socket.error as ex:
-                self.logger.error("Could not instantiate new client socket: %s", ex)
-                raise
+        conn_addr = self.sys.get_addr_from_name(node_name)  # TODO: no more function in sys
+        cli_sock.connect_ex((conn_addr, self._port))  # use the default eMews daemon port
 
-            conn_addr = self.sys.get_addr_from_name(node_name)
-            cli_sock.connect_ex((conn_addr, self._port))  # use the default eMews daemon port
+        sock_lst = []
+        sock_lst.append(self._cli_conn_ack)  # current handler cb [0]
+        sock_lst.append(1)  # expected number of bytes to receive next (buf) [1]
+        sock_lst.append(None)  # recv cache [2]
+        self._socks[cli_sock] = sock_lst
 
-            sock_lst = []
-            sock_lst.append(self._cli_conn_ack)  # current handler cb [0]
-            sock_lst.append(1)  # expected number of bytes to receive next (buf) [1]
-            sock_lst.append(None)  # recv cache [2]
-            self._socks[cli_sock] = sock_lst
+        self._pending_ids[cli_sock.fileno()] = callback_obj
 
-            self._pending_ids[cli_sock.fileno()] = callback_obj
+        self._r_socks.append(cli_sock)  # wait until we receive an ack from the receiving node
 
-            self._r_socks.append(cli_sock)  # wait until we receive an ack from the receiving node
+    def _cli_conn_ack(self, id, chunk):
+        """Acknowledgment from remote when successful connection."""
+        try:
+            recv_state = struct.unpack('>H', chunk)
+        except struct.error as ex:
+            self.logger.warning("Struct error when unpacking protocol info: %s", ex)
+            return None
 
-        def _cli_conn_ack(self, id, chunk):
-            """Acknowledgment from remote when successful connection."""
-            try:
-                recv_state = struct.unpack('>H', chunk)
-            except struct.error as ex:
-                self.logger.warning("Struct error when unpacking protocol info: %s", ex)
-                return None
+        if recv_state != emews.base.basenet.HandlerCB.STATE_ACK:
+            # invalid response
+            self.logger.warning("Invalid response from remote for FD '%d'.", id)
+            return None
 
-            if recv_state != emews.base.basenet.HandlerCB.STATE_ACK:
-                # invalid response
-                self.logger.warning("Invalid response from remote for FD '%d'.", id)
-                return None
-
-            handler_obj = self._pending_ids.pop(id)
-            handler_obj.set_request_write(self._request_write)
-            return handler_obj.handle_init(id)  # return next cb
+        handler_obj = self._pending_ids.pop(id)
+        handler_obj.set_request_write(self._request_write)
+        return handler_obj.handle_init(id)  # return next cb

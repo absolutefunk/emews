@@ -1,30 +1,30 @@
 """
 Provides a centralized point for distributed log collection over a network.
 
-Created on Apr 22, 2018
+Created on Apr 11, 2019
 @author: Brian Ricks
 """
 import logging
 import pickle
 import struct
 
-import emews.base.basehandler
+import emews.base.baseserv
 
 
-class HandlerLogging(emews.base.basehandler.BaseHandler):
+class ServLogging(emews.base.baseserv.BaseServ):
     """Classdocs."""
 
     __slots__ = ()
 
-    def handle_init(self, id):
+    def serv_init(self, node_id, session_id):
         """Return the expected number of bytes to receive first and the callback."""
         return (self._msg_length, 4)
 
-    def handle_close(self, id):
+    def serv_close(self, node_id, session_id):
         """Handle the case when a socket is closed."""
         pass
 
-    def _msg_length(self, id, chunk):
+    def _msg_length(self, sesson_id, chunk):
         """Log message length (4 bytes)."""
         try:
             slen = struct.unpack('>L', chunk)[0]
@@ -34,8 +34,8 @@ class HandlerLogging(emews.base.basehandler.BaseHandler):
 
         return (self._process_message, slen)
 
-    def _process_message(self, id, chunk):
+    def _process_message(self, session_id, chunk):
         """Process the complete log message."""
         log_record = logging.makeLogRecord(pickle.loads(chunk))
         self.logger.handle(log_record)
-        return (self._msg_length, 4)
+        return (self._msg_length, 4)  # cb for a new message

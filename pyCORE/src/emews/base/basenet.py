@@ -9,6 +9,8 @@ Created on Feb 21, 2019
 """
 import select
 
+import emews.base.logger
+
 
 """
 TODO:  Refactor this to be integrated into eMews node-to-node communication.  Do not use this as a
@@ -25,13 +27,14 @@ class NetProto(object):
 
     __slots__ = ()
 
-    ENUM_SIZE = 4
+    ENUM_SIZE = 5
 
-    NET_NONE = 0   # placeholder
-    NET_CC_1 = 1   # CC channel (future)
-    NET_CC_2 = 2   # CC channel (future)
-    NET_AGENT = 3  # Agent-based communication
-    NET_HUB = 4    # Hub-based communication
+    NET_NONE = 0     # placeholder
+    NET_CC_1 = 1     # CC channel (future)
+    NET_CC_2 = 2     # CC channel (future)
+    NET_LOGGING = 3  # distributed logging
+    NET_AGENT = 4    # Agent-based communication
+    NET_HUB = 5      # Hub-based communication
 
 
 class HandlerCB(object):
@@ -53,10 +56,9 @@ class BaseNet(object):
 
     __slots__ = ('logger', '_interrupted', '_r_socks', '_w_socks')
 
-    def __init__(self, sysprop_dict):
+    def __init__(self):
         """Constructor."""
-        super(BaseNet, self).__init__()
-        self.logger = sysprop_dict['logger']
+        self.logger = emews.base.logger.get_logger()
         self._interrupted = False
 
         # TODO: use sets here (maybe wrap a set in a class compatible with list method calls)

@@ -13,7 +13,9 @@ import socket
 import sys
 
 import emews.base.config
+import emews.base.logger
 import emews.base.system_manager
+import emews.base.sysprop
 
 
 def system_init(args):
@@ -43,28 +45,30 @@ def system_init(args):
     config_dict_system = emews.base.config.merge_configs(
         base_config['system'], system_config, node_config)
 
-    # get the node name and id
     node_name = _get_node_name(config_dict_init['general']['node_name'], args.node_name)
-    node_id = 0
+    is_hub = True if node_name == config_dict_system['hub']['node_name'] and not args.local \
+        else False
 
-    # init the logger
-    logger = logging.LoggerAdapter(
-        _init_base_logger(config_dict_init['logging']), {'nodename': node_name, 'nodeid': node_id})
+    if is_hub or args.local:
+        node_id = 0  # hub or local mode node id
+    else:
+        # The node id is assigned by the hub node, so we keep trying to connect to it until success
+        pass
 
-    # now we have logging, so we can start outputting though the logger
-    logger.debug("Logger initialized.")
+    emews.base.logger._base_logger = logging.LoggerAdapter(_init_base_logger(
+        config_dict_init['logging'], node_id, is_hub=is_hub, is_local=args.local),
+        {'nodename': node_name, 'nodeid': node_id})
 
-    # create system properties
     sysprop_dict = {
-        'logger': logger,
         'node_name': node_name,
         'node_id': node_id,
         'root_path': root_path,
-        'is_hub': True if node_name == config_dict_system['hub']['node_name'] else False,
+        'is_hub': is_hub,
         'local': args.local
     }
 
-    return emews.base.system_manager.SystemManager(config_dict_system, sysprop_dict)
+    return emews.base.system_manager.SystemManager(config_dict_system,
+                                                   emews.base.sysprop.SysProp(**sysprop_dict))
 
 
 def _get_node_name(config_node_name, arg_name):
@@ -81,7 +85,7 @@ def _get_node_name(config_node_name, arg_name):
     return socket.gethostname()
 
 
-def _init_base_logger(log_config):
+def _init_base_logger(log_config, node_id, is_hub=False, is_local=False):
     """Set up the logger."""
     message_level = log_config['message_level']
 
@@ -89,28 +93,24 @@ def _init_base_logger(log_config):
     logger.setLevel(message_level)
     logger.propagate = False
 
-    logger_enabled = False
-    if log_config['file']:
-        # log to a file
-        handler_obj = logging.FileHandler(mode='a', delay=True, filename=log_config['file'])
-        handler_obj.setLevel(message_level)
-        handler_obj.setFormatter(logging.Formatter(log_config['message_format']))
-        logger.addHandler(handler_obj)
-        logger_enabled = True
-
-    if log_config['stream']:
-        # log to a stream
+    if is_local:
+        # local mode: log to a stream (stdout)
         stream_path, stream_name = log_config['stream'].rsplit(".", 1)
 
         handler_obj = logging.StreamHandler(stream=getattr(sys.modules[stream_path], stream_name))
         handler_obj.setLevel(message_level)
         handler_obj.setFormatter(logging.Formatter(log_config['message_format']))
         logger.addHandler(handler_obj)
-        logger_enabled = True
 
-    if not logger_enabled:
-        # logging disabled
-        print "No file or stream specified for logging.  Logging disabled (no output) ..."
-        logger.addHandler(logging.NullHandler())
+    elif is_hub:
+        # hub node: log to a file
+        handler_obj = logging.FileHandler(mode='a', delay=True, filename='emews.log')
+        handler_obj.setLevel(message_level)
+        handler_obj.setFormatter(logging.Formatter(log_config['message_format']))
+        logger.addHandler(handler_obj)
+
+    else:
+        # non-hub node: distributed logging
+        logger.addHandler(emews.base.logger.DistLogger(node_id))
 
     return logger

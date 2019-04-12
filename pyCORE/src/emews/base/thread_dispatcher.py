@@ -8,6 +8,7 @@ import os
 import threading
 import signal
 
+import emews.base.logger
 
 def thread_names_str():
     """Concatenates active thread names to a space delim string."""
@@ -26,9 +27,9 @@ class ThreadDispatcher(object):
     __slots__ = ('logger', '_thread_map', '_deferred_objects', '_delay_timer', '_delay_lock',
                  '_thread_shutdown_timeout', '_halt_on_exceptions')
 
-    def __init__(self, config, sysprop_dict):
+    def __init__(self, config, sysprop):
         """Constructor."""
-        self.logger = sysprop_dict['logger']
+        self.logger = emews.base.logger.get_logger()
 
         self._thread_map = {}  # object and its corresponding thread
         self._deferred_objects = set()
@@ -42,7 +43,7 @@ class ThreadDispatcher(object):
 
         self._halt_on_exceptions = config['halt_on_service_exceptions']
 
-        if not sysprop_dict['local']:
+        if not sysprop.local_mode:
             start_delay = config['service_start_delay']
             # NOTE: service start delay currently delays all objects
             if start_delay > 0:
@@ -168,10 +169,10 @@ class ThreadDispatcher(object):
 
             if self._thread_shutdown_timeout is not None:
                 self.logger.info("Will wait a maximum of %d seconds for threads to shutdown.",
-                                      self._thread_shutdown_timeout)
+                                 self._thread_shutdown_timeout)
             else:
                 self.logger.info("No thread join timeout set.  Will wait until all running "
-                                      "threads shut down ...")
+                                 "threads shut down ...")
 
             for active_thread in threading.enumerate():
                 # join all active threads except for the main thread
