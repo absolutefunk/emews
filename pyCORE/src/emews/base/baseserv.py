@@ -14,21 +14,18 @@ class BaseServ(object):
     """Classdocs."""
 
     __metaclass__ = emews.base.meta.InjectionMetaWithABC
-    __slots__ = ('sys', 'logger', '_ids')
+    __slots__ = ('sys', 'logger')
 
     def __init__(self):
         """Constructor."""
         self.logger = emews.base.logger.get_logger()
-        self._ids = {}  # [session_id]: node_id
 
-    def handle_init(self, session_id, node_id):
-        """Init session_id --> node_id mapping.  Return cb from serv_init()."""
-        self._ids[session_id] = node_id
+    def handle_init(self, node_id, session_id):
+        """Session init."""
         return self.serv_init(node_id, session_id)
 
     def handle_close(self, session_id):
         """Session termination."""
-        del self._ids[session_id]
         self.serv_close(session_id)
 
     @abstractmethod
@@ -37,6 +34,6 @@ class BaseServ(object):
         pass
 
     @abstractmethod
-    def serv_close(self, node_id, session_id):
+    def serv_close(self, session_id):
         """Handle any session closing tasks."""
         pass

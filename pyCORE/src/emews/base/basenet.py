@@ -27,14 +27,14 @@ class NetProto(object):
 
     __slots__ = ()
 
-    ENUM_SIZE = 5
+    ENUM_SIZE = 6
 
-    NET_NONE = 0     # placeholder
-    NET_CC_1 = 1     # CC channel (future)
-    NET_CC_2 = 2     # CC channel (future)
-    NET_LOGGING = 3  # distributed logging
-    NET_AGENT = 4    # Agent-based communication
-    NET_HUB = 5      # Hub-based communication
+    NET_NONE = 0       # placeholder
+    NET_CC_1 = 1       # CC channel (future)
+    NET_CC_2 = 2       # CC channel (future)
+    NET_LOGGING = 3    # distributed logging
+    NET_AGENT = 4      # agent-based communication
+    NET_HUB = 5        # hub-based communication
 
 
 class HandlerCB(object):

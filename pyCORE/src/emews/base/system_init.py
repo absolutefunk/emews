@@ -52,9 +52,10 @@ def system_init(args):
         else False
 
     if is_hub or args.local:
-        node_id = 0  # hub or local mode node id
+        node_id = 1  # hub or local mode node id
     else:
-        # The node id is assigned by the hub node, so we keep trying to connect to it until success
+        # The node id is assigned by the hub node, so we keep trying to connect to it until success.
+        # Once node id is assigned, this node will use it whenever connecting to the hub.
         node_id = _get_node_id(config_dict_system['hub']['node_address'],
                                config_dict_system['communication']['port'],
                                config_dict_init['node_init']['hub_timeout'],
@@ -98,7 +99,7 @@ def _get_node_id(addr, port, timeout, max_attempts):
 
     while connect_attempts < max_attempts:
         try:
-            sock.connect(address)
+            sock.connect(addr)
         except socket.error:
             connect_attempts += 1
             continue

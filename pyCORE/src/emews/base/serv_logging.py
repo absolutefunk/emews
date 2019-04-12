@@ -20,7 +20,7 @@ class ServLogging(emews.base.baseserv.BaseServ):
         """Return the expected number of bytes to receive first and the callback."""
         return (self._msg_length, 4)
 
-    def serv_close(self, node_id, session_id):
+    def serv_close(self, session_id):
         """Handle the case when a socket is closed."""
         pass
 
