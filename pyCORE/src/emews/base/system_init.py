@@ -9,7 +9,9 @@ Created on June 9, 2018
 """
 import logging
 import os
+import select
 import socket
+import struct
 import sys
 
 import emews.base.config
@@ -53,7 +55,10 @@ def system_init(args):
         node_id = 0  # hub or local mode node id
     else:
         # The node id is assigned by the hub node, so we keep trying to connect to it until success
-        pass
+        node_id = _get_node_id(config_dict_system['hub']['node_address'],
+                               config_dict_system['communication']['port'],
+                               config_dict_init['node_init']['hub_timeout'],
+                               config_dict_init['node_init']['hub_max_attempts'])
 
     emews.base.logger._base_logger = logging.LoggerAdapter(_init_base_logger(
         config_dict_init['logging'], node_id, is_hub=is_hub, is_local=args.local),
@@ -83,6 +88,48 @@ def _get_node_name(config_node_name, arg_name):
 
     # default: use host name
     return socket.gethostname()
+
+
+def _get_node_id(addr, port, timeout, max_attempts):
+    """Connect to the address given (assuming to be the hub node) to obtain the node id."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(timeout)
+    connect_attempts = 0
+
+    while connect_attempts < max_attempts:
+        try:
+            sock.connect(address)
+        except socket.error:
+            connect_attempts += 1
+            continue
+
+        # connection established
+        try:
+            sock.sendall()
+        except socket.error:
+            connect_attempts += 1
+            continue
+
+        # data successfully sent
+        try:
+            chunk = sock.recv(4)  # node_id (4 bytes)
+        except socket.error:
+            connect_attempts += 1
+            continue
+
+        # data successfully received
+        try:
+            node_id = struct.unpack('>L', chunk)
+        except struct.error:
+            connect_attempts += 1
+            continue
+
+        # node_id obtained
+        sock.shutdown()
+        return node_id
+
+    # could not get the node id
+    raise IOError("Could not connect to hub node.")
 
 
 def _init_base_logger(log_config, node_id, is_hub=False, is_local=False):

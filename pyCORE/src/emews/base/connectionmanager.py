@@ -152,7 +152,10 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             # close the socket
             self._close_socket(sock)
         else:
-            sock.send(ret_tup[0])
+            bytes_sent = sock.send(ret_tup[0])
+
+            # TODO: use the buffer to buf unsent data, in the same way recv works
+
             sock_state[0] = ret_tup[1]  # callback
             if ret_tup[2] == 0:
                 # write mode (sock is already in the write list)
