@@ -89,7 +89,7 @@ class ServHub(emews.base.baseserv):
 
         Next cb is a confirmation of the node_id.
         """
-        new_node_id = self._node_id
+        new_node_id = struct.pack('>L', self._node_id)
         self._node_id += 1
         return (new_node_id, (self._register_node_conf, 4))
 
@@ -111,11 +111,14 @@ class ServHub(emews.base.baseserv):
         # NOTE: it is possible that if a connection terminates before the ACK is received at remote,
         # that the remote will rerequest a new node_id.  If so, then the remote should reconnect and
         # check that the node_id it was given exists.
-        return (emews.base.basenet.HandlerCB.STATE_ACK_OK, (None))
+        ret_data = struct.pack('>H', emews.base.basenet.HandlerCB.STATE_ACK_OK)
+        return (ret_data, (None))  # send ACK and close connection
 
     def _check_node_id(self, session_id, chunk):
         """Check if a node id exists.  chunk = node_id given."""
         if chunk in self._node_cache:
-            return (emews.base.basenet.HandlerCB.STATE_ACK_OK, (None))
+            ret_data = struct.pack('>H', emews.base.basenet.HandlerCB.STATE_ACK_OK)
+        else:
+            ret_data = struct.pack('>H', emews.base.basenet.HandlerCB.STATE_ACK_NOK)
 
-        return (emews.base.basenet.HandlerCB.STATE_ACK_NOK, (None))
+        return (ret_data, (None))

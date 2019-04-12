@@ -106,8 +106,8 @@ def _get_node_id(addr, port, timeout, max_attempts):
 
         # connection established
         try:
-            sock.sendall()
-        except socket.error:
+            sock.sendall(struct.pack())
+        except socket.error or struct.error:
             connect_attempts += 1
             continue
 
@@ -125,7 +125,28 @@ def _get_node_id(addr, port, timeout, max_attempts):
             connect_attempts += 1
             continue
 
-        # node_id obtained
+        # node_id obtained, acknowledge
+        try:
+            sock.sendall(struct.pack('>L', node_id))
+        except socket.error or struct.error:
+            connect_attempts += 1
+            continue
+
+        # ack successfully sent
+        try:
+            chunk = sock.recv(2)  # ACK (2 bytes)
+        except socket.error:
+            connect_attempts += 1
+            continue
+
+        try:
+            ack = struct.unpack('>H', chunk)
+        except struct.error:
+            connect_attempts += 1
+            continue
+
+        if ack == 
+
         sock.shutdown()
         return node_id
 

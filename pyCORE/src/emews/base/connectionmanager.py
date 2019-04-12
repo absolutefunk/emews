@@ -43,7 +43,10 @@ class ConnectionManager(emews.base.basenet.BaseNet):
         except ValueError:
             pass
 
-        self._r_socks.remove(sock)
+        try:
+            self._r_socks.remove(sock)
+        except ValueError:
+            pass
 
         if sock in self._socks:
             self._socks[sock].handle_close()
@@ -86,14 +89,14 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             self.logger.debug("Connection established from %s", src_addr)
             self._r_socks.append(acc_sock)
 
-            sock_lst = []
-            sock_lst.append(self._net_manager.handle_init)  # current handler cb [0]
-            sock_lst.append(0)  # expected number of bytes to receive next (buf) [1]
-            sock_lst.append(None)  # cache [2]
+            sock_state = []
+            sock_state.append(self._net_manager.handle_init)  # current handler cb [0]
+            sock_state.append(0)  # expected number of bytes to receive next (buf) [1]
+            sock_state.append("")  # cache [2]
 
             # call handle_init(), sock FD as session_id, IPv4 address as int
-            sock_lst[0](acc_sock.fileno(), struct.unpack(">I", socket.inet_aton(src_addr[0]))[0])
-            self._socks[acc_sock] = sock_lst
+            sock_state[0](acc_sock.fileno(), struct.unpack(">I", socket.inet_aton(src_addr[0]))[0])
+            self._socks[acc_sock] = sock_state
         else:
             # readable socket we are managing
             sock_state = self._socks[sock]
@@ -115,32 +118,41 @@ class ConnectionManager(emews.base.basenet.BaseNet):
                 # num bytes recv is less than what is expected.
                 sock_state[1] = sock_state[1] - len(chunk)  # bytes remaining
                 sock_state[2] = sock_state[2] + chunk
-            else:
-                # received all expected bytes
-                if sock_state[2] is not None:
-                    chunk = sock_state[2] + chunk
-                    sock_state[2] = None  # clear cache
+                return
 
-                try:
-                    # read cb: returns (cb, buf) for read mode, (data, (cb, buf)) for write mode
-                    ret_tup = sock_state[0](sock.fileno(), chunk)
-                except TypeError:
-                    self.logger.error("Handler callback is not callable.")
-                    raise
+            # received all expected bytes
+            if sock_state[2] is not None:
+                chunk = sock_state[2] + chunk
+                sock_state[2] = ""  # clear cache
 
-                if ret_tup is None:
-                    # close the socket
-                    self._close_socket(sock)
-                else if instanceof(ret_tup[1], tuple):
-                    # write mode
-                    sock_state[0] = ret_tup[0]  # next cb
-                    sock_state[1] = ret_tup[1]  # next expected bytes
-                    if ret_tup[1] == 0:
-                        # write mode - next expected bytes is zero
-                        self._r_socks.remove(sock)
-                        self._w_socks.append(sock)
+            try:
+                # read cb: returns (cb, buf) for read mode, (data, (cb, buf)) for write mode
+                ret_tup = sock_state[0](sock.fileno(), chunk)
+            except TypeError:
+                self.logger.error("Handler callback is not callable.")
+                raise
+
+            if ret_tup is None:
+                # close the socket
+                self._close_socket(sock)
+            elif isinstance(ret_tup[1], tuple):
+                # write mode
+                if ret_tup[1] is None:
+                    # close the socket after write
+                    sock_state[0] = None
+                    sock_state[1] = 0
                 else:
-                    # read mode
+                    sock_state[0] = ret_tup[1][0]  # next cb
+                    sock_state[1] = ret_tup[1][1]  # next expected bytes
+
+                sock_state[2] = ret_tup[0]  # data to be sent
+
+                self._r_socks.remove(sock)
+                self._w_socks.append(sock)
+            else:
+                # read mode
+                sock_state[0] = ret_tup[0]  # next cb
+                sock_state[1] = ret_tup[1]  # next expected bytes
 
     def writable_socket(self, sock):
         """
@@ -150,22 +162,22 @@ class ConnectionManager(emews.base.basenet.BaseNet):
         then switch the socket from being writable to readable.
         """
         sock_state = self._socks[sock]
-        ret_tup = sock_state[0](sock.fileno())  # write cb: returns (data, (cb, buf))
 
-        if ret_tup is None:
+        bytes_sent = sock.send(sock_state[2])
+
+        if bytes_sent < len(sock_state[2]):
+            # not all bytes were sent
+            sock_state[2] = sock_state[2][bytes_sent:]  # remove the chars already sent
+            return
+
+        # all bytes sent
+        sock_state[2] = ""  # clear cache
+        if sock_state[0] is None:
             # close the socket
             self._close_socket(sock)
+            return
         else:
-            bytes_sent = sock.send(ret_tup[0])
-
-            # TODO: use the buffer to buf unsent data, in the same way recv works
-
-            sock_state[0] = ret_tup[1]  # callback
-            if ret_tup[2] == 0:
-                # write mode (sock is already in the write list)
-                return
-
-            sock_state[1] = ret_tup[2]  # buf size
+            # switch to read mode
             self._w_socks.remove(sock)
             self._r_socks.append(sock)
 
