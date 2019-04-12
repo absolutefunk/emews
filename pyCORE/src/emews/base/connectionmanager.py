@@ -89,7 +89,7 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             sock_lst = []
             sock_lst.append(self._net_manager.handle_init)  # current handler cb [0]
             sock_lst.append(0)  # expected number of bytes to receive next (buf) [1]
-            sock_lst.append(None)  # recv cache [2]
+            sock_lst.append(None)  # cache [2]
 
             # call handle_init(), sock FD as session_id, IPv4 address as int
             sock_lst[0](acc_sock.fileno(), struct.unpack(">I", socket.inet_aton(src_addr[0]))[0])
@@ -122,7 +122,8 @@ class ConnectionManager(emews.base.basenet.BaseNet):
                     sock_state[2] = None  # clear cache
 
                 try:
-                    ret_tup = sock_state[0](sock.fileno(), chunk)  # handle the chunk
+                    # read cb: returns (cb, buf) for read mode, (data, (cb, buf)) for write mode
+                    ret_tup = sock_state[0](sock.fileno(), chunk)
                 except TypeError:
                     self.logger.error("Handler callback is not callable.")
                     raise
@@ -130,13 +131,16 @@ class ConnectionManager(emews.base.basenet.BaseNet):
                 if ret_tup is None:
                     # close the socket
                     self._close_socket(sock)
-                else:
-                    sock_state[0] = ret_tup[0]  # callback
+                else if instanceof(ret_tup[1], tuple):
+                    # write mode
+                    sock_state[0] = ret_tup[0]  # next cb
+                    sock_state[1] = ret_tup[1]  # next expected bytes
                     if ret_tup[1] == 0:
-                        # write mode
+                        # write mode - next expected bytes is zero
+                        self._r_socks.remove(sock)
                         self._w_socks.append(sock)
-                    else:
-                        sock_state[1] = ret_tup[1]  # buf size
+                else:
+                    # read mode
 
     def writable_socket(self, sock):
         """
@@ -146,7 +150,7 @@ class ConnectionManager(emews.base.basenet.BaseNet):
         then switch the socket from being writable to readable.
         """
         sock_state = self._socks[sock]
-        ret_tup = sock_state[0](sock.fileno())  # returns (data, cb, buf)
+        ret_tup = sock_state[0](sock.fileno())  # write cb: returns (data, (cb, buf))
 
         if ret_tup is None:
             # close the socket
@@ -163,6 +167,7 @@ class ConnectionManager(emews.base.basenet.BaseNet):
 
             sock_state[1] = ret_tup[2]  # buf size
             self._w_socks.remove(sock)
+            self._r_socks.append(sock)
 
     def _setup_listener(self, host, port):
         """Create listener (server socket) to manage."""

@@ -48,7 +48,8 @@ class HandlerCB(object):
     REQUEST_WRITE = 1
 
     # state constants
-    STATE_ACK = 17
+    STATE_ACK_OK = 17
+    STATE_ACK_NOK = 18
 
 
 class BaseNet(object):
