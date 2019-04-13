@@ -9,13 +9,14 @@ Created on June 9, 2018
 """
 import logging
 import os
-import select
 import socket
 import struct
 import sys
 
+import emews.base.basenet
 import emews.base.config
 import emews.base.logger
+import emews.base.serv_hub
 import emews.base.system_manager
 import emews.base.sysprop
 
@@ -54,12 +55,16 @@ def system_init(args):
     if is_hub or args.local:
         node_id = 1  # hub or local mode node id
     else:
-        # The node id is assigned by the hub node, so we keep trying to connect to it until success.
+        # The node id is assigned by the hub node.
         # Once node id is assigned, this node will use it whenever connecting to the hub.
-        node_id = _get_node_id(config_dict_system['hub']['node_address'],
-                               config_dict_system['communication']['port'],
-                               config_dict_init['node_init']['hub_timeout'],
-                               config_dict_init['node_init']['hub_max_attempts'])
+        try:
+            node_id = _get_node_id(config_dict_system['hub']['node_address'],
+                                   config_dict_system['communication']['port'],
+                                   config_dict_init['node_init']['hub_timeout'],
+                                   config_dict_init['node_init']['hub_max_attempts'])
+        except (IOError, KeyboardInterrupt):
+            # time to exit
+            return None
 
     emews.base.logger._base_logger = logging.LoggerAdapter(_init_base_logger(
         config_dict_init['logging'], node_id, is_hub=is_hub, is_local=args.local),
@@ -100,58 +105,73 @@ def _get_node_id(addr, port, timeout, max_attempts):
     while connect_attempts < max_attempts:
         try:
             sock.connect(addr)
-        except socket.error:
-            connect_attempts += 1
-            continue
-
-        # connection established
-        try:
-            sock.sendall(struct.pack())
-        except socket.error or struct.error:
-            connect_attempts += 1
-            continue
-
-        # data successfully sent
-        try:
+            sock.sendall(struct.pack('>HLHL',
+                                     emews.base.basenet.NetProto.NET_HUB,
+                                     0,  # node id (not assigned yet, so leave at zero)
+                                     emews.base.serv_hub.HubProto.HUB_NODE_ID_REQ,
+                                     0  # params (none)
+                                     ))
             chunk = sock.recv(4)  # node_id (4 bytes)
-        except socket.error:
-            connect_attempts += 1
-            continue
-
-        # data successfully received
-        try:
             node_id = struct.unpack('>L', chunk)
-        except struct.error:
-            connect_attempts += 1
-            continue
-
-        # node_id obtained, acknowledge
-        try:
-            sock.sendall(struct.pack('>L', node_id))
-        except socket.error or struct.error:
-            connect_attempts += 1
-            continue
-
-        # ack successfully sent
-        try:
+            sock.sendall(struct.pack('>L', node_id))  # ack node id by sending it back
             chunk = sock.recv(2)  # ACK (2 bytes)
-        except socket.error:
-            connect_attempts += 1
-            continue
-
-        try:
             ack = struct.unpack('>H', chunk)
-        except struct.error:
+        except (socket.error, struct.error):
             connect_attempts += 1
             continue
+        except KeyboardInterrupt:
+            # Ctrl-C
+            sock.shutdown()
+            print "Caught interrupt."
+            raise
 
-        if ack == 
-
-        sock.shutdown()
-        return node_id
+        if ack == emews.base.basenet.HandlerCB.STATE_ACK_OK:
+            sock.shutdown()
+            return node_id
+        elif ack == emews.base.basenet.HandlerCB.STATE_ACK_NOK:
+            # depending on what happened, the node id may be good
+            if _check_node_id(addr, port, timeout, max_attempts, node_id):
+                sock.shutdown()
+                return node_id
 
     # could not get the node id
-    raise IOError("Could not connect to hub node.")
+    sock.shutdown()
+    raise IOError("Could not obtain a node id.")
+
+
+def _check_node_id(addr, port, timeout, max_attempts, node_id):
+    """Check a node id we were given for validity.  Only needed if ACK failed."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(timeout)
+    connect_attempts = 0
+
+    while connect_attempts < max_attempts:
+        try:
+            sock.connect(addr)
+            sock.sendall(struct.pack('>HLHL',
+                                     emews.base.basenet.NetProto.NET_HUB,
+                                     0,  # node id (possibly not assigned yet, so leave at zero)
+                                     emews.base.serv_hub.HubProto.HUB_CHECK_NODE_ID,
+                                     node_id  # params (potential node id)
+                                     ))
+            chunk = sock.recv(2)  # ACK (2 bytes)
+            ack = struct.unpack('>H', chunk)
+        except (socket.error, struct.error):
+            connect_attempts += 1
+            continue
+        except KeyboardInterrupt:
+            # Ctrl-C
+            sock.shutdown()
+            print "Caught interrupt."
+            raise
+
+        break
+
+    sock.shutdown()
+    if ack == emews.base.basenet.HandlerCB.STATE_ACK_OK:
+        return True
+
+    return False
 
 
 def _init_base_logger(log_config, node_id, is_hub=False, is_local=False):

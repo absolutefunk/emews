@@ -1,5 +1,5 @@
 """
-Base Logger.
+Base Logger, module level.
 
 Created on Feb 21, 2019
 @author: Brian Ricks

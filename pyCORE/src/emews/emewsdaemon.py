@@ -37,7 +37,8 @@ def main():
     print "eMews %s" % emews.version.__version__
 
     system_manager = emews.base.system_init.system_init(args)
-    system_manager.start()
+    if system_manager is not None:
+        system_manager.start()
 
     print "eMews shutdown"
 

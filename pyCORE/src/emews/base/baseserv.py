@@ -14,7 +14,7 @@ class BaseServ(object):
     """Classdocs."""
 
     __metaclass__ = emews.base.meta.InjectionMetaWithABC
-    __slots__ = ('sys', 'logger')
+    __slots__ = ('sys', 'logger', 'net_cache')
 
     def __init__(self):
         """Constructor."""

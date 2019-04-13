@@ -31,18 +31,59 @@ class NonSupportedInvalid(object):
         return None
 
 
+class NetCache(object):
+    """Network cache."""
+
+    class NodeData(object):
+        """Node cache."""
+
+        __slots__ = ('addr')
+
+        def __init__(self):
+            """Constructor."""
+            self.addr = None     # last known network address associated with this node
+
+    class SessionData(object):
+        """Session cache."""
+
+        __slots__ = ('addr', 'node_data', 'handler')
+
+        def __init__(self):
+            """Constructor."""
+            self.addr = None       # network address of this session
+            self.node_id = None    # node id associated with this session
+            self.node_data = None  # NodeData associated with this session
+            self.handler = None    # server handling this session
+
+    __slots__ = ('node', 'session')
+
+    def __init__(self):
+        """Constructor."""
+        self.node = {}    # [node_id]: [services]
+        self.session = {}  # [session_id]: SessionCache
+
+    def add_node(self, node_id, session_id):
+        """
+        Add a new node to the cache.
+
+        session_id is assumed to exist and belong to the node_id passed
+        """
+        node_data = NetCache.NodeData()
+        node_data.addr = self.session[session_id].addr  # last known address for this node
+        self.node[node_id] = node_data
+
+
 class NetManager(object):
     """Classdocs."""
 
-    __slots__ = ('logger', 'sys', '_proto_cb', '_node_addr', '_session_info')
+    __slots__ = ('logger', 'sys', '_proto_cb', '_net_cache')
 
     def __init__(self, sysprop):
         """Constructor."""
         self.logger = emews.base.logger.get_logger()
         self.sys = sysprop
 
-        self._node_addr = {}  # [node_id]: most recent observed address
-        self._session_info = []  # [session_id]: [addr, serv_obj]  (temp - session duration)
+        self._net_cache = NetCache()  # node cache shared among the servers: [node_id]: NodeData
 
         # protocol mappings
         self._proto_cb = [None] * emews.base.basenet.NetProto.ENUM_SIZE
@@ -50,21 +91,21 @@ class NetManager(object):
         self._proto_cb.insert(emews.base.basenet.NetProto.NET_CC_1, NonSupportedInvalid())
         self._proto_cb.insert(emews.base.basenet.NetProto.NET_CC_2, NonSupportedInvalid())
 
-        inject_sys = {'sys': self.sys}
+        inject_par = {'sys': self.sys, 'net_cache': self._net_cache}
 
         if self.sys.is_hub:
             # Hub node runs the following servers:
             self._proto_cb.insert(emews.base.basenet.NetProto.NET_HUB,
-                                  emews.base.serv_hub.ServHub(_inject=inject_sys))
+                                  emews.base.serv_hub.ServHub(_inject=inject_par))
             self._proto_cb.insert(emews.base.basenet.NetProto.NET_LOGGING,
-                                  emews.base.serv_logging.ServLogging(_inject=inject_sys))
+                                  emews.base.serv_logging.ServLogging(_inject=inject_par))
         else:
             self._proto_cb.insert(emews.base.basenet.NetProto.NET_HUB, NonSupportedHub())
             self._proto_cb.insert(emews.base.basenet.NetProto.NET_LOGGING, NonSupportedHub())
 
         # The following servers run on all nodes:
         self._proto_cb.insert(emews.base.basenet.NetProto.NET_AGENT,
-                              emews.base.serv_agent.ServAgent(_inject=inject_sys))
+                              emews.base.serv_agent.ServAgent(_inject=inject_par))
 
     def handle_init(self, session_id, int_addr):
         """
@@ -72,17 +113,20 @@ class NetManager(object):
 
         proto (2 bytes) + node_id (4 bytes)
         """
-        self._session_info[session_id].append(int_addr)  # index [0]
+        session_data = NetCache.SessionData()
+        session_data.addr = int_addr
+        self._net_cache.session[session_id] = session_data
+
         return (self._proto_dispatch, 6)
 
     def handle_close(self, session_id):
         """Handle the case when a socket is closed."""
-        session_info = self._session_info[session_id]
-        if len(session_info) == 2:
-            # if not len = 2, means the session ended before a handler was called
-            session_info[1].handle_close(session_id)
+        session_data = self._net_cache.session[session_id]
+        if session_data.handler is not None:
+            # if no handler, means the session ended before a handler was assigned (and thus called)
+            session_data.handler.handle_close(session_id)
 
-        del self._session_info[session_id]
+        del self._net_cache.session[session_id]
 
     def _proto_dispatch(self, session_id, chunk):
         """Chunk contains the protocol and node id."""
@@ -92,9 +136,25 @@ class NetManager(object):
             self.logger.warning("Struct error when unpacking protocol: %s", ex)
             return None
 
+        session_data = self._net_cache.session[session_id]
+
         if node_id > 0:
             # a node id of zero refers to an unassigned node, so don't track it
-            self._node_addr[node_id] = self._session_info[session_id][0]  # most recent known addr
+            node_data = self._net_cache.node.get(node_id, None)
 
-        self._session_info[session_id].append(self._proto_cb[proto_id])
-        return self._proto_cb[proto_id].handle_init(node_id, session_id)
+            if node_data is None:
+                if self.sys.is_hub:
+                    self.logger.warning("Unrecognized node id given: %d, from address: %d",
+                                        node_id, session_data.addr)
+                    return None
+
+                # if not the hub node, assume node id is legit
+                # TODO: validate node id with hub node
+                node_data = NetCache.NodeData()
+
+            node_data.addr = session_data.addr  # update latest address
+            session_data.node_id = node_id      # assign node id associated with this session
+            session_data.node_data = node_data  # assign NodeData associated with this session
+
+        session_data.handler = self._proto_cb[proto_id]  # assign handler for this session
+        return session_data.handler.handle_init(node_id, session_id)

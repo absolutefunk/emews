@@ -24,26 +24,10 @@ class HubProto(object):
     HUB_CHECK_NODE_ID = 2  # check if a node id is registered
 
 
-class NodeData(object):
-    """eMews per node data."""
-
-    __slots__ = ('services'    # eMews services running on this node
-                 )
-
-    def __init__(self, **kwargs):
-        """Constructor."""
-        self.session_id = None
-        self.services = {}  # [service_id]: service_data
-
-    def add_service(self, service_id):
-        """Add a new service_id."""
-        self.services[service_id] = None  # TODO: None is just a placeholder ...
-
-
 class ServHub(emews.base.baseserv):
     """Classdocs."""
 
-    __slots__ = ('_cb', '_node_id', '_node_cache', '_session_node_id')
+    __slots__ = ('_cb', '_node_id')
 
     def __init__(self):
         """Constructor."""
@@ -52,17 +36,14 @@ class ServHub(emews.base.baseserv):
         self._cb.insert(HubProto.HUB_CHECK_NODE_ID, self._check_node_id)
 
         self._node_id = 2  # current unassigned node id
-        self._node_cache = {}  # [node_id]: NodeData
-        self._session_node_id = {}  # [session_id]: node_id (temp: per session)
 
     def serv_init(self, node_id, session_id):
         """Init of new node-hub session.  Next expected chunk is request from node."""
-        self._session_node_id[session_id] = node_id
         return (self._hub_query, 6)
 
     def serv_close(self, session_id):
         """Close a session."""
-        self._session_node_id.pop(session_id)
+        pass
 
     def _hub_query(self, session_id, chunk):
         """
@@ -101,9 +82,9 @@ class ServHub(emews.base.baseserv):
             self.logger.warning("Struct error when unpacking hub query: %s", ex)
             return None
 
-        if node_id == self._session_node_id[session_id]:
+        if node_id == self.net_cache.session[session_id].node_id:
             # node ids match, add new node id
-            self._node_cache[node_id] = NodeData()
+            self.net_cache.add_node(node_id, session_id)
         else:
             self.logger.warning("node id passed (%d) does not match assigned node id (%d).",
                                 node_id, self._session_node_id[session_id])
@@ -116,7 +97,7 @@ class ServHub(emews.base.baseserv):
 
     def _check_node_id(self, session_id, chunk):
         """Check if a node id exists.  chunk = node_id given."""
-        if chunk in self._node_cache:
+        if chunk in self.net_cache.node:
             ret_data = struct.pack('>H', emews.base.basenet.HandlerCB.STATE_ACK_OK)
         else:
             ret_data = struct.pack('>H', emews.base.basenet.HandlerCB.STATE_ACK_NOK)
