@@ -8,9 +8,6 @@ init:
       logger_name: emews.base
       message_format: "[%(asctime)s] %(nodename)-12.12s | %(nodeid)-5.5s | %(threadName)-16.16s [%(levelname)-8.8s | %(module)-16.16s | %(funcName)-16.16s]: %(message)s"
       stream: "sys.stdout" # stdout stream
-  node_init:
-    hub_timeout: 5 # seconds to wait during connection attempts
-    hub_max_attempts: 10 # max connection attempts before giving up
   overrides: # These K/Vs can be overwritten in a config file
     general: # general eMews daemon options
       node_name: null # name of the node running this instance of eMews
@@ -23,6 +20,8 @@ system:
     communication: # communication related eMews daemon options
       host: 127.0.0.1 # host to bind to (should be localhost or 127.0.0.1, etc)
       port: 32518 # port to use
+      connect_timeout: 5 # seconds to wait during connection attempts
+      connect_max_attempts: 10 # max connection attempts before giving up
     general: # general eMews daemon options
       service_start_delay: -1 # Delay (seconds) to start services from eMews daemon invocation.
       thread_shutdown_wait: -1 # Delay (seconds) to wait for 'graceful' thread shutdown.  After this wait, continue shut down.

@@ -14,14 +14,17 @@ import emews.base.netmanager
 class ConnectionManager(emews.base.basenet.BaseNet):
     """Classdocs."""
 
-    __slots__ = ('sys', '_host', '_port', '_socks', '_listener_sock', '_net_serv',
-                 '_pending_ids', '_cb', '_hub_addr')
+    __slots__ = ('_host', '_port', '_socks', '_listener_sock', '_net_serv', '_pending_ids',
+                 '_cb', '_hub_addr', '_conn_timeout', '_conn_max_attempts')
 
     def __init__(self, config_comm, config_hub, sysprop):
         """Constructor."""
-        self.sys = sysprop
+        super(ConnectionManager, self).__init__(sysprop)
 
         self._hub_addr = config_hub['node_address']
+
+        self._conn_timeout = config_comm['connect_timeout']
+        self._conn_max_attempts = config_comm['connect_max_attempts']
 
         self._port = config_comm['port']
         self._host = config_comm['host']
@@ -223,3 +226,16 @@ class ConnectionManager(emews.base.basenet.BaseNet):
 
         self._r_socks.append(serv_sock)
         self._listener_sock = serv_sock
+
+    def hub_query(self, request):
+        """
+        Given a request, return the corresponding result.
+
+        Note that this is a client-side (blocking) operation, and thus is expected to run either
+        under the main thread before ConnectionManager starts, or from a service thread.
+        """
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(self._conn_timeout)
+        connect_attempts = 0
+
+        return result

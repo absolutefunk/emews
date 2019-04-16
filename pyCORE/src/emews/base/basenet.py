@@ -55,11 +55,12 @@ class HandlerCB(object):
 class BaseNet(object):
     """Classdocs."""
 
-    __slots__ = ('logger', '_interrupted', '_r_socks', '_w_socks', '_e_socks')
+    __slots__ = ('sys', 'logger', '_interrupted', '_r_socks', '_w_socks', '_e_socks')
 
-    def __init__(self):
+    def __init__(self, sysprop):
         """Constructor."""
         self.logger = emews.base.logger.get_logger()
+        self.sys = sysprop
         self._interrupted = False
 
         # TODO: use sets here (maybe wrap a set in a class compatible with list method calls)

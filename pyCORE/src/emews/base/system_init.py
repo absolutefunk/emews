@@ -60,8 +60,8 @@ def system_init(args):
         try:
             node_id = _get_node_id(config_dict_system['hub']['node_address'],
                                    config_dict_system['communication']['port'],
-                                   config_dict_init['node_init']['hub_timeout'],
-                                   config_dict_init['node_init']['hub_max_attempts'])
+                                   config_dict_system['communication']['connect_timeout'],
+                                   config_dict_system['communication']['connect_max_attempts'])
         except (IOError, KeyboardInterrupt):
             # time to exit
             return None
