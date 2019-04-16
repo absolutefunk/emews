@@ -227,7 +227,7 @@ class ConnectionManager(emews.base.basenet.BaseNet):
         self._r_socks.append(serv_sock)
         self._listener_sock = serv_sock
 
-    def hub_query(self, request):
+    def hub_query(self, request, param=0):
         """
         Given a request, return the corresponding result.
 
@@ -237,5 +237,43 @@ class ConnectionManager(emews.base.basenet.BaseNet):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(self._conn_timeout)
         connect_attempts = 0
+
+        while not self._interrupted and connect_attempts < self._conn_max_attempts:
+            try:
+                sock.connect((self._hub_addr, self._port))
+
+                if self._interrupted:
+                    sock.shutdown()
+                    raise KeyboardInterrupt()
+
+                sock.sendall(struct.pack('>HLHL',
+                                         emews.base.basenet.NetProto.NET_HUB,
+                                         self.sys.node_id,
+                                         request,  # request to the hub node
+                                         param  # param (0=None)
+                                         ))
+
+                if self._interrupted:
+                    sock.shutdown()
+                    raise KeyboardInterrupt()
+
+                chunk = sock.recv(4)  # query result (4 bytes)
+
+                if self._interrupted:
+                    sock.shutdown()
+                    raise KeyboardInterrupt()
+
+                result = struct.unpack('>L', chunk)
+            except (socket.error, struct.error):
+                connect_attempts += 1
+                continue
+
+            break
+
+        sock.shutdown()
+        if connect_attempts == self._conn_max_attempts:
+            # query failed
+            self.logger.warning("Exhausted attempts to fulfill query.")
+            raise IOError("Exhausted attempts to fulfill query.")
 
         return result

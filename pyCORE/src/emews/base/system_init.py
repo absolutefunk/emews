@@ -105,7 +105,7 @@ def _get_node_id(addr, port, timeout, max_attempts):
 
     while connect_attempts < max_attempts:
         try:
-            sock.connect(addr)
+            sock.connect((addr, port))
             sock.sendall(struct.pack('>HLHL',
                                      emews.base.basenet.NetProto.NET_HUB,
                                      0,  # node id (not assigned yet, so leave at zero),
@@ -125,9 +125,9 @@ def _get_node_id(addr, port, timeout, max_attempts):
 
         break
 
+    sock.shutdown()
     if node_id > -1:
         # could not get the node id
-        sock.shutdown()
         raise IOError("Could not obtain a node id.")
 
     return node_id
