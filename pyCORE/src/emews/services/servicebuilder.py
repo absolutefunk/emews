@@ -16,12 +16,13 @@ import emews.components.samplers.zerosampler
 class ServiceBuilder(object):
     """classdocs."""
 
-    __slots__ = ('_sys', '_service_count')
+    __slots__ = ('_sys', '_service_count', '_hub_query')
 
-    def __init__(self, sysprop):
+    def __init__(self, sysprop, hub_query_cb=None):
         """Constructor."""
         self._sys = sysprop
         self._service_count = {}  # mapping from service class to instantiation count
+        self._hub_query = hub_query_cb  # hub_query method callback
 
     def build(self, service_name, service_config_dict=None, service_config_file=None):
         """Build the service."""
@@ -62,7 +63,7 @@ class ServiceBuilder(object):
             self._sys.logger.error("Service module '%s' could not be imported.", service_name)
             raise
 
-        # configure execution
+        # -- configure execution --
         service_loop = None
         if 'execution' in service_config:
             # looping
@@ -74,13 +75,13 @@ class ServiceBuilder(object):
                 else:
                     service_loop = emews.components.samplers.zerosampler.ZeroSampler()
 
-        # TODO: Add global service identifiers (will need to have a central server for this)
+        local_service_id = self._service_count.get(service_name, -1) + 1
 
         # inject dict
         service_config_inject = {}
-        service_count = self._service_count.get(service_name, -1) + 1
-        service_config_inject['service_name'] = service_name + '_' + str(service_count)
-        service_config_inject['service_id'] = -1  # TODO: set this to the actual service id (global)
+        service_config_inject['service_name'] = service_name + '_' + str(local_service_id)
+        service_config_inject['local_service_id'] = local_service_id
+        service_config_inject['service_id'] = self._get_service_id(local_service_id)
         service_config_inject['_service_loop'] = service_loop
         service_config_inject['_sys'] = self._sys
         service_config_inject['logger'] = self._sys.logger
@@ -94,6 +95,16 @@ class ServiceBuilder(object):
             self._sys.logger.error("Service '%s' could not be instantiated.", service_name)
             raise
 
-        self._service_count.update(service_name=service_count)
+        self._service_count[service_name] = local_service_id
 
         return service_obj
+
+    def _get_service_id(self, local_service_id):
+        """Get a globally unique service id."""
+        if self._sys.local:
+            # there is no global id in local mode
+            return local_service_id
+
+        # gotta put all the phat code in here yo, including sockets and shit
+
+        return new_id

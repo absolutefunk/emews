@@ -65,41 +65,8 @@ class ServHub(emews.base.baseserv):
         return ret_tup
 
     def _register_node_req(self, session_id, chunk):
-        """
-        Register a new node (post-request).
-
-        Next cb is a confirmation of the node_id.
-        """
+        """Register a new node (post-request)."""
         new_node_id = struct.pack('>L', self._node_id)
+        self.net_cache.add_node(self._node_id, session_id)
         self._node_id += 1
-        return (new_node_id, (self._register_node_conf, 4))
-
-    def _register_node_conf(self, session_id, chunk):
-        """Acknowledgment of node_id."""
-        try:
-            node_id = struct.unpack('>L', chunk)
-        except struct.error as ex:
-            self.logger.warning("Struct error when unpacking hub query: %s", ex)
-            return None
-
-        if node_id == self.net_cache.session[session_id].node_id:
-            # node ids match, add new node id
-            self.net_cache.add_node(node_id, session_id)
-        else:
-            self.logger.warning("node id passed (%d) does not match assigned node id (%d).",
-                                node_id, self._session_node_id[session_id])
-
-        # NOTE: it is possible that if a connection terminates before the ACK is received at remote,
-        # that the remote will rerequest a new node_id.  If so, then the remote should reconnect and
-        # check that the node_id it was given exists.
-        ret_data = struct.pack('>H', emews.base.basenet.HandlerCB.STATE_ACK_OK)
-        return (ret_data, (None))  # send ACK and close connection
-
-    def _check_node_id(self, session_id, chunk):
-        """Check if a node id exists.  chunk = node_id given."""
-        if chunk in self.net_cache.node:
-            ret_data = struct.pack('>H', emews.base.basenet.HandlerCB.STATE_ACK_OK)
-        else:
-            ret_data = struct.pack('>H', emews.base.basenet.HandlerCB.STATE_ACK_NOK)
-
-        return (ret_data, (None))
+        return (new_node_id, (None))  # send new node id and terminate

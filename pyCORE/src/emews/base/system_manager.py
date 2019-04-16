@@ -62,7 +62,12 @@ class SystemManager(object):
         else:
             self.logger.info("%s startup services.", str(len(startup_services)))
 
-        service_builder = emews.services.servicebuilder.ServiceBuilder(self.sys)
+        if self.sys.local:
+            # no connection manager
+            service_builder = emews.services.servicebuilder.ServiceBuilder(self.sys)
+        else:
+            service_builder = emews.services.servicebuilder.ServiceBuilder(
+                self.sys, self._connection_manager.hub_query)
 
         for service_name in startup_services:
             # services may have parameters, or just the service name
@@ -117,7 +122,7 @@ class SystemManager(object):
 
         else:
             self._connection_manager = emews.base.connectionmanager.ConnectionManager(
-                self._config['communication'], self.sys)
+                self._config['communication'], self._config['hub'] self.sys)
 
             self._startup_services()
 

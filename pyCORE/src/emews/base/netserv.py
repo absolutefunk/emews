@@ -35,7 +35,7 @@ class NetCache(object):
     """Network cache."""
 
     class NodeData(object):
-        """Node cache."""
+        """Per node data."""
 
         __slots__ = ('addr')
 
@@ -44,23 +44,22 @@ class NetCache(object):
             self.addr = None     # last known network address associated with this node
 
     class SessionData(object):
-        """Session cache."""
+        """Per session data."""
 
-        __slots__ = ('addr', 'node_data', 'handler')
+        __slots__ = ('addr', 'node_id', 'handler')
 
         def __init__(self):
             """Constructor."""
             self.addr = None       # network address of this session
             self.node_id = None    # node id associated with this session
-            self.node_data = None  # NodeData associated with this session
-            self.handler = None    # server handling this session
+            self.handler = None    # server or client handling this session
 
     __slots__ = ('node', 'session')
 
     def __init__(self):
         """Constructor."""
         self.node = {}    # [node_id]: [services]
-        self.session = {}  # [session_id]: SessionCache
+        self.session = {}  # [session_id]: SessionData
 
     def add_node(self, node_id, session_id):
         """
@@ -73,7 +72,7 @@ class NetCache(object):
         self.node[node_id] = node_data
 
 
-class NetManager(object):
+class NetServ(object):
     """Classdocs."""
 
     __slots__ = ('logger', 'sys', '_proto_cb', '_net_cache')
@@ -83,7 +82,7 @@ class NetManager(object):
         self.logger = emews.base.logger.get_logger()
         self.sys = sysprop
 
-        self._net_cache = NetCache()  # node cache shared among the servers: [node_id]: NodeData
+        self._net_cache = NetCache()  # net cache shared among the servers
 
         # protocol mappings
         self._proto_cb = [None] * emews.base.basenet.NetProto.ENUM_SIZE
@@ -108,16 +107,10 @@ class NetManager(object):
                               emews.base.serv_agent.ServAgent(_inject=inject_par))
 
     def handle_init(self, session_id, int_addr):
-        """
-        Return number of bytes expected (buf) to determine protocol.
-
-        proto (2 bytes) + node_id (4 bytes)
-        """
+        """Init tasks."""
         session_data = NetCache.SessionData()
         session_data.addr = int_addr
         self._net_cache.session[session_id] = session_data
-
-        return (self._proto_dispatch, 6)
 
     def handle_close(self, session_id):
         """Handle the case when a socket is closed."""
@@ -128,7 +121,7 @@ class NetManager(object):
 
         del self._net_cache.session[session_id]
 
-    def _proto_dispatch(self, session_id, chunk):
+    def handle_connection(self, session_id, chunk):
         """Chunk contains the protocol and node id."""
         try:
             proto_id, node_id = struct.unpack('>HL', chunk)
@@ -154,7 +147,7 @@ class NetManager(object):
 
             node_data.addr = session_data.addr  # update latest address
             session_data.node_id = node_id      # assign node id associated with this session
-            session_data.node_data = node_data  # assign NodeData associated with this session
 
         session_data.handler = self._proto_cb[proto_id]  # assign handler for this session
+
         return session_data.handler.handle_init(node_id, session_id)

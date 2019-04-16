@@ -55,7 +55,7 @@ class HandlerCB(object):
 class BaseNet(object):
     """Classdocs."""
 
-    __slots__ = ('logger', '_interrupted', '_r_socks', '_w_socks')
+    __slots__ = ('logger', '_interrupted', '_r_socks', '_w_socks', '_e_socks')
 
     def __init__(self):
         """Constructor."""
@@ -65,12 +65,14 @@ class BaseNet(object):
         # TODO: use sets here (maybe wrap a set in a class compatible with list method calls)
         self._r_socks = []  # list of socket objects to manage for a readable state
         self._w_socks = []  # list of socket objects to manage for a writable state
+        self._e_socks = []  # list of socket objects to manage for an exceptional state
 
     def start(self):
         """Start the main net loop."""
         while not self._interrupted:
             try:
-                r_sock_list, w_sock_list, _ = select.select(self._r_socks, self._w_socks, [])
+                r_sock_list, w_sock_list, e_sock_list = select.select(
+                    self._r_socks, self._w_socks, self._e_socks)
             except select.error:
                 if not self._interrupted:
                     self.logger.error("Select error while blocking on managed sockets.")
@@ -86,6 +88,10 @@ class BaseNet(object):
             for r_sock in r_sock_list:
                 # readable sockets
                 self.handle_readable_socket(r_sock)
+
+            for e_sock in e_sock_list:
+                # exceptional sockets
+                self.handle_exceptional_socket(e_sock)
 
     def readable_socket(self, sock):
         """

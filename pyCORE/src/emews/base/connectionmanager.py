@@ -14,22 +14,25 @@ import emews.base.netmanager
 class ConnectionManager(emews.base.basenet.BaseNet):
     """Classdocs."""
 
-    __slots__ = ('sys', '_host', '_port', '_socks', '_listener_sock', '_net_manager',
-                 '_pending_ids', '_cb',)
+    __slots__ = ('sys', '_host', '_port', '_socks', '_listener_sock', '_net_serv',
+                 '_pending_ids', '_cb', '_hub_addr')
 
-    def __init__(self, config, sysprop):
+    def __init__(self, config_comm, config_hub, sysprop):
         """Constructor."""
         self.sys = sysprop
 
-        self._port = config['port']
-        self._host = config['host']
+        self._hub_addr = config_hub['node_address']
+
+        self._port = config_comm['port']
+        self._host = config_comm['host']
         if self._host is None:
             self._host = ''  # any available interface
 
         self._socks = {}  # accepted sockets
         self._pending_ids = {}  # FDs (socks) that are pending an established connection
         self._listener_sock = None  # listener socket (will be instantiated on start())
-        self._net_manager = emews.base.netmanager.NetManager(self.sys)
+
+        self._net_serv = emews.base.netserv.NetServ(self.sys)
 
         # Handler callbacks
         self._cb = [None] * emews.base.basenet.HandlerCB.ENUM_SIZE
@@ -47,6 +50,8 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             self._r_socks.remove(sock)
         except ValueError:
             pass
+
+        self._e_socks.remove(sock)
 
         if sock in self._socks:
             self._socks[sock].handle_close()
@@ -88,14 +93,17 @@ class ConnectionManager(emews.base.basenet.BaseNet):
 
             self.logger.debug("Connection established from %s", src_addr)
             self._r_socks.append(acc_sock)
-
-            sock_state = []
-            sock_state.append(self._net_manager.handle_init)  # current handler cb [0]
-            sock_state.append(0)  # expected number of bytes to receive next (buf) [1]
-            sock_state.append("")  # cache [2]
+            self._e_socks.append(acc_sock)
 
             # call handle_init(), sock FD as session_id, IPv4 address as int
-            sock_state[0](acc_sock.fileno(), struct.unpack(">I", socket.inet_aton(src_addr[0]))[0])
+            self._net_serv.handle_init(
+                acc_sock.fileno(), struct.unpack(">I", socket.inet_aton(src_addr[0]))[0])
+
+            sock_state = []
+            sock_state.append(self._net_serv.handle_connection)  # current handler cb [0]
+            sock_state.append(6)  # expected number of bytes to receive next (buf) [1]
+            sock_state.append("")  # recv/send data cache [2]
+
             self._socks[acc_sock] = sock_state
         else:
             # readable socket we are managing
@@ -215,46 +223,3 @@ class ConnectionManager(emews.base.basenet.BaseNet):
 
         self._r_socks.append(serv_sock)
         self._listener_sock = serv_sock
-
-    def connect_node(self, node_name, callback_obj):
-        """
-        Establish a connection using the passed node name.
-
-        callback_obj is the callback object to use once connected.
-        """
-        try:
-            cli_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            cli_sock.setblocking(0)
-        except socket.error as ex:
-            self.logger.error("Could not instantiate new client socket: %s", ex)
-            raise
-
-        conn_addr = self.sys.get_addr_from_name(node_name)  # TODO: no more function in sys
-        cli_sock.connect_ex((conn_addr, self._port))  # use the default eMews daemon port
-
-        sock_lst = []
-        sock_lst.append(self._cli_conn_ack)  # current handler cb [0]
-        sock_lst.append(1)  # expected number of bytes to receive next (buf) [1]
-        sock_lst.append(None)  # recv cache [2]
-        self._socks[cli_sock] = sock_lst
-
-        self._pending_ids[cli_sock.fileno()] = callback_obj
-
-        self._r_socks.append(cli_sock)  # wait until we receive an ack from the receiving node
-
-    def _cli_conn_ack(self, id, chunk):
-        """Acknowledgment from remote when successful connection."""
-        try:
-            recv_state = struct.unpack('>H', chunk)
-        except struct.error as ex:
-            self.logger.warning("Struct error when unpacking protocol info: %s", ex)
-            return None
-
-        if recv_state != emews.base.basenet.HandlerCB.STATE_ACK:
-            # invalid response
-            self.logger.warning("Invalid response from remote for FD '%d'.", id)
-            return None
-
-        handler_obj = self._pending_ids.pop(id)
-        handler_obj.set_request_write(self._request_write)
-        return handler_obj.handle_init(id)  # return next cb

@@ -8,9 +8,9 @@ init:
       logger_name: emews.base
       message_format: "[%(asctime)s] %(nodename)-12.12s | %(nodeid)-5.5s | %(threadName)-16.16s [%(levelname)-8.8s | %(module)-16.16s | %(funcName)-16.16s]: %(message)s"
       stream: "sys.stdout" # stdout stream
-    node_init:
-      hub_timeout: 5 # seconds to wait for connection to hub during init
-      hub_max_attempts: 10 # max connection attempts before giving up during init
+  node_init:
+    hub_timeout: 5 # seconds to wait during connection attempts
+    hub_max_attempts: 10 # max connection attempts before giving up
   overrides: # These K/Vs can be overwritten in a config file
     general: # general eMews daemon options
       node_name: null # name of the node running this instance of eMews

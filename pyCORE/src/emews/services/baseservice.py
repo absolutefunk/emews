@@ -22,6 +22,7 @@ class BaseService(object):
                  'logger',
                  'service_name',
                  'service_id',
+                 'local_service_id',
                  '_dispatcher',
                  '_service_loop')
 
