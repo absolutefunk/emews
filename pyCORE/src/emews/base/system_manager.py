@@ -8,6 +8,7 @@ import collections
 import signal
 import threading
 
+import emews.base.connectionmanager
 import emews.base.logger
 import emews.base.sysprop
 import emews.base.thread_dispatcher
