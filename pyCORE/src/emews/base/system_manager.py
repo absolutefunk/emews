@@ -62,12 +62,7 @@ class SystemManager(object):
         else:
             self.logger.info("%s startup services.", str(len(startup_services)))
 
-        if self.sys.local:
-            # no connection manager
-            service_builder = emews.services.servicebuilder.ServiceBuilder(self.sys)
-        else:
-            service_builder = emews.services.servicebuilder.ServiceBuilder(
-                self.sys, self._connection_manager.hub_query)
+        service_builder = emews.services.servicebuilder.ServiceBuilder(self.sys)
 
         for service_name in startup_services:
             # services may have parameters, or just the service name
@@ -107,6 +102,8 @@ class SystemManager(object):
 
         if self.sys.local:
             # local mode:  do not start ConnectionManager
+            # SysProp object does not contain methods only available in non-local mode, such as
+            # net methods.
             self._startup_services()
             if self._thread_dispatcher.count == 0:
                 self.logger.info("No services running, nothing to do, shutting down ...")
@@ -122,10 +119,13 @@ class SystemManager(object):
 
         else:
             self._connection_manager = emews.base.connectionmanager.ConnectionManager(
-                self._config['communication'], self._config['hub'] self.sys)
+                self._config['communication'], self._config['hub'], self.sys)
 
+            # finish building sysprop
+            self._finish_sysprop()
+
+            # launch services and start the daemon's connection manager
             self._startup_services()
-
             self._connection_manager.start()  # blocks here
 
         self.logger.info("Shutdown complete.")
@@ -137,3 +137,13 @@ class SystemManager(object):
 
         # shut down any dispatched threads that may be running
         self._thread_dispatcher.shutdown_all_threads()
+
+    def _finish_sysprop(self):
+        """
+        Finish building the SysProp object.
+
+        This needs to be called before services are launched.
+        """
+        self.sys.net.hub_query = self._connection_manager.hub_query
+        self.sys.net._ro = True
+        self.sys._ro = True

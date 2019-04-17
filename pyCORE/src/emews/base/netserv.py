@@ -37,11 +37,12 @@ class NetCache(object):
     class NodeData(object):
         """Per node data."""
 
-        __slots__ = ('addr')
+        __slots__ = ('addr', 'services')
 
         def __init__(self):
             """Constructor."""
-            self.addr = None     # last known network address associated with this node
+            self.addr = None       # last known network address associated with this node
+            self.services = set()  # set of all services associated with this node
 
     class SessionData(object):
         """Per session data."""

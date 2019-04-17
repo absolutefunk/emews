@@ -10,6 +10,7 @@ import signal
 
 import emews.base.logger
 
+
 def thread_names_str():
     """Concatenates active thread names to a space delim string."""
     thread_names = []

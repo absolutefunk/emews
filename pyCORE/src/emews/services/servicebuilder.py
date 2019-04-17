@@ -9,6 +9,7 @@ import os
 
 import emews.base.config
 import emews.base.import_tools
+import emews.base.serv_hub
 import emews.components.importer
 import emews.components.samplers.zerosampler
 
@@ -16,13 +17,12 @@ import emews.components.samplers.zerosampler
 class ServiceBuilder(object):
     """classdocs."""
 
-    __slots__ = ('_sys', '_service_count', '_hub_query')
+    __slots__ = ('_sys', '_service_count')
 
-    def __init__(self, sysprop, hub_query_cb=None):
+    def __init__(self, sysprop):
         """Constructor."""
         self._sys = sysprop
         self._service_count = {}  # mapping from service class to instantiation count
-        self._hub_query = hub_query_cb  # hub_query method callback
 
     def build(self, service_name, service_config_dict=None, service_config_file=None):
         """Build the service."""
@@ -76,12 +76,15 @@ class ServiceBuilder(object):
                     service_loop = emews.components.samplers.zerosampler.ZeroSampler()
 
         local_service_id = self._service_count.get(service_name, -1) + 1
+        service_id = self._get_service_id(local_service_id)
+        service_name_full = service_name + '_' + str(local_service_id)
+        self.logger.debug("Service '%s' assigned id '%d'.", service_name_full, service_id)
 
         # inject dict
         service_config_inject = {}
-        service_config_inject['service_name'] = service_name + '_' + str(local_service_id)
+        service_config_inject['service_name'] = service_name_full
         service_config_inject['local_service_id'] = local_service_id
-        service_config_inject['service_id'] = self._get_service_id(local_service_id)
+        service_config_inject['service_id'] = service_id
         service_config_inject['_service_loop'] = service_loop
         service_config_inject['_sys'] = self._sys
         service_config_inject['logger'] = self._sys.logger
@@ -105,6 +108,4 @@ class ServiceBuilder(object):
             # there is no global id in local mode
             return local_service_id
 
-        # gotta put all the phat code in here yo, including sockets and shit
-
-        return new_id
+        return self.sys.net.hub_query(emews.base.serv_hub.HubProto.HUB_SERVICE_ID_REQ)
