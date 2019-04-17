@@ -34,5 +34,6 @@ system:
       halt_on_service_exceptions: True # If true, then halt eMews on service-originated exceptions
     hub:
       node_name: n1 # name of the node to act as the hub
-      node_address: null # address of the hub (if null, then look it up)
+      node_address: null # address of the hub (if null, then for non-hub nodes, look it up)
+      init_broadcast_duration: 300  # duration, in seconds, that the hub node should broadcast itself
     startup_services: []
