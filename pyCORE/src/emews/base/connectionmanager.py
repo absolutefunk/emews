@@ -63,9 +63,14 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             if sock.fileno() in self._pending_ids:
                 # connection could not be established
                 del self._pending_ids[sock.fileno()]
-                self.logger.debug("Connection refused from remote for FD '%d'.", sock.fileno())
+                self.logger.debug("Connection not established for FD '%d'.", sock.fileno())
 
-        sock.shutdown(socket.SHUT_RDWR)
+        try:
+            sock.shutdown(socket.SHUT_RDWR)
+        except socket.error:
+            pass
+
+        sock.close()
 
     def start(self):
         """Start the ConnectionManager."""
@@ -78,8 +83,11 @@ class ConnectionManager(emews.base.basenet.BaseNet):
         """Stop the ConnectionManager."""
         self.interrupt()
 
+        # shutdown the listener socket first
         self._close_socket(self._listener_sock)
+
         for sock in self._socks.keys():
+            # shut down all managed sockets
             self._close_socket(sock)
 
     def readable_socket(self, sock):
@@ -243,8 +251,7 @@ class ConnectionManager(emews.base.basenet.BaseNet):
                 sock.connect((self._hub_addr, self._port))
 
                 if self._interrupted:
-                    sock.shutdown()
-                    raise KeyboardInterrupt()
+                    break
 
                 sock.sendall(struct.pack('>HLHL',
                                          emews.base.basenet.NetProto.NET_HUB,
@@ -254,14 +261,15 @@ class ConnectionManager(emews.base.basenet.BaseNet):
                                          ))
 
                 if self._interrupted:
-                    sock.shutdown()
-                    raise KeyboardInterrupt()
+                    break
 
+                # If a signal is caught to shutdown, but the socket does not catch it (say because
+                # it is running from another thread than the main one), the hub node will catch it
+                # and close the socket from its side, unblocking it here.
                 chunk = sock.recv(4)  # query result (4 bytes)
 
                 if self._interrupted:
-                    sock.shutdown()
-                    raise KeyboardInterrupt()
+                    break
 
                 result = struct.unpack('>L', chunk)
             except (socket.error, struct.error):
@@ -270,7 +278,16 @@ class ConnectionManager(emews.base.basenet.BaseNet):
 
             break
 
-        sock.shutdown()
+        try:
+            sock.shutdown()
+        except socket.error:
+            pass
+
+        sock.close()
+
+        if self._interrupted:
+            raise KeyboardInterrupt()
+
         if connect_attempts == self._conn_max_attempts:
             # query failed
             self.logger.warning("Exhausted attempts to fulfill query.")

@@ -24,7 +24,7 @@ class HubProto(object):
     HUB_SERVICE_ID_REQ = 2  # check if a node id is registered
 
 
-class ServHub(emews.base.baseserv):
+class ServHub(emews.base.baseserv.BaseServ):
     """Classdocs."""
 
     __slots__ = ('_cb', '_node_id', '_service_id')

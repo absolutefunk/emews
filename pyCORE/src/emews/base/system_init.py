@@ -24,7 +24,7 @@ import emews.base.sysprop
 def system_init(args):
     """Init configuration and base system properties."""
     root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))  # root
-    print "Root path: " + root_path
+    print "[system_init] Root path: " + root_path
 
     # first thing we need to do is parse the configs
     # base system conf (non-user config - system-wide)
@@ -33,7 +33,7 @@ def system_init(args):
     if args.sys_config is None:
         if args.local:
             system_config = emews.base.config.parse(os.path.join(root_path, 'system_local.yml'))
-            print "Starting in local mode."
+            print "[system_init] Starting in local mode."
         else:
             system_config = emews.base.config.parse(os.path.join(root_path, 'system.yml'))
     else:
@@ -48,7 +48,9 @@ def system_init(args):
     config_dict_system = emews.base.config.merge_configs(
         base_config['system'], system_config, node_config)
 
-    node_name = _get_node_name(config_dict_init['general']['node_name'], args.node_name)
+    node_name = _get_node_name(config_dict_init['general']['node_name'],
+                               args.node_name,
+                               config_dict_init['general']['node_name_length'])
     is_hub = True if node_name == config_dict_system['hub']['node_name'] and not args.local \
         else False
 
@@ -58,13 +60,25 @@ def system_init(args):
         # The node id is assigned by the hub node.
         # Once node id is assigned, this node will use it whenever connecting to the hub.
         try:
-            node_id = _get_node_id(config_dict_system['hub']['node_address'],
+            if config_dict_system['hub']['node_address'] is None:
+                # hub address is provided to us
+                hub_addr = _listen_hub(config_dict_system['communication']['port'],
+                                       config_dict_init['communication']['hub_broadcast_wait'],
+                                       config_dict_init['communication']['hub_broadcast_max_attempts'],
+                                       config_dict_init['general']['node_name_length'],
+                                       config_dict_system['hub']['node_name'])
+            else:
+                hub_addr = config_dict_system['hub']['node_address']
+
+            node_id = _get_node_id(hub_addr,
                                    config_dict_system['communication']['port'],
                                    config_dict_system['communication']['connect_timeout'],
                                    config_dict_system['communication']['connect_max_attempts'])
         except (IOError, KeyboardInterrupt):
             # time to exit
             return None
+
+    print "[system_init] Node id: " + str(node_id) + "."
 
     emews.base.logger._base_logger = logging.LoggerAdapter(_init_base_logger(
         config_dict_init['logging'], node_id, is_hub=is_hub, is_local=args.local),
@@ -82,18 +96,54 @@ def system_init(args):
                                                    emews.base.sysprop.SysProp(**sysprop_dict))
 
 
-def _get_node_name(config_node_name, arg_name):
+def _get_node_name(config_node_name, arg_name, max_length):
     """Determine the node name."""
-    # command line arg (top precedence)
+    # if-else in order of name source precedence
     if arg_name is not None:
-        return arg_name
+        node_name = arg_name
+    elif config_node_name is not None:
+        node_name = config_node_name
+    else:
+        node_name = socket.gethostname()
 
-    # then config
-    if config_node_name is not None:
-        return config_node_name
+    return node_name[:max_length] if len(node_name) > max_length else node_name
 
-    # default: use host name
-    return socket.gethostname()
+
+def _listen_hub(port, timeout, max_attempts, buf_size, hub_name):
+    """Listen for a broadcast from the hub node to obtain address."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP sock
+    sock.bind(('', port))
+    sock.settimeout(timeout)
+    recv_attempts = 0
+
+    while recv_attempts < max_attempts:
+        print "[system_init] Listening for broadcast from hub node (attempt " + \
+            str(recv_attempts + 1) + "\\" + str(max_attempts) + ", timeout per attempt: " + \
+            str(timeout) + "s) ..."
+        try:
+            (addr, chunk) = sock.recvfrom(buf_size)
+
+            if chunk != hub_name:
+                recv_attempts += 1
+                continue
+
+        except socket.error:
+            recv_attempts += 1
+            continue
+        except KeyboardInterrupt:
+            print "Caught interrupt ..."
+            sock.close()
+            raise
+
+        break
+
+    sock.close()
+    if recv_attempts == max_attempts:
+        # could not recv a broadcast from the hub node
+        print "[system_init] Did not receive broadcast from hub node."
+        raise IOError("Did not receive broadcast from hub node.")
+
+    return addr
 
 
 def _get_node_id(addr, port, timeout, max_attempts):
@@ -101,9 +151,11 @@ def _get_node_id(addr, port, timeout, max_attempts):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(timeout)
     connect_attempts = 0
-    node_id = -1
 
     while connect_attempts < max_attempts:
+        print "[system_init] Attempting to obtain node id from hub node (attempt " + \
+            str(connect_attempts + 1) + "\\" + str(max_attempts) + ", timeout per attempt: " + \
+            str(timeout) + "s) ..."
         try:
             sock.connect((addr, port))
             sock.sendall(struct.pack('>HLHL',
@@ -118,17 +170,31 @@ def _get_node_id(addr, port, timeout, max_attempts):
             connect_attempts += 1
             continue
         except KeyboardInterrupt:
-            # Ctrl-C
-            sock.shutdown()
-            print "Caught interrupt."
+            print "Caught interrupt ..."
+
+            try:
+                # this may fail if socket endpoint is already closed
+                sock.shutdown(socket.SHUT_RDWR)
+            except socket.error:
+                pass
+
+            sock.close()
             raise
 
         break
 
-    sock.shutdown()
-    if node_id > -1:
+    try:
+        # this most likely will fail as the hub node should have closed the connection
+        sock.shutdown(socket.SHUT_RDWR)
+    except socket.error:
+        pass
+
+    sock.close()
+
+    if connect_attempts == max_attempts:
         # could not get the node id
-        raise IOError("Could not obtain a node id.")
+        print "[system_init] Could not obtain a node id from hub node."
+        raise IOError("Could not obtain a node id from hub node.")
 
     return node_id
 

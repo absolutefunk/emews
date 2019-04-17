@@ -91,7 +91,7 @@ class NetServ(object):
         self._proto_cb.insert(emews.base.basenet.NetProto.NET_CC_1, NonSupportedInvalid())
         self._proto_cb.insert(emews.base.basenet.NetProto.NET_CC_2, NonSupportedInvalid())
 
-        inject_par = {'sys': self.sys, 'net_cache': self._net_cache}
+        inject_par = {'logger': self.logger, 'sys': self.sys, 'net_cache': self._net_cache}
 
         if self.sys.is_hub:
             # Hub node runs the following servers:

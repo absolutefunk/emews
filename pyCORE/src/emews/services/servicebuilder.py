@@ -8,19 +8,20 @@ import collections
 import os
 
 import emews.base.config
+import emews.base.logger
 import emews.base.import_tools
 import emews.base.serv_hub
-import emews.components.importer
 import emews.components.samplers.zerosampler
 
 
 class ServiceBuilder(object):
     """classdocs."""
 
-    __slots__ = ('_sys', '_service_count')
+    __slots__ = ('logger', '_sys', '_service_count')
 
     def __init__(self, sysprop):
         """Constructor."""
+        self.logger = emews.base.logger.get_logger()
         self._sys = sysprop
         self._service_count = {}  # mapping from service class to instantiation count
 
@@ -30,16 +31,16 @@ class ServiceBuilder(object):
             # checks
             if not isinstance(service_config_dict, collections.Mapping):
                 err_str = "Service configuration passed as argument is not a dictionary."
-                self._sys.logger.error(err_str)
+                self.logger.error(err_str)
                 raise AttributeError(err_str)
             if 'parameters' not in service_config_dict:
                 err_str = "Service configuration passed as argument missing required section " \
                           "'parameters'."
-                self._sys.logger.error(err_str)
+                self.logger.error(err_str)
                 raise AttributeError(err_str)
 
             service_config = service_config_dict
-            self._sys.logger.debug("Using service configuration passed as argument.")
+            self.logger.debug("Using service configuration passed as argument.")
         else:
             if service_config_file is None:
                 service_config_file = service_name.lower() + ".yml"
@@ -50,17 +51,16 @@ class ServiceBuilder(object):
             try:
                 service_config = emews.base.config.parse(service_config_path)
             except IOError:
-                self._sys.logger.error("Could not load service configuration: %s",
-                                       service_config_path)
+                self.logger.error("Could not load service configuration: %s", service_config_path)
                 raise
 
-            self._sys.logger.debug("Loaded service configuration: %s", service_config_path)
+            self.logger.debug("Loaded service configuration: %s", service_config_path)
 
         # import service module
         try:
             service_class = emews.base.import_tools.import_service(service_name)
         except ImportError:
-            self._sys.logger.error("Service module '%s' could not be imported.", service_name)
+            self.logger.error("Service module '%s' could not be imported.", service_name)
             raise
 
         # -- configure execution --
@@ -70,7 +70,7 @@ class ServiceBuilder(object):
             if service_config['execution'].get('loop', False):
                 # assume loop_config is a properly formatted dict
                 if 'loop_using_sampler' in service_config['execution']:
-                    service_loop = emews.components.importer.instantiate(
+                    service_loop = self._sys.import_component(
                         service_config['execution']['loop_using_sampler'])
                 else:
                     service_loop = emews.components.samplers.zerosampler.ZeroSampler()
@@ -87,15 +87,15 @@ class ServiceBuilder(object):
         service_config_inject['service_id'] = service_id
         service_config_inject['_service_loop'] = service_loop
         service_config_inject['_sys'] = self._sys
-        service_config_inject['logger'] = self._sys.logger
+        service_config_inject['logger'] = self.logger
 
         # instantiate service object
         try:
             service_obj = service_class(service_config['parameters'],
                                         _inject=service_config_inject)
-            self._sys.logger.debug("Service class '%s' instantiated.", service_name)
+            self.logger.debug("Service class '%s' instantiated.", service_name)
         except StandardError:
-            self._sys.logger.error("Service '%s' could not be instantiated.", service_name)
+            self.logger.error("Service '%s' could not be instantiated.", service_name)
             raise
 
         self._service_count[service_name] = local_service_id

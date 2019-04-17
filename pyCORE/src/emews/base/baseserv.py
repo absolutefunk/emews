@@ -16,10 +16,6 @@ class BaseServ(object):
     __metaclass__ = emews.base.meta.InjectionMetaWithABC
     __slots__ = ('sys', 'logger', 'net_cache')
 
-    def __init__(self):
-        """Constructor."""
-        self.logger = emews.base.logger.get_logger()
-
     def handle_init(self, node_id, session_id):
         """Session init."""
         return self.serv_init(node_id, session_id)

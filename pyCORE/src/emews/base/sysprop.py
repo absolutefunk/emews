@@ -4,6 +4,8 @@ System Properties.
 Created on Apr 4, 2019
 @author: Brian Ricks
 """
+import emews.base.logger
+import emews.base.import_tools
 
 
 def unassigned_method(*params):
@@ -57,3 +59,14 @@ class SysProp(object):
                 raise AttributeError(SysProp.MSG_RO)
 
             object.__setattr__(self, attr, value)
+
+        # SysProp service methods
+        def import_component(config):
+            """Import a component from a properly formatted config dictionary."""
+            class_name = config['component'].split('.')[-1]
+            module_path = 'emews.components.' + config['component'].lower()
+
+            inject_dict = {'logger': emews.base.logger.get_logger(), '_sys': self}
+
+            return emews.base.import_tools.import_class_from_module(
+                module_path, class_name)(config['parameters'], _inject=inject_dict)
