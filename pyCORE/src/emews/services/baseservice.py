@@ -24,7 +24,14 @@ class BaseService(object):
                  'service_id',
                  'local_service_id',
                  '_dispatcher',
-                 '_service_loop')
+                 '_service_loop',
+                 '_interrupt_event',
+                 '_interrupted')
+
+    def __init__(self):
+        """Constructor."""
+        self._interrupt_event = threading.Event()
+        self._interrupted = False
 
     @property
     def sys(self):
@@ -71,11 +78,6 @@ class BaseService(object):
         """Register the exit function of the dispatcher handling this service."""
         self._dispatcher = dispatcher
         self.logger.debug("%s: dispatcher '%s' registered.", self.service_name, str(dispatcher))
-
-    def __init__(self):
-        """Constructor."""
-        self._interrupt_event = threading.Event()
-        self._interrupted = False
 
     def interrupt(self):
         """Interrupt the component."""

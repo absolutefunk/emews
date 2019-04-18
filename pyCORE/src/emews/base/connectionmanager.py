@@ -38,7 +38,7 @@ class SockState(object):
 class ConnectionManager(emews.base.baseobject.BaseObject):
     """Classdocs."""
 
-    __slots__ = ('_host', '_port', '_socks', '_listener_sock', '_net_serv', '_pending_ids', '_cb',
+    __slots__ = ('_port', '_socks', '_listener_sock', '_net_serv', '_pending_ids', '_cb',
                  '_r_socks', '_w_socks', '_e_socks')
 
     def __init__(self, config):
@@ -46,9 +46,6 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
         super(ConnectionManager, self).__init__()
 
         self._port = config['port']
-        self._host = config['host']
-        if self._host is None:
-            self._host = ''  # any available interface
 
         self._socks = {}  # accepted sockets
         self._pending_ids = {}  # FDs (socks) that are pending an established connection
@@ -98,7 +95,7 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
     def start(self):
         """Start the ConnectionManager."""
         # create listener socket for the ConnectionManager
-        self._setup_listener(self._host, self._port)
+        self._setup_listener()
 
         while not self._interrupted:
             try:
@@ -250,14 +247,14 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
         self.logger.debug("Closing socket FD '%d' in exceptional state.", sock.fileno())
         self._close_socket(sock)
 
-    def _setup_listener(self, host, port):
+    def _setup_listener(self):
         """Create listener (server socket) to manage."""
         # parameter checks
-        if port < 1 or port > 65535:
-            raise ValueError("Port is out of range (must be between 1 and 65535, given: %d)" % port)
-        if port < 1024:
+        if self._port < 1 or self._port > 65535:
+            raise ValueError("Port is out of range (must be between 1 and 65535, given: %d)" % self._port)
+        if self._port < 1024:
             self.logger.warning("Port is less than 1024 (given: %d).  "
-                                "Elevated permissions may be needed for binding.", port)
+                                "Elevated permissions may be needed for binding.", self._port)
 
         # initialize listener socket
         try:
@@ -268,19 +265,19 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
             raise
 
         try:
-            serv_sock.bind((host, port))
+            serv_sock.bind(('0.0.0.0', self._port))  # bind to all interfaces
         except socket.error as ex:
-            serv_sock.shutdown(socket.SHUT_RDWR)
+            serv_sock.close()
             self.logger.error("Could not bind new listener socket to interface: %s", ex)
             raise
         try:
             serv_sock.listen(5)
         except socket.error as ex:
-            serv_sock.shutdown(socket.SHUT_RDWR)
+            serv_sock.close()
             self.logger.error("New listener socket threw socket.error on listen(): %s", ex)
             raise
 
-        self.logger.info("New listener socket on interface %s, port %d.", self._host, port)
+        self.logger.debug("New listener socket on port %d.", self._port)
 
         self._r_socks.append(serv_sock)
         self._listener_sock = serv_sock

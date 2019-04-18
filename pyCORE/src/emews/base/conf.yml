@@ -24,7 +24,6 @@ system:
   readonly: {}
   overrides:
     communication: # communication related eMews daemon options
-      host: 127.0.0.1 # host to bind to (should be localhost or 127.0.0.1, etc)
       port: 32518 # port to use
       connect_timeout: 5 # seconds to wait during connection attempts
       connect_max_attempts: 10 # max connection attempts before giving up
@@ -35,5 +34,6 @@ system:
     hub:
       node_name: n1 # name of the node to act as the hub
       node_address: null # address of the hub (if null, then for non-hub nodes, look it up)
+      init_broadcast_interval: 5  # interval, in seconds, to that the hub node should broadcast itself
       init_broadcast_duration: 300  # duration, in seconds, that the hub node should broadcast itself
     startup_services: []

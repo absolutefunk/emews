@@ -56,12 +56,14 @@ def system_init(args):
 
     if is_hub or args.local:
         node_id = 1  # hub or local mode node id
+        log_host = '127.0.0.1'
     else:
         # The node id is assigned by the hub node.
         # Once node id is assigned, this node will use it whenever connecting to the hub.
         try:
             if config_dict_system['hub']['node_address'] is None:
-                # hub address is provided to us
+                # hub address is not provided to us in the config
+                print "[system_init] Hub node address is not given in the config."
                 config_dict_system['hub']['node_address'] = \
                     _listen_hub(config_dict_system['communication']['port'],
                                 config_dict_init['communication']['hub_broadcast_wait'],
@@ -77,10 +79,18 @@ def system_init(args):
             # time to exit
             return None
 
+        log_host = config_dict_system['hub']['node_address']
+
     print "[system_init] Node id: " + str(node_id) + "."
 
-    emews.base.logger._base_logger = logging.LoggerAdapter(_init_base_logger(
-        config_dict_init['logging'], node_id, is_hub=is_hub, is_local=args.local),
+    emews.base.logger._base_logger = logging.LoggerAdapter(
+        _init_base_logger(
+            config_dict_init['logging'],
+            node_id,
+            log_host,
+            config_dict_system['communication']['port'],
+            is_hub=is_hub,
+            is_local=args.local),
         {'nodename': node_name, 'nodeid': node_id})
 
     sysprop_dict = {
@@ -198,7 +208,7 @@ def _get_node_id(addr, port, timeout, max_attempts):
     return node_id
 
 
-def _init_base_logger(log_config, node_id, is_hub=False, is_local=False):
+def _init_base_logger(log_config, node_id, host, port, is_hub=False, is_local=False):
     """Set up the logger."""
     message_level = log_config['message_level']
 
@@ -224,6 +234,6 @@ def _init_base_logger(log_config, node_id, is_hub=False, is_local=False):
 
     else:
         # non-hub node: distributed logging
-        logger.addHandler(emews.base.logger.DistLogger(node_id))
+        logger.addHandler(emews.base.logger.DistLogger(host, port, node_id))
 
     return logger

@@ -75,7 +75,7 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
         """
         Create and possibly dispatch object_instance contained in a thread.
 
-        object_instance is the object that we want to wrap around ThreadWrapper.  If 'force_start'
+        object_instance is the object that we want to wrap in a Thread.  If 'force_start'
         is True, then dispatch thread anyway.
         """
         if not force_start:
