@@ -6,15 +6,19 @@ Created on Apr 2, 2019
 """
 from abc import abstractmethod
 
-import emews.base.logger
-import emews.base.meta
+import emews.base.baseobject
 
 
-class BaseServ(object):
+class BaseServ(emews.base.baseobject.BaseObject):
     """Classdocs."""
 
-    __metaclass__ = emews.base.meta.InjectionMetaWithABC
-    __slots__ = ('sys', 'logger', 'net_cache')
+    __slots__ = ('_net_cache')
+
+    def __init__(self, net_cache):
+        """Constructor."""
+        super(BaseServ, self).__init__()
+
+        self._net_cache = net_cache
 
     def handle_init(self, node_id, session_id):
         """Session init."""

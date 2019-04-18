@@ -1,0 +1,33 @@
+"""
+Enumerations and constants.
+
+Created on Apr 17, 2019
+@author: Brian Ricks
+"""
+
+
+class net_protocols(object):
+    """Enumerations for supported protocols."""
+
+    __slots__ = ()
+
+    ENUM_SIZE = 6
+
+    NET_NONE = 0       # placeholder
+    NET_CC_1 = 1       # CC channel (future)
+    NET_CC_2 = 2       # CC channel (future)
+    NET_LOGGING = 3    # distributed logging
+    NET_AGENT = 4      # agent-based communication
+    NET_HUB = 5        # hub-based communication
+
+
+class hub_protocols(object):
+    """Enumerations for supported hub requests."""
+
+    __slots__ = ()
+
+    ENUM_SIZE = 3
+
+    HUB_NONE = 0            # placeholder
+    HUB_NODE_ID_REQ = 1     # Request node id
+    HUB_SERVICE_ID_REQ = 2  # check if a node id is registered

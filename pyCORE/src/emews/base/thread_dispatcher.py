@@ -8,7 +8,7 @@ import os
 import threading
 import signal
 
-import emews.base.logger
+import emews.base.baseobject
 
 
 def thread_names_str():
@@ -20,17 +20,17 @@ def thread_names_str():
     return ", ".join(thread_names)
 
 
-class ThreadDispatcher(object):
+class ThreadDispatcher(emews.base.baseobject.BaseObject):
     """Dispatches and manages active threads."""
 
     __dispatch_timer_id = 0  # each timer has a unique thread id in the name
     __thread_id = 0  # each thread has a unique id
-    __slots__ = ('logger', '_thread_map', '_deferred_objects', '_delay_timer', '_delay_lock',
+    __slots__ = ('_thread_map', '_deferred_objects', '_delay_timer', '_delay_lock',
                  '_thread_shutdown_timeout', '_halt_on_exceptions')
 
-    def __init__(self, config, sysprop):
+    def __init__(self, config):
         """Constructor."""
-        self.logger = emews.base.logger.get_logger()
+        super(ThreadDispatcher, self).__init__()
 
         self._thread_map = {}  # object and its corresponding thread
         self._deferred_objects = set()
@@ -44,7 +44,7 @@ class ThreadDispatcher(object):
 
         self._halt_on_exceptions = config['halt_on_service_exceptions']
 
-        if not sysprop.local_mode:
+        if not self.sys.local_mode:
             start_delay = config['service_start_delay']
             # NOTE: service start delay currently delays all objects
             if start_delay > 0:

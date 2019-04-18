@@ -13,7 +13,7 @@ import socket
 import struct
 import sys
 
-import emews.base.basenet
+import emews.base.enums
 import emews.base.config
 import emews.base.logger
 import emews.base.serv_hub
@@ -62,15 +62,14 @@ def system_init(args):
         try:
             if config_dict_system['hub']['node_address'] is None:
                 # hub address is provided to us
-                hub_addr = _listen_hub(config_dict_system['communication']['port'],
-                                       config_dict_init['communication']['hub_broadcast_wait'],
-                                       config_dict_init['communication']['hub_broadcast_max_attempts'],
-                                       config_dict_init['general']['node_name_length'],
-                                       config_dict_system['hub']['node_name'])
-            else:
-                hub_addr = config_dict_system['hub']['node_address']
+                config_dict_system['hub']['node_address'] = \
+                    _listen_hub(config_dict_system['communication']['port'],
+                                config_dict_init['communication']['hub_broadcast_wait'],
+                                config_dict_init['communication']['hub_broadcast_max_attempts'],
+                                config_dict_init['general']['node_name_length'],
+                                config_dict_system['hub']['node_name'])
 
-            node_id = _get_node_id(hub_addr,
+            node_id = _get_node_id(config_dict_system['hub']['node_address'],
                                    config_dict_system['communication']['port'],
                                    config_dict_system['communication']['connect_timeout'],
                                    config_dict_system['communication']['connect_max_attempts'])
@@ -159,9 +158,9 @@ def _get_node_id(addr, port, timeout, max_attempts):
         try:
             sock.connect((addr, port))
             sock.sendall(struct.pack('>HLHL',
-                                     emews.base.basenet.NetProto.NET_HUB,
+                                     emews.base.enums.net_protocols.NET_HUB,
                                      0,  # node id (not assigned yet, so leave at zero),
-                                     emews.base.serv_hub.HubProto.HUB_NODE_ID_REQ,
+                                     emews.base.enums.hub_protocols.HUB_NODE_ID_REQ,
                                      0  # params (none)
                                      ))
             chunk = sock.recv(4)  # node_id (4 bytes)

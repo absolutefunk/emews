@@ -6,8 +6,8 @@ Created on March 20, 2019
 """
 import struct
 
-import emews.base.basenet
-import emews.base.logger
+import emews.base.baseobject
+import emews.base.enums
 import emews.base.serv_agent
 import emews.base.serv_hub
 import emews.base.serv_logging
@@ -73,38 +73,35 @@ class NetCache(object):
         self.node[node_id] = node_data
 
 
-class NetServ(object):
+class NetServ(emews.base.baseobject.BaseObject):
     """Classdocs."""
 
-    __slots__ = ('logger', 'sys', '_proto_cb', '_net_cache')
+    __slots__ = ('_proto_cb', '_net_cache')
 
-    def __init__(self, sysprop):
+    def __init__(self):
         """Constructor."""
-        self.logger = emews.base.logger.get_logger()
-        self.sys = sysprop
-
         self._net_cache = NetCache()  # net cache shared among the servers
 
         # protocol mappings
         self._proto_cb = [None] * emews.base.basenet.NetProto.ENUM_SIZE
-        self._proto_cb.insert(emews.base.basenet.NetProto.NET_NONE, NonSupportedInvalid())
-        self._proto_cb.insert(emews.base.basenet.NetProto.NET_CC_1, NonSupportedInvalid())
-        self._proto_cb.insert(emews.base.basenet.NetProto.NET_CC_2, NonSupportedInvalid())
+        self._proto_cb.insert(emews.base.enums.net_protocols.NET_NONE, NonSupportedInvalid())
+        self._proto_cb.insert(emews.base.enums.net_protocols.NET_CC_1, NonSupportedInvalid())
+        self._proto_cb.insert(emews.base.enums.net_protocols.NET_CC_2, NonSupportedInvalid())
 
         inject_par = {'logger': self.logger, 'sys': self.sys, 'net_cache': self._net_cache}
 
         if self.sys.is_hub:
             # Hub node runs the following servers:
-            self._proto_cb.insert(emews.base.basenet.NetProto.NET_HUB,
+            self._proto_cb.insert(emews.base.enums.net_protocols.NET_HUB,
                                   emews.base.serv_hub.ServHub(_inject=inject_par))
-            self._proto_cb.insert(emews.base.basenet.NetProto.NET_LOGGING,
+            self._proto_cb.insert(emews.base.enums.net_protocols.NET_LOGGING,
                                   emews.base.serv_logging.ServLogging(_inject=inject_par))
         else:
-            self._proto_cb.insert(emews.base.basenet.NetProto.NET_HUB, NonSupportedHub())
-            self._proto_cb.insert(emews.base.basenet.NetProto.NET_LOGGING, NonSupportedHub())
+            self._proto_cb.insert(emews.base.enums.net_protocols.NET_HUB, NonSupportedHub())
+            self._proto_cb.insert(emews.base.enums.net_protocols.NET_LOGGING, NonSupportedHub())
 
         # The following servers run on all nodes:
-        self._proto_cb.insert(emews.base.basenet.NetProto.NET_AGENT,
+        self._proto_cb.insert(emews.base.enums.net_protocols.NET_AGENT,
                               emews.base.serv_agent.ServAgent(_inject=inject_par))
 
     def handle_init(self, session_id, int_addr):

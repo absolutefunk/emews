@@ -8,20 +8,8 @@ Created on Apr 9, 2019
 """
 import struct
 
-import emews.base.basenet
+import emews.base.enums
 import emews.base.baseserv
-
-
-class HubProto(object):
-    """Enumerations for supported hub requests."""
-
-    __slots__ = ()
-
-    ENUM_SIZE = 3
-
-    HUB_NONE = 0            # placeholder
-    HUB_NODE_ID_REQ = 1     # Request node id
-    HUB_SERVICE_ID_REQ = 2  # check if a node id is registered
 
 
 class ServHub(emews.base.baseserv.BaseServ):
@@ -31,9 +19,9 @@ class ServHub(emews.base.baseserv.BaseServ):
 
     def __init__(self):
         """Constructor."""
-        self._cb = [None] * HubProto.ENUM_SIZE
-        self._cb.insert(HubProto.HUB_NODE_ID_REQ, self._register_node_req)
-        self._cb.insert(HubProto.HUB_SERVICE_ID_REQ, self._register_service_req)
+        self._cb = [None] * emews.base.enums.hub_protocols.ENUM_SIZE
+        self._cb.insert(emews.base.enums.hub_protocols.HUB_NODE_ID_REQ, self._register_node_req)
+        self._cb.insert(emews.base.enums.hub_protocols.HUB_SERVICE_ID_REQ, self._register_service_req)
 
         self._node_id = 2     # current unassigned node id
         self._service_id = 2  # current unassigned service id

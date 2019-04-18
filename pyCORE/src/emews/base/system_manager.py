@@ -10,6 +10,7 @@ import threading
 
 import emews.base.connectionmanager
 import emews.base.logger
+import emews.base.netclient
 import emews.base.sysprop
 import emews.base.thread_dispatcher
 import emews.services.servicebuilder
@@ -23,6 +24,7 @@ class SystemManager(object):
                  '_config',
                  '_thread_dispatcher',
                  '_connection_manager',
+                 '_net_client',
                  '_interrupted',
                  '_local_event')
 
@@ -46,6 +48,7 @@ class SystemManager(object):
         self._config = config
         self._thread_dispatcher = None
         self._connection_manager = None
+        self._net_client = None
         self._interrupted = False
         self._local_event = threading.Event()
 
@@ -63,7 +66,7 @@ class SystemManager(object):
         else:
             self.logger.info("%s startup services.", str(len(startup_services)))
 
-        service_builder = emews.services.servicebuilder.ServiceBuilder(self.sys)
+        service_builder = emews.services.servicebuilder.ServiceBuilder(_inject={'sys': self.sys})
 
         for service_name in startup_services:
             # services may have parameters, or just the service name
@@ -99,7 +102,7 @@ class SystemManager(object):
 
         # instantiate thread dispatcher and connection manager
         self._thread_dispatcher = emews.base.thread_dispatcher.ThreadDispatcher(
-            self._config['general'], self.sys)
+            self._config['general'], _inject={'sys': self.sys})
 
         if self.sys.local:
             # local mode:  do not start ConnectionManager
@@ -120,7 +123,11 @@ class SystemManager(object):
 
         else:
             self._connection_manager = emews.base.connectionmanager.ConnectionManager(
-                self._config['communication'], self._config['hub'], self.sys)
+                self._config['communication'], _inject={'sys': self.sys})
+            self._net_client = emews.base.netclient.NetClient(
+                self._config['communication'],
+                self._config['hub']['node_address'],
+                _inject={'sys': self.sys})
 
             # finish building sysprop
             self._finish_sysprop()
@@ -145,6 +152,6 @@ class SystemManager(object):
 
         This needs to be called before services are launched.
         """
-        self.sys.net.hub_query = self._connection_manager.hub_query
+        self.sys.net.hub_query = self._net_client.hub_query
         self.sys.net._ro = True
         self.sys._ro = True

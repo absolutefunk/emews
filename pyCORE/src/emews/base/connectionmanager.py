@@ -4,30 +4,49 @@ Manages all backend connections between eMews nodes and the Hub node.
 Created on Feb 21, 2019
 @author: Brian Ricks
 """
+import select
 import socket
 import struct
 
-import emews.base.basenet
-import emews.base.netmanager
+import emews.base.baseobject
+import emews.base.netserv
 
 
-class ConnectionManager(emews.base.basenet.BaseNet):
+class HandlerCB(object):
+    """Enumerations for ConnectionManager handler methods."""
+
+    __slots__ = ()
+
+    ENUM_SIZE = 2
+
+    REQUEST_CLOSE = 0
+    REQUEST_WRITE = 1
+
+
+class SockState(object):
+    """Enumerations for sock state indices."""
+
+    __slots__ = ()
+
+    ENUM_SIZE = 4
+
+    SOCK_NEXT_CB = 0
+    SOCK_EXPECTED_BYTES = 1
+    SOCK_BUFFER = 2
+
+
+class ConnectionManager(emews.base.baseobject.BaseObject):
     """Classdocs."""
 
-    __slots__ = ('_host', '_port', '_socks', '_listener_sock', '_net_serv', '_pending_ids',
-                 '_cb', '_hub_addr', '_conn_timeout', '_conn_max_attempts')
+    __slots__ = ('_host', '_port', '_socks', '_listener_sock', '_net_serv', '_pending_ids', '_cb',
+                 '_r_socks', '_w_socks', '_e_socks')
 
-    def __init__(self, config_comm, config_hub, sysprop):
+    def __init__(self, config):
         """Constructor."""
-        super(ConnectionManager, self).__init__(sysprop)
+        super(ConnectionManager, self).__init__()
 
-        self._hub_addr = config_hub['node_address']
-
-        self._conn_timeout = config_comm['connect_timeout']
-        self._conn_max_attempts = config_comm['connect_max_attempts']
-
-        self._port = config_comm['port']
-        self._host = config_comm['host']
+        self._port = config['port']
+        self._host = config['host']
         if self._host is None:
             self._host = ''  # any available interface
 
@@ -35,12 +54,16 @@ class ConnectionManager(emews.base.basenet.BaseNet):
         self._pending_ids = {}  # FDs (socks) that are pending an established connection
         self._listener_sock = None  # listener socket (will be instantiated on start())
 
-        self._net_serv = emews.base.netserv.NetServ(self.sys)
+        self._net_serv = emews.base.netserv.NetServ(_inject={'sys': self.sys})
+
+        self._r_socks = []  # list of socket objects to manage for a readable state
+        self._w_socks = []  # list of socket objects to manage for a writable state
+        self._e_socks = []  # list of socket objects to manage for an exceptional state
 
         # Handler callbacks
-        self._cb = [None] * emews.base.basenet.HandlerCB.ENUM_SIZE
-        self._cb.insert(emews.base.basenet.HandlerCB.REQUEST_CLOSE, self._request_close)
-        self._cb.insert(emews.base.basenet.HandlerCB.REQUEST_WRITE, self._request_write)
+        self._cb = [None] * HandlerCB.ENUM_SIZE
+        self._cb.insert(HandlerCB.REQUEST_CLOSE, self._request_close)
+        self._cb.insert(HandlerCB.REQUEST_WRITE, self._request_write)
 
     def _close_socket(self, sock):
         """Close the passed socket.  Should not be used on listener sockets."""
@@ -77,7 +100,29 @@ class ConnectionManager(emews.base.basenet.BaseNet):
         # create listener socket for the ConnectionManager
         self._setup_listener(self._host, self._port)
 
-        super(ConnectionManager, self).start()
+        while not self._interrupted:
+            try:
+                r_sock_list, w_sock_list, e_sock_list = select.select(
+                    self._r_socks, self._w_socks, self._e_socks)
+            except select.error:
+                if not self._interrupted:
+                    self.logger.error("Select error while blocking on managed sockets.")
+                    raise
+                # if run in the main thread, a KeyboardInterrupt should unblock select
+                self.logger.debug("Select interrupted by signal.")
+                break
+
+            for w_sock in w_sock_list:
+                # writable sockets
+                self._writable_socket(w_sock)
+
+            for r_sock in r_sock_list:
+                # readable sockets
+                self._readable_socket(r_sock)
+
+            for e_sock in e_sock_list:
+                # exceptional sockets
+                self._exceptional_socket(e_sock)
 
     def stop(self):
         """Stop the ConnectionManager."""
@@ -90,7 +135,7 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             # shut down all managed sockets
             self._close_socket(sock)
 
-    def readable_socket(self, sock):
+    def _readable_socket(self, sock):
         """Given a socket in a readable state, do something with it."""
         if sock is self._listener_sock:
             # listener socket, accept incoming connection
@@ -110,10 +155,10 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             self._net_serv.handle_init(
                 acc_sock.fileno(), struct.unpack(">I", socket.inet_aton(src_addr[0]))[0])
 
-            sock_state = []
-            sock_state.append(self._net_serv.handle_connection)  # current handler cb [0]
-            sock_state.append(6)  # expected number of bytes to receive next (buf) [1]
-            sock_state.append("")  # recv/send data cache [2]
+            sock_state = [None] * SockState.ENUM_SIZE
+            sock_state.insert(SockState.SOCK_NEXT_CB, self._net_serv.handle_connection)
+            sock_state.insert(SockState.SOCK_EXPECTED_BYTES, 6)
+            sock_state.append(SockState.SOCK_BUFFER, "")
 
             self._socks[acc_sock] = sock_state
         else:
@@ -121,7 +166,7 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             sock_state = self._socks[sock]
 
             try:
-                chunk = sock.recv(sock_state[1])  # recv at most the current buf size
+                chunk = sock.recv(sock_state[SockState.SOCK_EXPECTED_BYTES])
             except socket.error:
                 self.logger.warning(
                     "Socket error when receiving data, closing socket FD '%d' ...", sock.fileno())
@@ -133,20 +178,20 @@ class ConnectionManager(emews.base.basenet.BaseNet):
                 self.logger.debug("Connection closed remotely, closing socket FD '%d' ...",
                                   sock.fileno())
                 self._close_socket(sock)
-            elif len(chunk) < sock_state[1]:
+            elif len(chunk) < sock_state[SockState.SOCK_EXPECTED_BYTES]:
                 # num bytes recv is less than what is expected.
-                sock_state[1] = sock_state[1] - len(chunk)  # bytes remaining
-                sock_state[2] = sock_state[2] + chunk
+                sock_state[SockState.SOCK_EXPECTED_BYTES] = \
+                    sock_state[SockState.SOCK_EXPECTED_BYTES] - len(chunk)  # bytes remaining
+                sock_state[SockState.SOCK_BUFFER] = sock_state[SockState.SOCK_BUFFER] + chunk
                 return
 
             # received all expected bytes
-            if sock_state[2] is not None:
-                chunk = sock_state[2] + chunk
-                sock_state[2] = ""  # clear cache
+            chunk = sock_state[SockState.SOCK_BUFFER] + chunk
+            sock_state[SockState.SOCK_BUFFER] = ""  # clear cache
 
             try:
                 # read cb: returns (cb, buf) for read mode, (data, (cb, buf)) for write mode
-                ret_tup = sock_state[0](sock.fileno(), chunk)
+                ret_tup = sock_state[SockState.SOCK_NEXT_CB](sock.fileno(), chunk)
             except TypeError:
                 self.logger.error("Handler callback is not callable.")
                 raise
@@ -158,22 +203,22 @@ class ConnectionManager(emews.base.basenet.BaseNet):
                 # write mode
                 if ret_tup[1] is None:
                     # close the socket after write
-                    sock_state[0] = None
-                    sock_state[1] = 0
+                    sock_state[SockState.SOCK_NEXT_CB] = None
+                    sock_state[SockState.SOCK_EXPECTED_BYTES] = 0
                 else:
-                    sock_state[0] = ret_tup[1][0]  # next cb
-                    sock_state[1] = ret_tup[1][1]  # next expected bytes
+                    sock_state[SockState.SOCK_NEXT_CB] = ret_tup[1][0]  # next cb
+                    sock_state[SockState.SOCK_EXPECTED_BYTES] = ret_tup[1][1]  # next expected bytes
 
-                sock_state[2] = ret_tup[0]  # data to be sent
+                sock_state[SockState.SOCK_BUFFER] = ret_tup[0]  # data to be sent
 
                 self._r_socks.remove(sock)
                 self._w_socks.append(sock)
             else:
                 # read mode
-                sock_state[0] = ret_tup[0]  # next cb
-                sock_state[1] = ret_tup[1]  # next expected bytes
+                sock_state[SockState.SOCK_NEXT_CB] = ret_tup[0]  # next cb
+                sock_state[SockState.SOCK_EXPECTED_BYTES] = ret_tup[1]  # next expected bytes
 
-    def writable_socket(self, sock):
+    def _writable_socket(self, sock):
         """
         Given a socket in a writable state, do something with it.
 
@@ -182,16 +227,16 @@ class ConnectionManager(emews.base.basenet.BaseNet):
         """
         sock_state = self._socks[sock]
 
-        bytes_sent = sock.send(sock_state[2])
+        bytes_sent = sock.send(sock_state[SockState.SOCK_BUFFER])
 
-        if bytes_sent < len(sock_state[2]):
-            # not all bytes were sent
-            sock_state[2] = sock_state[2][bytes_sent:]  # remove the chars already sent
+        if bytes_sent < len(sock_state[SockState.SOCK_BUFFER]):
+            # not all bytes were sent - remove those bytes sent
+            sock_state[SockState.SOCK_BUFFER] = sock_state[SockState.SOCK_BUFFER][bytes_sent:]
             return
 
         # all bytes sent
-        sock_state[2] = ""  # clear cache
-        if sock_state[0] is None:
+        sock_state[SockState.SOCK_BUFFER] = ""  # clear cache
+        if sock_state[SockState.SOCK_NEXT_CB] is None:
             # close the socket
             self._close_socket(sock)
             return
@@ -199,6 +244,11 @@ class ConnectionManager(emews.base.basenet.BaseNet):
             # switch to read mode
             self._w_socks.remove(sock)
             self._r_socks.append(sock)
+
+    def _exceptional_socket(self, sock):
+        """Close a sock in such a state."""
+        self.logger.debug("Closing socket FD '%d' in exceptional state.", sock.fileno())
+        self._close_socket(sock)
 
     def _setup_listener(self, host, port):
         """Create listener (server socket) to manage."""
@@ -234,63 +284,3 @@ class ConnectionManager(emews.base.basenet.BaseNet):
 
         self._r_socks.append(serv_sock)
         self._listener_sock = serv_sock
-
-    def hub_query(self, request, param=0):
-        """
-        Given a request, return the corresponding result.
-
-        Note that this is a client-side (blocking) operation, and thus is expected to run either
-        under the main thread before ConnectionManager starts, or from a service thread.
-        """
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(self._conn_timeout)
-        connect_attempts = 0
-
-        while not self._interrupted and connect_attempts < self._conn_max_attempts:
-            try:
-                sock.connect((self._hub_addr, self._port))
-
-                if self._interrupted:
-                    break
-
-                sock.sendall(struct.pack('>HLHL',
-                                         emews.base.basenet.NetProto.NET_HUB,
-                                         self.sys.node_id,
-                                         request,  # request to the hub node
-                                         param  # param (0=None)
-                                         ))
-
-                if self._interrupted:
-                    break
-
-                # If a signal is caught to shutdown, but the socket does not catch it (say because
-                # it is running from another thread than the main one), the hub node will catch it
-                # and close the socket from its side, unblocking it here.
-                chunk = sock.recv(4)  # query result (4 bytes)
-
-                if self._interrupted:
-                    break
-
-                result = struct.unpack('>L', chunk)
-            except (socket.error, struct.error):
-                connect_attempts += 1
-                continue
-
-            break
-
-        try:
-            sock.shutdown()
-        except socket.error:
-            pass
-
-        sock.close()
-
-        if self._interrupted:
-            raise KeyboardInterrupt()
-
-        if connect_attempts == self._conn_max_attempts:
-            # query failed
-            self.logger.warning("Exhausted attempts to fulfill query.")
-            raise IOError("Exhausted attempts to fulfill query.")
-
-        return result

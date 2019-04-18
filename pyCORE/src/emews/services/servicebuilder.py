@@ -7,22 +7,22 @@ Created on Apr 2, 2018
 import collections
 import os
 
+import emews.base.baseobject
 import emews.base.config
-import emews.base.logger
 import emews.base.import_tools
 import emews.base.serv_hub
 import emews.components.samplers.zerosampler
 
 
-class ServiceBuilder(object):
+class ServiceBuilder(emews.base.baseobject.BaseObject):
     """classdocs."""
 
-    __slots__ = ('logger', '_sys', '_service_count')
+    __slots__ = ('_service_count')
 
-    def __init__(self, sysprop):
+    def __init__(self):
         """Constructor."""
-        self.logger = emews.base.logger.get_logger()
-        self._sys = sysprop
+        super(ServiceBuilder, self).__init__()
+
         self._service_count = {}  # mapping from service class to instantiation count
 
     def build(self, service_name, service_config_dict=None, service_config_file=None):
@@ -46,7 +46,7 @@ class ServiceBuilder(object):
                 service_config_file = service_name.lower() + ".yml"
 
             service_config_path = os.path.join(
-                self._sys.root_path, "services", service_name.lower(), service_config_file)
+                self.sys.root_path, "services", service_name.lower(), service_config_file)
 
             try:
                 service_config = emews.base.config.parse(service_config_path)
@@ -70,7 +70,7 @@ class ServiceBuilder(object):
             if service_config['execution'].get('loop', False):
                 # assume loop_config is a properly formatted dict
                 if 'loop_using_sampler' in service_config['execution']:
-                    service_loop = self._sys.import_component(
+                    service_loop = self.sys.import_component(
                         service_config['execution']['loop_using_sampler'])
                 else:
                     service_loop = emews.components.samplers.zerosampler.ZeroSampler()
@@ -86,7 +86,7 @@ class ServiceBuilder(object):
         service_config_inject['local_service_id'] = local_service_id
         service_config_inject['service_id'] = service_id
         service_config_inject['_service_loop'] = service_loop
-        service_config_inject['_sys'] = self._sys
+        service_config_inject['_sys'] = self.sys
         service_config_inject['logger'] = self.logger
 
         # instantiate service object
@@ -104,7 +104,7 @@ class ServiceBuilder(object):
 
     def _get_service_id(self, local_service_id):
         """Get a globally unique service id."""
-        if self._sys.local:
+        if self.sys.local:
             # there is no global id in local mode
             return local_service_id
 
