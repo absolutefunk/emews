@@ -15,7 +15,7 @@ communication:  # communication related eMews daemon options
   port: 32518      # port to use
 
 hub:
-  node_name: n1
+  node_name: absolutefunk-Inspiron-13-737
 
 startup_services:
   # Any services which should start, for all nodes, should be placed here.  Most services will start

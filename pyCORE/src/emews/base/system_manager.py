@@ -20,7 +20,7 @@ class SystemManager(object):
     """Classdocs."""
 
     __slots__ = ('logger',
-                 'sys'
+                 'sys',
                  '_config',
                  '_thread_dispatcher',
                  '_connection_manager',

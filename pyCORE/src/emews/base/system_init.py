@@ -54,6 +54,8 @@ def system_init(args):
     is_hub = True if node_name == config_dict_system['hub']['node_name'] and not args.local \
         else False
 
+    print "[system_init] Node name: " + str(node_name) + "."
+
     if is_hub or args.local:
         node_id = 1  # hub or local mode node id
         log_host = '127.0.0.1'

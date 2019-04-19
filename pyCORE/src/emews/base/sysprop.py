@@ -22,12 +22,12 @@ class SysProp(object):
         """Provides a read-only container for the system net properties."""
 
         # Net system properties
-        __slots__ = ('_ro'
+        __slots__ = ('_ro',
                      'hub_query')
 
         def __init__(self, **kwargs):
             """Constructor."""
-            self._ro = False
+            object.__setattr__(self, '_ro', False)
             self.hub_query = unassigned_method
 
         def __setattr__(self, attr, value):
@@ -38,7 +38,7 @@ class SysProp(object):
             object.__setattr__(self, attr, value)
 
     # Root system properties
-    __slots__ = ('_ro'
+    __slots__ = ('_ro',
                  'node_name',
                  'node_id',
                  'root_path',
@@ -48,25 +48,25 @@ class SysProp(object):
 
     def __init__(self, **kwargs):
         """Constructor."""
-        self._ro = False
-        self.net = SysProp.NetProp(kwargs.pop('net'))
+        object.__setattr__(self, '_ro', False)
+        self.net = SysProp.NetProp()
         for attr, value in kwargs.iteritems():
-            object.__setattr__(self, attr, value)
+            self.__setattr__(attr, value)
 
-        def __setattr__(self, attr, value):
-            """Attributes are not mutable."""
-            if self._ro:
-                raise AttributeError(SysProp.MSG_RO)
+    def __setattr__(self, attr, value):
+        """Attributes are not mutable."""
+        if self._ro:
+            raise AttributeError(SysProp.MSG_RO)
 
-            object.__setattr__(self, attr, value)
+        object.__setattr__(self, attr, value)
 
-        # SysProp service methods
-        def import_component(config):
-            """Import a component from a properly formatted config dictionary."""
-            class_name = config['component'].split('.')[-1]
-            module_path = 'emews.components.' + config['component'].lower()
+    # SysProp service methods
+    def import_component(self, config):
+        """Import a component from a properly formatted config dictionary."""
+        class_name = config['component'].split('.')[-1]
+        module_path = 'emews.components.' + config['component'].lower()
 
-            inject_dict = {'logger': emews.base.logger.get_logger(), '_sys': self}
+        inject_dict = {'logger': emews.base.logger.get_logger(), '_sys': self}
 
-            return emews.base.import_tools.import_class_from_module(
-                module_path, class_name)(config['parameters'], _inject=inject_dict)
+        return emews.base.import_tools.import_class_from_module(
+            module_path, class_name)(config['parameters'], _inject=inject_dict)
