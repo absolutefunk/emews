@@ -4,6 +4,7 @@ Network handler for node to node communication.
 Created on March 20, 2019
 @author: Brian Ricks
 """
+import socket
 import struct
 
 import emews.base.baseobject
@@ -11,6 +12,7 @@ import emews.base.enums
 import emews.base.serv_agent
 import emews.base.serv_hub
 import emews.base.serv_logging
+import emews.base.serv_spawner
 
 
 class NonSupportedHub(object):
@@ -80,15 +82,17 @@ class NetServ(emews.base.baseobject.BaseObject):
 
     def __init__(self):
         """Constructor."""
+        super(NetServ, self).__init__()
+
         self._net_cache = NetCache()  # net cache shared among the servers
 
         # protocol mappings
-        self._proto_cb = [None] * emews.base.basenet.NetProto.ENUM_SIZE
+        self._proto_cb = [None] * emews.base.enums.net_protocols.ENUM_SIZE
         self._proto_cb.insert(emews.base.enums.net_protocols.NET_NONE, NonSupportedInvalid())
         self._proto_cb.insert(emews.base.enums.net_protocols.NET_CC_1, NonSupportedInvalid())
         self._proto_cb.insert(emews.base.enums.net_protocols.NET_CC_2, NonSupportedInvalid())
 
-        inject_par = {'logger': self.logger, 'sys': self.sys, 'net_cache': self._net_cache}
+        inject_par = {'sys': self.sys, '_net_cache': self._net_cache}
 
         if self.sys.is_hub:
             # Hub node runs the following servers:
@@ -101,6 +105,8 @@ class NetServ(emews.base.baseobject.BaseObject):
             self._proto_cb.insert(emews.base.enums.net_protocols.NET_LOGGING, NonSupportedHub())
 
         # The following servers run on all nodes:
+        self._proto_cb.insert(emews.base.enums.net_protocols.NET_SPAWN,
+                              emews.base.serv_spawner.ServSpawner(_inject=inject_par))
         self._proto_cb.insert(emews.base.enums.net_protocols.NET_AGENT,
                               emews.base.serv_agent.ServAgent(_inject=inject_par))
 
@@ -135,8 +141,9 @@ class NetServ(emews.base.baseobject.BaseObject):
 
             if node_data is None:
                 if self.sys.is_hub:
-                    self.logger.warning("Unrecognized node id given: %d, from address: %d",
-                                        node_id, session_data.addr)
+                    self.logger.warning("Unrecognized node id given: %d, from address: %s",
+                                        node_id,
+                                        socket.inet_ntoa(struct.pack(">I", session_data.addr)))
                     return None
 
                 # if not the hub node, assume node id is legit

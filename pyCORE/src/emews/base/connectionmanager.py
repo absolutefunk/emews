@@ -12,17 +12,6 @@ import emews.base.baseobject
 import emews.base.netserv
 
 
-class HandlerCB(object):
-    """Enumerations for ConnectionManager handler methods."""
-
-    __slots__ = ()
-
-    ENUM_SIZE = 2
-
-    REQUEST_CLOSE = 0
-    REQUEST_WRITE = 1
-
-
 class SockState(object):
     """Enumerations for sock state indices."""
 
@@ -57,11 +46,6 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
         self._w_socks = []  # list of socket objects to manage for a writable state
         self._e_socks = []  # list of socket objects to manage for an exceptional state
 
-        # Handler callbacks
-        self._cb = [None] * HandlerCB.ENUM_SIZE
-        self._cb.insert(HandlerCB.REQUEST_CLOSE, self._request_close)
-        self._cb.insert(HandlerCB.REQUEST_WRITE, self._request_write)
-
     def _close_socket(self, sock):
         """Close the passed socket.  Should not be used on listener sockets."""
         try:
@@ -77,7 +61,7 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
         self._e_socks.remove(sock)
 
         if sock in self._socks:
-            self._socks[sock].handle_close()
+            self._net_serv.handle_close(sock.fileno())
             del self._socks[sock]
 
             if sock.fileno() in self._pending_ids:
@@ -106,7 +90,7 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
                     self.logger.error("Select error while blocking on managed sockets.")
                     raise
                 # if run in the main thread, a KeyboardInterrupt should unblock select
-                self.logger.debug("Select interrupted by signal.")
+                self.logger.debug("Select unblocked by interrupt.")
                 break
 
             for w_sock in w_sock_list:
@@ -123,6 +107,7 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
 
     def stop(self):
         """Stop the ConnectionManager."""
+        self.logger.debug("Stopping ConnectionManager ...")
         self.interrupt()
 
         # shutdown the listener socket first
@@ -155,7 +140,7 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
             sock_state = [None] * SockState.ENUM_SIZE
             sock_state.insert(SockState.SOCK_NEXT_CB, self._net_serv.handle_connection)
             sock_state.insert(SockState.SOCK_EXPECTED_BYTES, 6)
-            sock_state.append(SockState.SOCK_BUFFER, "")
+            sock_state.insert(SockState.SOCK_BUFFER, "")
 
             self._socks[acc_sock] = sock_state
         else:
@@ -280,4 +265,5 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
         self.logger.debug("New listener socket on port %d.", self._port)
 
         self._r_socks.append(serv_sock)
+        self._e_socks.append(serv_sock)
         self._listener_sock = serv_sock

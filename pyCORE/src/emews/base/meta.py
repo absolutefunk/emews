@@ -1,3 +1,9 @@
+"""
+Meta classes.
+
+@author Brian Ricks
+"""
+
 import abc
 
 

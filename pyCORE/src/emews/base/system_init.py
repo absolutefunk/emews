@@ -212,30 +212,43 @@ def _get_node_id(addr, port, timeout, max_attempts):
 
 def _init_base_logger(log_config, node_id, host, port, is_hub=False, is_local=False):
     """Set up the logger."""
-    message_level = log_config['message_level']
-
     logger = logging.getLogger(log_config['logger_name'])
-    logger.setLevel(message_level)
+    logger.setLevel(log_config['message_level'])
     logger.propagate = False
 
     if is_local:
         # local mode: log to a stream (stdout)
-        stream_path, stream_name = log_config['stream'].rsplit(".", 1)
-
-        handler_obj = logging.StreamHandler(stream=getattr(sys.modules[stream_path], stream_name))
-        handler_obj.setLevel(message_level)
-        handler_obj.setFormatter(logging.Formatter(log_config['message_format']))
-        logger.addHandler(handler_obj)
-
+        _log_handler_stream(log_config, logger)
     elif is_hub:
-        # hub node: log to a file
-        handler_obj = logging.FileHandler(mode='a', delay=True, filename='emews.log')
-        handler_obj.setLevel(message_level)
-        handler_obj.setFormatter(logging.Formatter(log_config['message_format']))
-        logger.addHandler(handler_obj)
-
+        # hub node
+        if log_config['output'] == 'console':
+            _log_handler_stream(log_config, logger)
+        elif log_config['output'] == 'file':
+            _log_handler_file(log_config, logger)
+        else:
+            print "[system_init] Logger output '" + str(log_config['output']) + \
+                "' not supported, defaulting to console."
+            _log_handler_stream(log_config, logger)
     else:
         # non-hub node: distributed logging
         logger.addHandler(emews.base.logger.DistLogger(host, port, node_id))
 
     return logger
+
+
+def _log_handler_stream(log_config, logger):
+    """Log to a stream."""
+    stream_path, stream_name = log_config['stream'].rsplit(".", 1)
+
+    handler_obj = logging.StreamHandler(stream=getattr(sys.modules[stream_path], stream_name))
+    handler_obj.setLevel(log_config['message_level'])
+    handler_obj.setFormatter(logging.Formatter(log_config['message_format']))
+    logger.addHandler(handler_obj)
+
+
+def _log_handler_file(log_config, logger):
+    """Log to a file."""
+    handler_obj = logging.FileHandler(mode='a', delay=True, filename='emews.log')
+    handler_obj.setLevel(log_config['message_level'])
+    handler_obj.setFormatter(logging.Formatter(log_config['message_format']))
+    logger.addHandler(handler_obj)

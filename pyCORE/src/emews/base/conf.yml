@@ -18,6 +18,7 @@ init:
       node_name: null # name of the node running this instance of eMews
     logging:
       message_level: DEBUG # log messages of this level and above (default)
+      output: console  # console or file
 
 # System configuration skeleton.  This is the configuration structure after initialization.
 system:

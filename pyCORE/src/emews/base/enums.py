@@ -11,7 +11,7 @@ class net_protocols(object):
 
     __slots__ = ()
 
-    ENUM_SIZE = 6
+    ENUM_SIZE = 7
 
     NET_NONE = 0       # placeholder
     NET_CC_1 = 1       # CC channel (future)
@@ -19,6 +19,7 @@ class net_protocols(object):
     NET_LOGGING = 3    # distributed logging
     NET_AGENT = 4      # agent-based communication
     NET_HUB = 5        # hub-based communication
+    NET_SPAWN = 6      # service spwaning
 
 
 class hub_protocols(object):
@@ -31,3 +32,11 @@ class hub_protocols(object):
     HUB_NONE = 0            # placeholder
     HUB_NODE_ID_REQ = 1     # Request node id
     HUB_SERVICE_ID_REQ = 2  # check if a node id is registered
+
+
+class net_state(object):
+    """Constants for different net states."""
+
+    __slots__ = ()
+
+    STATE_ACK = 17

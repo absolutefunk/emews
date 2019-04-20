@@ -15,7 +15,7 @@ import emews.base.baseobject
 class BroadcastMessage(emews.base.baseclient.BaseClient):
     """Broadcasts a message across the network."""
 
-    __slots__ = ('_port', '_message', '_interval', '_duration')
+    __slots__ = ('_port', '_message', '_interval', '_duration', '_sock')
 
     def __init__(self, port, message, interval, duration):
         """Constructor."""
@@ -25,24 +25,36 @@ class BroadcastMessage(emews.base.baseclient.BaseClient):
         self._message = message
         self._interval = interval
         self._duration = duration
+        self._sock = None
 
     def start(self):
         """Start the broadcast."""
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self.logger.debug("%s: Broadcast starting ...", self._client_name)
+        self.broadcast()
+
+    def broadcast(self):
+        """Run the broadcast."""
+        self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         elapsed_time = 0
 
         # not the most precise way of time keeping, but good enough
         while elapsed_time < self._duration and not self._interrupted:
             self.sleep(self._interval)
-            elapsed_time += self.interval
+            elapsed_time += self._interval
             try:
-                sock.sendto(self._message, ('255.255.255.255', self._port))
+                self._sock.sendto(self._message, ('255.255.255.255', self._port))
             except socket.error:
                 continue
 
-        sock.close()
+        self._sock.close()
+        self._sock = None
         self.logger.debug("%s: Broadcast finished.", self._client_name)
+
+    def stop(self):
+        """Stop the broadcast."""
+        self.interrupt()
+        self.logger.debug("%s: Broadcast finishing (asked to stop).", self._client_name)
 
 
 class NetClient(emews.base.baseobject.BaseObject):

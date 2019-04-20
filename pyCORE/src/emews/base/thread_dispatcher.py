@@ -25,12 +25,16 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
 
     __dispatch_timer_id = 0  # each timer has a unique thread id in the name
     __thread_id = 0  # each thread has a unique id
+    __dispatch_id = 0  # for unique dispatchers
     __slots__ = ('_thread_map', '_deferred_objects', '_delay_timer', '_delay_lock',
-                 '_thread_shutdown_timeout', '_halt_on_exceptions')
+                 '_thread_shutdown_timeout', '_halt_on_exceptions', '_dispatcher_name')
 
     def __init__(self, config):
         """Constructor."""
         super(ThreadDispatcher, self).__init__()
+
+        self._dispatcher_name = "Dispatcher" + str(ThreadDispatcher.__dispatch_id)
+        ThreadDispatcher.__dispatch_id += 1
 
         self._thread_map = {}  # object and its corresponding thread
         self._deferred_objects = set()
@@ -44,7 +48,7 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
 
         self._halt_on_exceptions = config['halt_on_service_exceptions']
 
-        if not self.sys.local_mode:
+        if not self.sys.local:
             start_delay = config['service_start_delay']
             # NOTE: service start delay currently delays all objects
             if start_delay > 0:
@@ -52,6 +56,10 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
                 self.delay_dispatch(start_delay)
         else:
             self.logger.info("Service start delay ignored due to running in local mode.")
+
+    def __str__(self):
+        """Return the dispatcher name."""
+        return self._dispatcher_name
 
     @property
     def count(self):
@@ -113,7 +121,7 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
 
     def dispatch_deferred_threads(self):
         """Dispatch threads which have been deferred for execution."""
-        if not len(self._deferred_threads):
+        if not len(self._deferred_objects):
             self.logger.debug("No deferred threads to dispatch.")
             return
 

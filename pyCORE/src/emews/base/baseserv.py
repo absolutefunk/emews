@@ -14,12 +14,6 @@ class BaseServ(emews.base.baseobject.BaseObject):
 
     __slots__ = ('_net_cache')
 
-    def __init__(self, net_cache):
-        """Constructor."""
-        super(BaseServ, self).__init__()
-
-        self._net_cache = net_cache
-
     def handle_init(self, node_id, session_id):
         """Session init."""
         return self.serv_init(node_id, session_id)

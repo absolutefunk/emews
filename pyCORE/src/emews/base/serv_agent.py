@@ -18,12 +18,18 @@ class ServAgent(emews.base.baseserv.BaseServ):
 
     def __init__(self):
         """Constructor."""
+        super(ServAgent, self).__init__()
+
         self._cb = []
         self._cb.append(self._agent_req_end)  # index [0]
 
     def serv_init(self, id, node_id, service_id):
         """Init of new agent session.  Next expected chunk is request from remote agent."""
         return (self._agent_request, 4)
+
+    def serv_close(self, session_id):
+        """Close a session."""
+        pass
 
     def _agent_request(self, id, chunk):
         """

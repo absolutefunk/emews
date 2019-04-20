@@ -52,7 +52,7 @@ class SystemManager(object):
         self._interrupted = False
         self._local_event = threading.Event()
 
-        self.logger.info("[Network node] name: %s, node id: %d",
+        self.logger.info("Node name: %s, node id: %d.",
                          self.sys.node_name, self.sys.node_id)
 
         if self.sys.local:
@@ -137,12 +137,12 @@ class SystemManager(object):
                 # we are the hub, and our address is not known to other nodes
                 bcast_int = self._config['hub']['init_broadcast_interval']
                 bcast_dur = self._config['hub']['init_broadcast_duration']
-                self.logger.info("Broadcasting our presence every %d seconds for %d seconds ...",
-                                 bcast_int, bcast_dur)
                 self._thread_dispatcher.dispatch(
                     self._net_client.broadcast_message(self.sys.node_name, bcast_int, bcast_dur),
                     force_start=True
                 )
+                self.logger.info("Broadcasting our presence every %d seconds for %d seconds ...",
+                                 bcast_int, bcast_dur)
             self._connection_manager.start()  # blocks here
 
         self.logger.info("Shutdown complete.")

@@ -18,12 +18,23 @@ class BaseClient(emews.base.baseobject.BaseObject):
 
     def __init__(self):
         """Constructor."""
+        super(BaseClient, self).__init__()
+
         self._dispatcher = None
         self._interrupt_event = threading.Event()
+
+    def __str__(self):
+        """Return the client name."""
+        return self._client_name
 
     @abstractmethod
     def start(self):
         """Start the client."""
+        pass
+
+    @abstractmethod
+    def stop(self):
+        """Stop the client."""
         pass
 
     def register_dispatcher(self, dispatcher):
