@@ -137,7 +137,7 @@ class NetServ(emews.base.baseobject.BaseObject):
         session_data = self._net_cache.session[session_id]
 
         if node_id > 0:
-            # a node id of zero refers to an unassigned node, so don't track it
+            # a node id of zero refers to an unassigned node or client, so don't track it
             node_data = self._net_cache.node.get(node_id, None)
 
             if node_data is None:
