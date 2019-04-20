@@ -34,9 +34,21 @@ class hub_protocols(object):
     HUB_SERVICE_ID_REQ = 2  # check if a node id is registered
 
 
+class spawner_protocols(object):
+    """Enumerations for supported spawner requests."""
+
+    __slots__ = ()
+
+    ENUM_SIZE = 2
+
+    SPAWNER_NONE = 0            # placeholder
+    SPAWNER_LAUNCH_SERVICE = 1  # launch (spawn) a service
+
+
 class net_state(object):
     """Constants for different net states."""
 
     __slots__ = ()
 
     STATE_ACK = 17
+    STATE_NACK = 19

@@ -80,7 +80,7 @@ class NetServ(emews.base.baseobject.BaseObject):
 
     __slots__ = ('_proto_cb', '_net_cache')
 
-    def __init__(self):
+    def __init__(self, thread_dispatcher):
         """Constructor."""
         super(NetServ, self).__init__()
 
@@ -106,7 +106,8 @@ class NetServ(emews.base.baseobject.BaseObject):
 
         # The following servers run on all nodes:
         self._proto_cb.insert(emews.base.enums.net_protocols.NET_SPAWN,
-                              emews.base.serv_spawner.ServSpawner(_inject=inject_par))
+                              emews.base.serv_spawner.ServSpawner(
+                                thread_dispatcher, _inject=inject_par))
         self._proto_cb.insert(emews.base.enums.net_protocols.NET_AGENT,
                               emews.base.serv_agent.ServAgent(_inject=inject_par))
 

@@ -6,28 +6,31 @@ Created on Apr 19, 2019
 """
 import struct
 
-import emews.base.enums
 import emews.base.baseserv
+import emews.base.enums
+import emews.services.servicebuilder
 
 
 class ServSpawner(emews.base.baseserv.BaseServ):
     """Classdocs."""
 
-    __slots__ = ('_cb', '_node_id', '_service_id')
+    __slots__ = ('_cb', '_session_data', '_thread_dispatcher')
 
-    def __init__(self):
+    def __init__(self, thread_dispatcher):
         """Constructor."""
         super(ServSpawner, self).__init__()
 
-        self._cb = [None] * emews.base.enums.hub_protocols.ENUM_SIZE
-        self._cb.insert(emews.base.enums.hub_protocols.HUB_NODE_ID_REQ, self._register_node_req)
-        self._cb.insert(emews.base.enums.hub_protocols.HUB_SERVICE_ID_REQ, self._register_service_req)
+        self._thread_dispatcher = thread_dispatcher
 
-        self._node_id = 2     # current unassigned node id
-        self._service_id = 2  # current unassigned service id
+        self._cb = [None] * emews.base.enums.spawner_protocols.ENUM_SIZE
+        self._cb.insert(emews.base.enums.spawner_protocols.SPAWNER_LAUNCH_SERVICE,
+                        self._spawn_service_req_name)
+
+        self._session_data = {}
 
     def serv_init(self, node_id, session_id):
-        """Init of new node-hub session.  Next expected chunk is request from node."""
+        """Init of new session.  Next expected chunk is request from node."""
+        self._session_data[session_id] = None
         return (self._spawn_query, 6)
 
     def serv_close(self, session_id):
@@ -53,11 +56,43 @@ class ServSpawner(emews.base.baseserv.BaseServ):
 
         return ret_tup
 
-    def _spawn_service_req(self, session_id, str_length):
+    def _spawn_service_req_name(self, session_id, str_length):
         """Request to spawn a service.  str_length is expected length of service name."""
-        return (self._spawn_service_post, str_length)  # send new node id and terminate
+        self._session_data[session_id] = str_length  # cache this for next cb
+        return (self._spawn_service_post_name, str_length)
 
-    def _spawn_service_post(self, session_id, service_name):
-        """Spawn service given."""
+    def _spawn_service_post_name(self, session_id, chunk):
+        """Service name given."""
+        self._session_data[session_id] = chunk  # cache this for next cb
 
+        return (self._spawn_service_req_config, 4)
+
+    def _spawn_service_req_config(self, session_id, chunk):
+        """Length of string of service config name."""
+        try:
+            str_length = struct.unpack('>L', chunk)
+        except struct.error as ex:
+            self.logger.warning("Struct error when unpacking service config name length: %s", ex)
+            return None
+
+        if str_length > 0:
+            return (self._spawn_service_post, str_length)
+
+        return self._spawn_service_post(self, session_id, None)
+
+    def _spawn_service_post(self, session_id, chunk):
+        """Given the service class and config name, spawn the service."""
+        service_name = self._session_data[session_id]
+        service_config_name = chunk
+
+        service_builder = emews.services.servicebuilder.ServiceBuilder(_inject={'sys': self.sys})
+
+        try:
+            service_obj = service_builder.build(
+                service_name, service_config_file=service_config_name)
+        except StandardError as ex:
+            self.logger.warning("ServiceBuilder threw exception while building service: %s.", ex)
+            return (struct.pack('>H', emews.base.enums.net_state.STATE_NACK), (None))
+
+        self._thread_dispatcher.dispatch(service_obj)
         return (struct.pack('>H', emews.base.enums.net_state.STATE_ACK), (None))
