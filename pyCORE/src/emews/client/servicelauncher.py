@@ -6,11 +6,13 @@ Created on Apr 26, 2018
 """
 import argparse
 import os
+import random
 import signal
 import socket
 import struct
 import threading
 
+import emews.base.config
 import emews.base.enums
 
 
@@ -111,8 +113,10 @@ class SingleServiceClient(object):
 def main():
     """Do setup and launch."""
     parser = argparse.ArgumentParser(description='eMews Service Launcher')
-    parser.add_argument("-s", "--sys_config", help="path of the emews system config file "
+    parser.add_argument("-s", "--sys_config", help="path of the eMews system config file "
                         "(default: emews root)")
+    parser.add_argument("-c", "--node_config", help="path of the eMews node-based config file "
+                        "(default: <none>)")
     parser.add_argument("-c", "--service_config", help="path of the service config file"
                         "(default: standard path and name)")
     parser.add_argument("service", help="name of the service class to load")
@@ -129,21 +133,27 @@ def main():
     signal.signal(signal.SIGHUP, shutdown_signal_handler)
     signal.signal(signal.SIGINT, shutdown_signal_handler)
 
-    sys_config_path = os.path.join(os.path.dirname(emews.version.__file__), "system.yml")\
-                                   if args.sys_config is None else args.sys_config
-    service_config_path = args.service_config  # if this is none, default will be attempted
+    # config
+    base_config = emews.base.config.parse(os.path.join(root_path, 'base/conf.yml'))
+    if args.sys_config is None:
+        system_config = emews.base.config.parse(os.path.join(root_path, 'system.yml'))
+    else:
+        system_config = emews.base.config.parse(os.path.join(root_path, args.sys_config))
+    node_config = emews.base.config.parse(args.node_config) \
+        if args.node_config is not None else {}
+    config_dict_system = emews.base.config.merge_configs(
+        base_config['system'], system_config, node_config)
 
-    config = emews.base.config.Config(node_name, sys_config_path)
+    client = SingleServiceClient(config_dict_system, args.service, args.service_config)
 
-    client = SingleServiceClient(config, args.service, service_config_path)
+    if config_dict_system['general']['service_start_delay'] > 10:
+        # wait a bit before trying to connect (spread out the system load)
+        delay_val = random.randint(1, config_dict_system['general']['service_start_delay'] - 8)
+    else:
+        # eMews not configured for a service start delay, or delay is too small
+        delay_val = 1
 
-    # wait a bit before trying to connect (give the daemon some time to start up)
-    delay_sampler = emews.samplers.uniformsampler.UniformSampler(
-        config.get_sys_new('general', 'client_start_delay'))
-
-    delay_value = delay_sampler.next_value
-
-    client_wait.wait(delay_value)
+    client_wait.wait(delay_val)
 
     client.start()
 

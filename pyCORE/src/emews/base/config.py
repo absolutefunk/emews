@@ -5,8 +5,14 @@ Created on Apr 3, 2018
 @author: Brian Ricks
 """
 import collections
+import os
 
 from ruamel.yaml import YAML
+
+
+def get_root_path():
+    """Return the eMews root directory."""
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 
 
 def parse(filename):

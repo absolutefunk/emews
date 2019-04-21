@@ -27,7 +27,8 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
     __thread_id = 0  # each thread has a unique id
     __dispatch_id = 0  # for unique dispatchers
     __slots__ = ('_thread_map', '_deferred_objects', '_delay_timer', '_delay_lock',
-                 '_thread_shutdown_timeout', '_halt_on_exceptions', '_dispatcher_name')
+                 '_thread_shutdown_timeout', '_halt_on_exceptions', '_dispatcher_name',
+                 '_service_count')
 
     def __init__(self, config):
         """Constructor."""
@@ -38,6 +39,7 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
 
         self._thread_map = {}  # object and its corresponding thread
         self._deferred_objects = set()
+        self._service_count = 0  # current active service count
 
         self._delay_timer = None
         self._delay_lock = threading.Lock()
@@ -68,6 +70,9 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
 
     def cb_thread_exit(self, object_instance, on_exception=False):
         """Unregisters an object that has terminated."""
+        if hasattr(object_instance, 'service_id'):
+            self._service_count -= 1
+
         if on_exception:
             self.logger.error(
                 "object '%s' has expressed intent to terminate due to exception.",
@@ -114,6 +119,9 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
 
         self.logger.info("Dispatched thread '%s'.", new_thread.name)
 
+        if hasattr(object_instance, 'service_id'):
+            self._service_count += 1
+
     def _dispatch_info(self):
         """Display dispatch stats."""
         self.logger.debug("Active dispatched thread count: %d", self.count)
@@ -131,6 +139,7 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
         self.logger.debug("Dispatched all deferred threads.")
         self._deferred_threads.clear()
         self._dispatch_info()
+        self.logger.info("Active services: %d", self._service_count)
 
     def delay_dispatch(self, delay_time):
         """

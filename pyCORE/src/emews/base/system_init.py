@@ -23,7 +23,7 @@ import emews.base.sysprop
 
 def system_init(args):
     """Init configuration and base system properties."""
-    root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))  # root
+    root_path = emews.base.config.get_root()
     print "[system_init] Root path: " + root_path
 
     # first thing we need to do is parse the configs
