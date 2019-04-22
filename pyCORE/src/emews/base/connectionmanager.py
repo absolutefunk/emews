@@ -148,10 +148,10 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
                 session_id, struct.unpack(">I", socket.inet_aton(src_addr[0]))[0])
 
             sock_state = [None] * SockState.ENUM_SIZE
-            sock_state.insert(SockState.SOCK_SESSION_ID, session_id)
-            sock_state.insert(SockState.SOCK_NEXT_CB, self._net_serv.handle_connection)
-            sock_state.insert(SockState.SOCK_EXPECTED_BYTES, 6)
-            sock_state.insert(SockState.SOCK_BUFFER, "")
+            sock_state[SockState.SOCK_SESSION_ID] = session_id
+            sock_state[SockState.SOCK_NEXT_CB] = self._net_serv.handle_connection
+            sock_state[SockState.SOCK_EXPECTED_BYTES] = 6
+            sock_state[SockState.SOCK_BUFFER] = ""
 
             self._socks[acc_sock] = sock_state
         else:
@@ -189,8 +189,8 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
                 # read cb: returns (cb, buf) for read mode, (data, (cb, buf)) for write mode
                 ret_tup = sock_state[SockState.SOCK_NEXT_CB](
                     sock_state[SockState.SOCK_SESSION_ID], chunk)
-            except TypeError:
-                self.logger.error("Handler callback is not callable.")
+            except StandardError as ex:
+                self.logger.error("Handler threw exception: %s.", ex)
                 raise
 
             if ret_tup is None:
@@ -198,7 +198,7 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
                 self._close_socket(sock)
             elif isinstance(ret_tup[1], tuple):
                 # write mode
-                if ret_tup[1] is None:
+                if ret_tup[1][0] is None:
                     # close the socket after write
                     sock_state[SockState.SOCK_NEXT_CB] = None
                     sock_state[SockState.SOCK_EXPECTED_BYTES] = 0

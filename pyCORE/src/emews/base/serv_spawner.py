@@ -23,8 +23,8 @@ class ServSpawner(emews.base.baseserv.BaseServ):
         self._thread_dispatcher = thread_dispatcher
 
         self._cb = [None] * emews.base.enums.spawner_protocols.ENUM_SIZE
-        self._cb.insert(emews.base.enums.spawner_protocols.SPAWNER_LAUNCH_SERVICE,
-                        self._spawn_service_req_name)
+        self._cb[emews.base.enums.spawner_protocols.SPAWNER_LAUNCH_SERVICE] = \
+            self._spawn_service_req_name
 
         self._session_data = {}
 
@@ -46,13 +46,16 @@ class ServSpawner(emews.base.baseserv.BaseServ):
         try:
             req_id, param_s = struct.unpack('>HL', chunk)
         except struct.error as ex:
-            self.logger.warning("Struct error when unpacking spawner query: %s", ex)
+            self.logger.warning("Session id: %d, struct error when unpacking spawner query: %s",
+                                session_id, ex)
             return None
 
         try:
             ret_tup = self._cb[req_id](session_id, param_s)
         except IndexError:
-            self.logger.warning("Invalid query id: %d", req_id)
+            self.logger.warning("Session id: %d, invalid query id: %d", session_id, req_id)
+
+        self.logger.debug("Session id: %d, received request id: %d", session_id, req_id)
 
         return ret_tup
 
@@ -70,15 +73,20 @@ class ServSpawner(emews.base.baseserv.BaseServ):
     def _spawn_service_req_config(self, session_id, chunk):
         """Length of string of service config name."""
         try:
-            str_length = struct.unpack('>L', chunk)
+            str_length = struct.unpack('>L', chunk)[0]
         except struct.error as ex:
-            self.logger.warning("Struct error when unpacking service config name length: %s", ex)
+            self.logger.warning(
+                "Session id: %d, struct error when unpacking service config name length: %s",
+                session_id, ex)
             return None
 
         if str_length > 0:
             return (self._spawn_service_post, str_length)
 
-        return self._spawn_service_post(self, session_id, None)
+        self.logger.debug(
+            "Session id: %d, service config path length is zero, will resolve default path ...",
+            session_id)
+        return self._spawn_service_post(session_id, None)
 
     def _spawn_service_post(self, session_id, chunk):
         """Given the service class and config name, spawn the service."""
@@ -91,8 +99,10 @@ class ServSpawner(emews.base.baseserv.BaseServ):
             service_obj = service_builder.build(
                 service_name, service_config_file=service_config_name)
         except StandardError as ex:
-            self.logger.warning("ServiceBuilder threw exception while building service: %s.", ex)
-            return (struct.pack('>H', emews.base.enums.net_state.STATE_NACK), (None))
+            self.logger.warning(
+                "Session id: %d, ServiceBuilder threw exception while building service: %s.",
+                session_id, ex)
+            return (struct.pack('>H', emews.base.enums.net_state.STATE_NACK), (None,))
 
         self._thread_dispatcher.dispatch(service_obj)
-        return (struct.pack('>H', emews.base.enums.net_state.STATE_ACK), (None))
+        return (struct.pack('>H', emews.base.enums.net_state.STATE_ACK), (None,))

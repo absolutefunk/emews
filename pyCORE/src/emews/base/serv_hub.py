@@ -22,8 +22,8 @@ class ServHub(emews.base.baseserv.BaseServ):
         super(ServHub, self).__init__()
 
         self._cb = [None] * emews.base.enums.hub_protocols.ENUM_SIZE
-        self._cb.insert(emews.base.enums.hub_protocols.HUB_NODE_ID_REQ, self._register_node_req)
-        self._cb.insert(emews.base.enums.hub_protocols.HUB_SERVICE_ID_REQ, self._register_service_req)
+        self._cb[emews.base.enums.hub_protocols.HUB_NODE_ID_REQ] = self._register_node_req
+        self._cb[emews.base.enums.hub_protocols.HUB_SERVICE_ID_REQ] = self._register_service_req
 
         self._node_id = 2     # current unassigned node id
         self._service_id = 2  # current unassigned service id
@@ -45,13 +45,14 @@ class ServHub(emews.base.baseserv.BaseServ):
         try:
             req_id, param_s = struct.unpack('>HL', chunk)
         except struct.error as ex:
-            self.logger.warning("Struct error when unpacking hub query: %s", ex)
+            self.logger.warning("Session id: %d, struct error when unpacking hub query: %s",
+                                session_id, ex)
             return None
 
         try:
             ret_tup = self._cb[req_id](session_id, param_s)
         except IndexError:
-            self.logger.warning("Invalid query id: %d", req_id)
+            self.logger.warning("Session id: %d, invalid query id: %d", session_id, req_id)
 
         return ret_tup
 
@@ -62,7 +63,7 @@ class ServHub(emews.base.baseserv.BaseServ):
 
         self.net_cache.add_node(self._node_id, session_id)
 
-        return (new_node_id, (None))  # send new node id and terminate
+        return (new_node_id, (None,))  # send new node id and terminate
 
     def _register_service_req(self, session_id, chunk):
         """Register a new service specific to a node (post-request)."""
@@ -72,4 +73,4 @@ class ServHub(emews.base.baseserv.BaseServ):
         node_id = self._net_cache.session[session_id].node_id
         self._net_cache.node[node_id].services.add(new_service_id)
 
-        return (new_service_id, (None))  # send new service id and terminate
+        return (new_service_id, (None,))  # send new service id and terminate

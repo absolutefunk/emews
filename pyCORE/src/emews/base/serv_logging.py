@@ -24,12 +24,14 @@ class ServLogging(emews.base.baseserv.BaseServ):
         """Handle the case when a socket is closed."""
         pass
 
-    def _msg_length(self, sesson_id, chunk):
+    def _msg_length(self, session_id, chunk):
         """Log message length (4 bytes)."""
         try:
             slen = struct.unpack('>L', chunk)[0]
         except struct.error as ex:
-            self.logger.warning("Struct error when unpacking log message length: %s", ex)
+            self.logger.warning(
+                "Session id: %d, struct error when unpacking log message length: %s",
+                session_id, ex)
             return None
 
         return (self._process_message, slen)

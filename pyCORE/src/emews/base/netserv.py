@@ -88,28 +88,27 @@ class NetServ(emews.base.baseobject.BaseObject):
 
         # protocol mappings
         self._proto_cb = [None] * emews.base.enums.net_protocols.ENUM_SIZE
-        self._proto_cb.insert(emews.base.enums.net_protocols.NET_NONE, NonSupportedInvalid())
-        self._proto_cb.insert(emews.base.enums.net_protocols.NET_CC_1, NonSupportedInvalid())
-        self._proto_cb.insert(emews.base.enums.net_protocols.NET_CC_2, NonSupportedInvalid())
+        self._proto_cb[emews.base.enums.net_protocols.NET_NONE] = NonSupportedInvalid()
+        self._proto_cb[emews.base.enums.net_protocols.NET_CC_1] = NonSupportedInvalid()
+        self._proto_cb[emews.base.enums.net_protocols.NET_CC_2] = NonSupportedInvalid()
 
         inject_par = {'sys': self.sys, '_net_cache': self._net_cache}
 
         if self.sys.is_hub:
             # Hub node runs the following servers:
-            self._proto_cb.insert(emews.base.enums.net_protocols.NET_HUB,
-                                  emews.base.serv_hub.ServHub(_inject=inject_par))
-            self._proto_cb.insert(emews.base.enums.net_protocols.NET_LOGGING,
-                                  emews.base.serv_logging.ServLogging(_inject=inject_par))
+            self._proto_cb[emews.base.enums.net_protocols.NET_HUB] = \
+                emews.base.serv_hub.ServHub(_inject=inject_par)
+            self._proto_cb[emews.base.enums.net_protocols.NET_LOGGING] = \
+                emews.base.serv_logging.ServLogging(_inject=inject_par)
         else:
-            self._proto_cb.insert(emews.base.enums.net_protocols.NET_HUB, NonSupportedHub())
-            self._proto_cb.insert(emews.base.enums.net_protocols.NET_LOGGING, NonSupportedHub())
+            self._proto_cb[emews.base.enums.net_protocols.NET_HUB] = NonSupportedHub()
+            self._proto_cb[emews.base.enums.net_protocols.NET_LOGGING] = NonSupportedHub()
 
         # The following servers run on all nodes:
-        self._proto_cb.insert(emews.base.enums.net_protocols.NET_SPAWN,
-                              emews.base.serv_spawner.ServSpawner(
-                                thread_dispatcher, _inject=inject_par))
-        self._proto_cb.insert(emews.base.enums.net_protocols.NET_AGENT,
-                              emews.base.serv_agent.ServAgent(_inject=inject_par))
+        self._proto_cb[emews.base.enums.net_protocols.NET_SPAWN] = \
+            emews.base.serv_spawner.ServSpawner(thread_dispatcher, _inject=inject_par)
+        self._proto_cb[emews.base.enums.net_protocols.NET_AGENT] = \
+            emews.base.serv_agent.ServAgent(_inject=inject_par)
 
     def handle_init(self, session_id, int_addr):
         """Init tasks."""
@@ -131,7 +130,8 @@ class NetServ(emews.base.baseobject.BaseObject):
         try:
             proto_id, node_id = struct.unpack('>HL', chunk)
         except struct.error as ex:
-            self.logger.warning("Struct error when unpacking protocol: %s", ex)
+            self.logger.warning("Session id: %d, struct error when unpacking protocol: %s",
+                                session_id, ex)
             return None
 
         session_data = self._net_cache.session[session_id]
@@ -142,9 +142,9 @@ class NetServ(emews.base.baseobject.BaseObject):
 
             if node_data is None:
                 if self.sys.is_hub:
-                    self.logger.warning("Unrecognized node id given: %d, from address: %s",
-                                        node_id,
-                                        socket.inet_ntoa(struct.pack(">I", session_data.addr)))
+                    self.logger.warning(
+                        "Session id: %d, unrecognized node id given: %d, from address: %s",
+                        session_id, node_id, socket.inet_ntoa(struct.pack(">I", session_data.addr)))
                     return None
 
                 # if not the hub node, assume node id is legit
@@ -154,6 +154,13 @@ class NetServ(emews.base.baseobject.BaseObject):
             node_data.addr = session_data.addr  # update latest address
             session_data.node_id = node_id      # assign node id associated with this session
 
+        if proto_id > len(self._proto_cb) - 1:
+            self.logger.warning(
+                "Session id: %d, unrecognized protocol id given: %d, from address: %s",
+                session_id, proto_id, socket.inet_ntoa(struct.pack(">I", session_data.addr)))
+            return None
+
         session_data.handler = self._proto_cb[proto_id]  # assign handler for this session
+        self.logger.debug("Session id: %d, protocol requested: %d", session_id, proto_id)
 
         return session_data.handler.handle_init(node_id, session_id)

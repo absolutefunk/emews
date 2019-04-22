@@ -64,8 +64,7 @@ class SingleServiceClient(object):
                                          emews.base.enums.net_protocols.NET_SPAWN,
                                          0,  # node id (clients don't have a node id, leave at zero)
                                          emews.base.enums.spawner_protocols.SPAWNER_LAUNCH_SERVICE,
-                                         len(self._service_name),  # params (service name length)
-                                         len(self._service_config_path)  # config length
+                                         len(self._service_name)  # params (service name length)
                                          ))
 
                 if self.interrupted:
@@ -76,24 +75,31 @@ class SingleServiceClient(object):
                 if self.interrupted:
                     break
 
-                sock.sendall(struct.pack('L',
-                                         len(self._service_config_path)  # config length
-                                         ))
+                if self._service_config_path is not None:
+                    sock.sendall(struct.pack('L',
+                                             len(self._service_config_path)  # config length
+                                             ))
+                else:
+                    # have the daemon resolve the default path
+                    sock.sendall(struct.pack('L',
+                                             0  # config length
+                                             ))
 
                 if self.interrupted:
                     break
 
-                sock.sendall(self._service_config_path)
+                if self._service_config_path is not None:
+                    sock.sendall(self._service_config_path)
 
                 if self.interrupted:
                     break
 
-                chunk = sock.recv(4)  # ACK (2 bytes)
+                chunk = sock.recv(2)  # ACK (2 bytes)
 
                 if self.interrupted:
                     break
 
-                ack = struct.unpack('>H', chunk)
+                ack = struct.unpack('>H', chunk)[0]
             except (socket.error, struct.error):
                 connect_attempts += 1
                 continue

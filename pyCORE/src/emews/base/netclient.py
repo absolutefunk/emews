@@ -110,7 +110,7 @@ class NetClient(emews.base.baseobject.BaseObject):
                 if self._interrupted:
                     break
 
-                result = struct.unpack('>L', chunk)
+                result = struct.unpack('>L', chunk)[0]
             except (socket.error, struct.error):
                 connect_attempts += 1
                 continue
