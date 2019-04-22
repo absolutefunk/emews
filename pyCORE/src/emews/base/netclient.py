@@ -9,6 +9,7 @@ import struct
 
 import emews.base.baseclient
 import emews.base.baseobject
+import emews.base.enums
 
 
 # client classes - these run in separate threads and are suitable for ThreadDispatcher dispatch
@@ -93,7 +94,7 @@ class NetClient(emews.base.baseobject.BaseObject):
                     break
 
                 sock.sendall(struct.pack('>HLHL',
-                                         emews.base.basenet.NetProto.NET_HUB,
+                                         emews.base.enums.net_protocols.NET_HUB,
                                          self.sys.node_id,
                                          request,  # request to the hub node
                                          param  # param (0=None)
@@ -118,7 +119,7 @@ class NetClient(emews.base.baseobject.BaseObject):
             break
 
         try:
-            sock.shutdown()
+            sock.shutdown(socket.SHUT_RDWR)
         except socket.error:
             pass
 

@@ -59,6 +59,7 @@ def system_init(args):
     if is_hub or args.local:
         node_id = 1  # hub or local mode node id
         log_host = '127.0.0.1'
+        config_dict_system['hub']['node_address'] = '127.0.0.1'
     else:
         # The node id is assigned by the hub node.
         # Once node id is assigned, this node will use it whenever connecting to the hub.

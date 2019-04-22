@@ -30,8 +30,8 @@ class hub_protocols(object):
     ENUM_SIZE = 3
 
     HUB_NONE = 0            # placeholder
-    HUB_NODE_ID_REQ = 1     # Request node id
-    HUB_SERVICE_ID_REQ = 2  # check if a node id is registered
+    HUB_NODE_ID_REQ = 1     # request a global node id
+    HUB_SERVICE_ID_REQ = 2  # request a global service id
 
 
 class spawner_protocols(object):

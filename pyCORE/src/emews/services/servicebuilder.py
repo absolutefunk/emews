@@ -9,8 +9,8 @@ import os
 
 import emews.base.baseobject
 import emews.base.config
+import emews.base.enums
 import emews.base.import_tools
-import emews.base.serv_hub
 import emews.components.samplers.zerosampler
 
 
@@ -78,7 +78,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         local_service_id = self._service_count.get(service_name, -1) + 1
         service_id = self._get_service_id(local_service_id)
         service_name_full = service_name + '_' + str(local_service_id)
-        self.logger.debug("Service '%s' assigned id '%d'.", service_name_full, service_id)
+        self.logger.debug("Service '%s' assigned service id: %d", service_name_full, service_id)
 
         # inject dict
         service_config_inject = {}
@@ -108,4 +108,4 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
             # there is no global id in local mode
             return local_service_id
 
-        return self.sys.net.hub_query(emews.base.serv_hub.HubProto.HUB_SERVICE_ID_REQ)
+        return self.sys.net.hub_query(emews.base.enums.hub_protocols.HUB_SERVICE_ID_REQ)

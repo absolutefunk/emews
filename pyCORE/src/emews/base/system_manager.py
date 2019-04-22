@@ -161,6 +161,7 @@ class SystemManager(object):
 
         This needs to be called before services are launched.
         """
-        self.sys.net.hub_query = self._net_client.hub_query
+        if self.sys.net.hub_query == emews.base.sysprop.unassigned_method:
+            self.sys.net.hub_query = self._net_client.hub_query
         self.sys.net._ro = True
         self.sys._ro = True
