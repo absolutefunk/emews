@@ -27,14 +27,14 @@ class BaseClient(emews.base.baseobject.BaseObject):
         """Return the client name."""
         return self._client_name
 
-    @abstractmethod
     def start(self):
         """Start the client."""
-        pass
+        self.logger.debug("%s: starting client ...", self._client_name)
+        self.run_client()
 
     @abstractmethod
-    def stop(self):
-        """Stop the client."""
+    def run_client(self):
+        """Where the service entrance code goes.  Must be implemented by child class."""
         pass
 
     def register_dispatcher(self, dispatcher):
@@ -53,3 +53,4 @@ class BaseClient(emews.base.baseobject.BaseObject):
         """@Override Interrupt the client."""
         self._interrupt_event.set()
         super(BaseClient, self).interrupt()
+        self.logger.debug("%s: finishing (asked to stop).", self._client_name)

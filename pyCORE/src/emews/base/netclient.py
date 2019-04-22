@@ -28,12 +28,7 @@ class BroadcastMessage(emews.base.baseclient.BaseClient):
         self._duration = duration
         self._sock = None
 
-    def start(self):
-        """Start the broadcast."""
-        self.logger.debug("%s: Broadcast starting ...", self._client_name)
-        self.broadcast()
-
-    def broadcast(self):
+    def run_client(self):
         """Run the broadcast."""
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -51,11 +46,6 @@ class BroadcastMessage(emews.base.baseclient.BaseClient):
         self._sock.close()
         self._sock = None
         self.logger.debug("%s: Broadcast finished.", self._client_name)
-
-    def stop(self):
-        """Stop the broadcast."""
-        self.interrupt()
-        self.logger.debug("%s: Broadcast finishing (asked to stop).", self._client_name)
 
 
 class NetClient(emews.base.baseobject.BaseObject):

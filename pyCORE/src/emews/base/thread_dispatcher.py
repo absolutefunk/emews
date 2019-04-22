@@ -75,14 +75,14 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
 
         if on_exception:
             self.logger.error(
-                "object '%s' has expressed intent to terminate due to exception.",
+                "Object '%s' has expressed intent to terminate due to exception.",
                 str(object_instance))
             if self._halt_on_exceptions:
                 self.logger.info("Halt-on-exceptions enabled, throwing SIGINT ...")
                 os.kill(os.getpid(), signal.SIGINT)
         else:
             self.logger.debug(
-                "object '%s' has expressed intent to terminate.", str(object_instance))
+                "Object '%s' has expressed intent to terminate.", str(object_instance))
 
     def dispatch(self, object_instance, force_start=False):
         """
@@ -127,8 +127,8 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
         self.logger.debug("Active dispatched thread count: %d", self.count)
         self.logger.debug("Active threads: %s", thread_names_str())
 
-    def dispatch_deferred_threads(self):
-        """Dispatch threads which have been deferred for execution."""
+    def dispatch_deferred_objects(self):
+        """Dispatch objects which have been deferred for execution."""
         if not len(self._deferred_objects):
             self.logger.debug("No deferred threads to dispatch.")
             return
@@ -137,7 +137,7 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
             self._object_dispatch(object_instance)
 
         self.logger.debug("Dispatched all deferred threads.")
-        self._deferred_threads.clear()
+        self._deferred_objects.clear()
         self._dispatch_info()
         self.logger.info("Active services: %d", self._service_count)
 
@@ -159,7 +159,7 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
         # a thread in the middle of being added to the deferred set.
         with self._delay_lock:
             self._delay_timer = None
-            self.dispatch_deferred_threads()
+            self.dispatch_deferred_objects()
 
         return
 
@@ -183,7 +183,7 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
         if self.count > 0:
             for t_object in self._thread_map.keys():
                 # send stop requests to all registered objects
-                t_object.stop()
+                t_object.interrupt()
 
             if self._thread_shutdown_timeout is not None:
                 self.logger.info("Will wait a maximum of %d seconds for threads to shutdown.",
