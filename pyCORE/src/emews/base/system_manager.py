@@ -102,7 +102,7 @@ class SystemManager(object):
 
         # instantiate thread dispatcher and connection manager
         self._thread_dispatcher = emews.base.thread_dispatcher.ThreadDispatcher(
-            self._config['general'], self._thread_dispatcher, _inject={'sys': self.sys})
+            self._config['general'], _inject={'sys': self.sys})
 
         if self.sys.local:
             # local mode:  do not start ConnectionManager
@@ -123,7 +123,7 @@ class SystemManager(object):
 
         else:
             self._connection_manager = emews.base.connectionmanager.ConnectionManager(
-                self._config['communication'], _inject={'sys': self.sys})
+                self._config['communication'], self._thread_dispatcher, _inject={'sys': self.sys})
             self._net_client = emews.base.netclient.NetClient(
                 self._config['communication'],
                 self._config['hub']['node_address'],

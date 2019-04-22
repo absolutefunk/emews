@@ -20,16 +20,27 @@ class SingleServiceClient(object):
     """Classdocs."""
 
     __slots__ = ('_port', '_service_name', '_service_config_path', '_connect_timeout',
-                 '_connect_max_attempts', '_interrupted')
+                 '_connect_max_attempts', 'interrupted')
 
     def __init__(self, config, service_name, service_config_path):
         """Constructor."""
         self._port = config['communication']['port']
+        print "[service_launcher] daemon port: " + str(self._port)
+
         self._connect_timeout = config['communication']['connect_timeout']
+        print "[service_launcher] connect timeout: " + str(self._connect_timeout)
+
         self._connect_max_attempts = config['communication']['connect_max_attempts']
+        print "[service_launcher] connect max attempts: " + str(self._connect_max_attempts)
 
         self._service_name = service_name
+        print "[service_launcher] service name to request: " + self._service_name
+
         self._service_config_path = service_config_path
+        if self._service_config_path is None:
+            print "[service_launcher] service configuration path: <default>"
+        else:
+            print "[service_launcher] service configuration path: " + self._service_config_path
 
         self.interrupted = False
 
@@ -42,11 +53,13 @@ class SingleServiceClient(object):
 
         while connect_attempts < self._connect_max_attempts and not self.interrupted:
             try:
+                print "[service_launcher] connect attempt " + str(connect_attempts + 1) + " ..."
                 sock.connect(('127.0.0.1', self._port))
 
                 if self.interrupted:
                     break
 
+                print "[service_launcher] connected."
                 sock.sendall(struct.pack('>HLHL',
                                          emews.base.enums.net_protocols.NET_SPAWN,
                                          0,  # node id (clients don't have a node id, leave at zero)
@@ -104,10 +117,12 @@ class SingleServiceClient(object):
 
         sock.close()
 
-        if connect_attempts == max_attempts:
+        if connect_attempts == self._connect_max_attempts:
             raise IOError("Could not send service launch command to eMews daemon.")
         elif ack == emews.base.enums.net_state.STATE_NACK:
             raise IOError("Received NACK from eMews daemon.")
+
+        print "[service_launcher] done."
 
 
 def main():
@@ -117,10 +132,12 @@ def main():
                         "(default: emews root)")
     parser.add_argument("-c", "--node_config", help="path of the eMews node-based config file "
                         "(default: <none>)")
-    parser.add_argument("-c", "--service_config", help="path of the service config file"
+    parser.add_argument("-p", "--service_config", help="path of the service config file"
                         "(default: standard path and name)")
     parser.add_argument("service", help="name of the service class to load")
     args = parser.parse_args()
+
+    print "[service_launcher] eMews Service Launcher Client."
 
     client = None
     client_wait = threading.Event()
@@ -134,6 +151,7 @@ def main():
     signal.signal(signal.SIGINT, shutdown_signal_handler)
 
     # config
+    root_path = emews.base.config.get_root_path()
     base_config = emews.base.config.parse(os.path.join(root_path, 'base/conf.yml'))
     if args.sys_config is None:
         system_config = emews.base.config.parse(os.path.join(root_path, 'system.yml'))
@@ -146,13 +164,17 @@ def main():
 
     client = SingleServiceClient(config_dict_system, args.service, args.service_config)
 
-    if config_dict_system['general']['service_start_delay'] > 10:
+    start_delay = config_dict_system['general']['service_start_delay']
+    print "[service_launcher] daemon start delay: " + str(start_delay)
+
+    if start_delay > 10:
         # wait a bit before trying to connect (spread out the system load)
         delay_val = random.randint(1, config_dict_system['general']['service_start_delay'] - 8)
     else:
         # eMews not configured for a service start delay, or delay is too small
         delay_val = 1
 
+    print "[service_launcher] waiting for " + str(delay_val) + " seconds before connecting ..."
     client_wait.wait(delay_val)
 
     client.start()

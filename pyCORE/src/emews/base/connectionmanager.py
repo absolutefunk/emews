@@ -19,20 +19,23 @@ class SockState(object):
 
     ENUM_SIZE = 4
 
-    SOCK_NEXT_CB = 0
-    SOCK_EXPECTED_BYTES = 1
-    SOCK_BUFFER = 2
+    SOCK_SESSION_ID = 0
+    SOCK_NEXT_CB = 1
+    SOCK_EXPECTED_BYTES = 2
+    SOCK_BUFFER = 3
 
 
 class ConnectionManager(emews.base.baseobject.BaseObject):
     """Classdocs."""
 
     __slots__ = ('_port', '_socks', '_listener_sock', '_net_serv', '_pending_ids', '_cb',
-                 '_r_socks', '_w_socks', '_e_socks')
+                 '_r_socks', '_w_socks', '_e_socks', '_conn_id')
 
     def __init__(self, config, thread_dispatcher):
         """Constructor."""
         super(ConnectionManager, self).__init__()
+
+        self._conn_id = 0
 
         self._port = config['port']
 
@@ -45,6 +48,11 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
         self._r_socks = []  # list of socket objects to manage for a readable state
         self._w_socks = []  # list of socket objects to manage for a writable state
         self._e_socks = []  # list of socket objects to manage for an exceptional state
+
+    def _get_new_session_id(self):
+        """Return a new connection id."""
+        self._conn_id += 1
+        return self._conn_id
 
     def _close_socket(self, sock):
         """Close the passed socket.  Should not be used on listener sockets."""
@@ -61,13 +69,14 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
         self._e_socks.remove(sock)
 
         if sock in self._socks:
-            self._net_serv.handle_close(sock.fileno())
+            session_id = self._socks[sock][SockState.SOCK_SESSION_ID]
+            self._net_serv.handle_close(session_id)
             del self._socks[sock]
 
-            if sock.fileno() in self._pending_ids:
+            if session_id in self._pending_ids:
                 # connection could not be established
-                del self._pending_ids[sock.fileno()]
-                self.logger.debug("Connection not established for FD '%d'.", sock.fileno())
+                del self._pending_ids[session_id]
+                self.logger.debug("Connection not established for session id %d.", session_id)
 
         try:
             sock.shutdown(socket.SHUT_RDWR)
@@ -129,15 +138,17 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
                 self.logger.warning("Socket exception while accepting connection: %s", ex)
                 return
 
-            self.logger.debug("Connection established from %s", src_addr)
+            session_id = self._get_new_session_id()
+            self.logger.debug("Connection established from %s, assigned session ID: %d",
+                              src_addr, session_id)
             self._r_socks.append(acc_sock)
             self._e_socks.append(acc_sock)
 
-            # call handle_init(), sock FD as session_id, IPv4 address as int
             self._net_serv.handle_init(
-                acc_sock.fileno(), struct.unpack(">I", socket.inet_aton(src_addr[0]))[0])
+                session_id, struct.unpack(">I", socket.inet_aton(src_addr[0]))[0])
 
             sock_state = [None] * SockState.ENUM_SIZE
+            sock_state.insert(SockState.SOCK_SESSION_ID, session_id)
             sock_state.insert(SockState.SOCK_NEXT_CB, self._net_serv.handle_connection)
             sock_state.insert(SockState.SOCK_EXPECTED_BYTES, 6)
             sock_state.insert(SockState.SOCK_BUFFER, "")
@@ -151,16 +162,19 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
                 chunk = sock.recv(sock_state[SockState.SOCK_EXPECTED_BYTES])
             except socket.error:
                 self.logger.warning(
-                    "Socket error when receiving data, closing socket FD '%d' ...", sock.fileno())
+                    "Socket error when receiving data, closing socket (session %d) ...",
+                    sock_state[SockState.SOCK_SESSION_ID])
                 self._close_socket(sock)
                 return
 
             if not len(chunk):
                 # zero length chunk, connection probably closed
-                self.logger.debug("Connection closed remotely, closing socket FD '%d' ...",
-                                  sock.fileno())
+                self.logger.debug("Connection closed remotely, closing socket (session %d) ...",
+                                  sock_state[SockState.SOCK_SESSION_ID])
                 self._close_socket(sock)
-            elif len(chunk) < sock_state[SockState.SOCK_EXPECTED_BYTES]:
+                return
+
+            if len(chunk) < sock_state[SockState.SOCK_EXPECTED_BYTES]:
                 # num bytes recv is less than what is expected.
                 sock_state[SockState.SOCK_EXPECTED_BYTES] = \
                     sock_state[SockState.SOCK_EXPECTED_BYTES] - len(chunk)  # bytes remaining
@@ -173,7 +187,8 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
 
             try:
                 # read cb: returns (cb, buf) for read mode, (data, (cb, buf)) for write mode
-                ret_tup = sock_state[SockState.SOCK_NEXT_CB](sock.fileno(), chunk)
+                ret_tup = sock_state[SockState.SOCK_NEXT_CB](
+                    sock_state[SockState.SOCK_SESSION_ID], chunk)
             except TypeError:
                 self.logger.error("Handler callback is not callable.")
                 raise
@@ -229,7 +244,8 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
 
     def _exceptional_socket(self, sock):
         """Close a sock in such a state."""
-        self.logger.debug("Closing socket FD '%d' in exceptional state.", sock.fileno())
+        self.logger.debug("Closing socket in exceptional state (session %d).",
+                          self._socks[sock][SockState.SOCK_SESSION_ID])
         self._close_socket(sock)
 
     def _setup_listener(self):
