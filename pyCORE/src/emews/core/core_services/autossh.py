@@ -1,35 +1,36 @@
-'''
-CoreServices: classes which interface with the CORE network emulator, for automatic launching of
-eMews clients (which themselves will send the proper commands to launch services)
+"""
+AutoSSH CoreService.
 
 Created on Mar 5, 2018
 @author: Brian Ricks
-'''
+"""
+import os
 
-# Note, core in module path belongs to CORE, not emews
 from core.service import CoreService
 
-class AutoSSH(CoreService):
-    '''
-    CORE Service class for the eMews daemon
-    '''
-    _name = "AutoSSH"
-    _group = "eMews"
 
-    _configs = ("autossh.sh",)
-    _startindex = 50  # make sure this is higher than the emews daemon CoreService
-    _dirs = ()
-    _startup = ("sh autossh.sh",)
-    _shutdown = ()
-    _validate = ()
+class AutoSSH(CoreService):
+    """CORE Service class for the eMews daemon."""
+
+    name = "AutoSSH"
+    group = "eMews"
+
+    configs = ("emews_autossh.sh",)
+    startindex = 50  # make sure this is higher than the emews daemon CoreService
+    dependencies = ("eMewsDaemon")
+    dirs = ()
+    startup = ("sh emews_autossh.sh",)
+    shutdown = ()
+    validate = ()
 
     @classmethod
     def generateconfig(cls, node, filename, services):
-        '''
-        Generates the emews daemon per-node specific config.
-        '''
+        """Generate the emews daemon per-node specific config."""
+        emews_root = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.sep))
+        python_path = os.path.join(emews_root, os.pardir)
         return """\
 #!/bin/sh
-export PYTHONPATH=/home/coreuser/
-python /home/coreuser/emews/client/singleserviceclient.py -n %s AutoSSH
+export PYTHONPATH=""" + python_path + """
+python """ + emews_root + """singleserviceclient.py -n %s AutoSSH
 """ % (node.name)
