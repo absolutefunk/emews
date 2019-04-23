@@ -32,27 +32,13 @@ class AutoSSH(emews.services.baseservice.BaseService):
         self._command_delay_sampler = self.sys.import_component(config['command_delay_sampler'])
 
     def _send_ssh_command(self, ssh_client, next_command):
-        """
-        Send the next SSH command, and set the command prompt.
-
-        Return true if execution shoud continue, false otherwise.
-        """
-        try:
-            ssh_client.sendline(next_command)
-        except pxssh.ExceptionPxssh as ex:
-            self.logger.warning("pxssh could not send command: %s", ex)
-            return False
+        """Send the next SSH command, and set the command prompt."""
+        ssh_client.sendline(next_command)
 
         if self.interrupted:
-            return False
+            return
 
-        try:
-            ssh_client.prompt()
-        except pxssh.ExceptionPxssh as ex:
-            self.logger.warning("pxssh could not set prompt: %s", ex)
-            return False
-
-        return True
+        ssh_client.prompt()
 
     def run_service(self):
         """@Override Connect and login to the ssh server given with the credentials given."""
@@ -72,7 +58,7 @@ class AutoSSH(emews.services.baseservice.BaseService):
                              port=self._port)
         except pxssh.ExceptionPxssh as ex:
             self.logger.warning("pxssh could not login to server: %s", ex)
-            raise
+            return
 
         # As we are sampling without replacement, we need to copy the original list
         command_list = list(self._command_list)
@@ -85,10 +71,13 @@ class AutoSSH(emews.services.baseservice.BaseService):
 
             self._command_sampler.update(upper_bound=len(command_list) - 1)
             next_command = command_list.pop(self._command_sampler.sample())
-            self.logger.debug("Next Command: %s", next_command)
+            self.logger.debug("Next command: %s", next_command)
 
-            if not self._send_ssh_command(ssh_client, next_command):
-                return
+            try:
+                self._send_ssh_command(ssh_client, next_command)
+            except pxssh.ExceptionPxssh as ex:
+                self.logger.warning("pxssh could not send ssh command: %s", ex)
+                break
 
             self.sleep(self._command_delay_sampler.sample())
 

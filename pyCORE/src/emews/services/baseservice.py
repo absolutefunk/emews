@@ -61,8 +61,11 @@ class BaseService(object):
             if self._service_loop is not None:
                 # looped
                 while not self.interrupted:
+                    sleep_time = self._service_loop.sample()
+                    self.logger.debug("%s: sleeping for %d seconds before next service invocation.",
+                                      self.service_name, sleep_time)
+                    self.sleep(sleep_time)
                     self.run_service()
-                    self.sleep(self._service_loop.sample())
             else:
                 self.run_service()
         except:  # noqa

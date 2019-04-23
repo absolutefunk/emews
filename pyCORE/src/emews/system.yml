@@ -9,7 +9,7 @@ general:  # general eMews daemon options
   # Delay to wait for 'graceful' thread shutdown.  After this wait, continue shut down.
   thread_shutdown_wait: 3  # in seconds (-1 = disable)
   # If true, then halt eMews on service-originated exceptions
-  halt_on_service_exceptions: False
+  halt_on_service_exceptions: True
 
 communication:  # communication related eMews daemon options
   port: 32518      # port to use
