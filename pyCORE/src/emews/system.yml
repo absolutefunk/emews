@@ -16,6 +16,7 @@ communication:  # communication related eMews daemon options
   port: 32518      # port to use
 logging:
   output: file
+  message_level: DEBUG
 hub:
   node_name: n1
 
