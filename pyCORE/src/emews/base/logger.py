@@ -26,7 +26,14 @@ class DistLogger(logging.handlers.SocketHandler):
         super(DistLogger, self).__init__(host, port)
         self._node_id = node_id  # no __slots__, as base class doesn't use it
 
-    def makePickle(self, record):
-        """@Override Prefix bytes representing protocol header."""
-        return struct.pack(">HL", emews.base.enums.net_protocols.NET_LOGGING, self._node_id) + \
-            super(DistLogger, self).makePickle(record)
+    def createSocket(self):
+        """@Override send proto and node id upon successful connection."""
+        super(DistLogger, self).createSocket()
+        if self.sock:
+            # send the proto id (logging) and node id to hub first
+            try:
+                self.sock.sendall(
+                    struct.pack(">HL", emews.base.enums.net_protocols.NET_LOGGING, self._node_id))
+            except OSError:  # pragma: no cover
+                self.sock.close()
+                self.sock = None  # so we can call createSocket next time

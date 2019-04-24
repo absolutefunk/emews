@@ -139,7 +139,7 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
                 return
 
             session_id = self._get_new_session_id()
-            self.logger.debug("Connection established from %s, assigned session ID: %d",
+            self.logger.debug("Connection established from %s, assigned session id: %d",
                               src_addr, session_id)
             self._r_socks.append(acc_sock)
             self._e_socks.append(acc_sock)
@@ -157,6 +157,13 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
         else:
             # readable socket we are managing
             sock_state = self._socks[sock]
+
+            if sock_state[SockState.SOCK_EXPECTED_BYTES] > 8192:
+                # larger than 8KB buffer
+                self.logger.warning(
+                    "Excessive receive buffer size requested of %d bytes for session id: %d",
+                    sock_state[SockState.SOCK_EXPECTED_BYTES],
+                    sock_state[SockState.SOCK_SESSION_ID])
 
             try:
                 chunk = sock.recv(sock_state[SockState.SOCK_EXPECTED_BYTES])

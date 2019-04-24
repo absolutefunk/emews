@@ -24,6 +24,8 @@ init:
 system:
   readonly: {}
   overrides:
+    client:
+      service_launch_delay: -1 # Delay (seconds) to connect and send service launch request.
     communication: # communication related eMews daemon options
       port: 32518 # port to use
       connect_timeout: 5 # seconds to wait during connection attempts

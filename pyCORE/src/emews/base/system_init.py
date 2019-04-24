@@ -55,11 +55,11 @@ def system_init(args):
         else False
 
     print "[system_init] Node name: " + str(node_name) + "."
+    sys.stdout.flush()
 
     if is_hub or args.local:
         node_id = 1  # hub or local mode node id
         log_host = '127.0.0.1'
-        config_dict_system['hub']['node_address'] = '127.0.0.1'
     else:
         # The node id is assigned by the hub node.
         # Once node id is assigned, this node will use it whenever connecting to the hub.
@@ -67,6 +67,7 @@ def system_init(args):
             if config_dict_system['hub']['node_address'] is None:
                 # hub address is not provided to us in the config
                 print "[system_init] Hub node address is not given in the config."
+                sys.stdout.flush()
                 config_dict_system['hub']['node_address'] = \
                     _listen_hub(config_dict_system['communication']['port'],
                                 config_dict_init['communication']['hub_broadcast_wait'],
@@ -85,6 +86,7 @@ def system_init(args):
         log_host = config_dict_system['hub']['node_address']
 
     print "[system_init] Node id: " + str(node_id) + "."
+    sys.stdout.flush()
 
     emews.base.logger._base_logger = logging.LoggerAdapter(
         _init_base_logger(
@@ -95,6 +97,9 @@ def system_init(args):
             is_hub=is_hub,
             is_local=args.local),
         {'nodename': node_name, 'nodeid': node_id})
+
+    print "[system_init] Logging instantiated."
+    sys.stdout.flush()
 
     sysprop_dict = {
         'node_name': node_name,
@@ -124,18 +129,23 @@ def _get_node_name(config_node_name, arg_name, max_length):
 def _listen_hub(port, timeout, max_attempts, buf_size, hub_name):
     """Listen for a broadcast from the hub node to obtain address."""
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP sock
-    sock.bind(('', port))
+    sock.bind(('0.0.0.0', port))
     sock.settimeout(timeout)
     recv_attempts = 0
+    print "[system_init] Network routers must be configured to properly forward broadcast messages."
 
     while recv_attempts < max_attempts:
         print "[system_init] Listening for broadcast from hub node (attempt " + \
             str(recv_attempts + 1) + "\\" + str(max_attempts) + ", timeout per attempt: " + \
             str(timeout) + "s) ..."
-        try:
-            (addr, chunk) = sock.recvfrom(buf_size)
+        sys.stdout.flush()
 
+        try:
+            chunk, addr = sock.recvfrom(buf_size)
+
+            print "[system_init] Received from " + str(addr[0]) + ": " + str(chunk)
             if chunk != hub_name:
+                print "[system_init] Node name '" + str(chunk) + "' does not match hub name."
                 recv_attempts += 1
                 continue
 
@@ -155,7 +165,9 @@ def _listen_hub(port, timeout, max_attempts, buf_size, hub_name):
         print "[system_init] Did not receive broadcast from hub node."
         raise IOError("Did not receive broadcast from hub node.")
 
-    return addr
+    print "[system_init] Hub node address: " + str(addr[0])
+    sys.stdout.flush()
+    return addr[0]
 
 
 def _get_node_id(addr, port, timeout, max_attempts):
@@ -168,6 +180,8 @@ def _get_node_id(addr, port, timeout, max_attempts):
         print "[system_init] Attempting to obtain node id from hub node (attempt " + \
             str(connect_attempts + 1) + "\\" + str(max_attempts) + ", timeout per attempt: " + \
             str(timeout) + "s) ..."
+        sys.stdout.flush()
+
         try:
             sock.connect((addr, port))
             sock.sendall(struct.pack('>HLHL',
@@ -177,7 +191,7 @@ def _get_node_id(addr, port, timeout, max_attempts):
                                      0  # params (none)
                                      ))
             chunk = sock.recv(4)  # node_id (4 bytes)
-            node_id = struct.unpack('>L', chunk)
+            node_id = struct.unpack('>L', chunk)[0]
         except (socket.error, struct.error):
             connect_attempts += 1
             continue
@@ -229,6 +243,7 @@ def _init_base_logger(log_config, node_id, host, port, is_hub=False, is_local=Fa
         else:
             print "[system_init] Logger output '" + str(log_config['output']) + \
                 "' not supported, defaulting to console."
+            sys.stdout.flush()
             _log_handler_stream(log_config, logger)
     else:
         # non-hub node: distributed logging

@@ -52,6 +52,7 @@ class AutoSSH(emews.services.baseservice.BaseService):
             return
 
         try:
+            ssh_client.force_password = True
             ssh_client.login(self._host,
                              self._username,
                              password=self._password,
@@ -59,6 +60,8 @@ class AutoSSH(emews.services.baseservice.BaseService):
         except pxssh.ExceptionPxssh as ex:
             self.logger.warning("pxssh could not login to server: %s", ex)
             return
+
+        self.logger.debug("Connected to SSH server.")
 
         # As we are sampling without replacement, we need to copy the original list
         command_list = list(self._command_list)
@@ -71,7 +74,6 @@ class AutoSSH(emews.services.baseservice.BaseService):
 
             self._command_sampler.update(upper_bound=len(command_list) - 1)
             next_command = command_list.pop(self._command_sampler.sample())
-            self.logger.debug("Next command: %s", next_command)
 
             try:
                 self._send_ssh_command(ssh_client, next_command)

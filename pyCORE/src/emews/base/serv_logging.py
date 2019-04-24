@@ -36,8 +36,8 @@ class ServLogging(emews.base.baseserv.BaseServ):
 
         return (self._process_message, slen)
 
-    def _process_message(self, session_id, chunk):
+    def _process_message(self, session_id, msg):
         """Process the complete log message."""
-        log_record = logging.makeLogRecord(pickle.loads(chunk))
-        self.logger.handle(log_record)
+        log_record = logging.makeLogRecord(pickle.loads(msg))
+        self.logger.logger.handle(log_record)
         return (self._msg_length, 4)  # cb for a new message

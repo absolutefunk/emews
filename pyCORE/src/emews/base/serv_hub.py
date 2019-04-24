@@ -66,9 +66,11 @@ class ServHub(emews.base.baseserv.BaseServ):
     def _register_node_req(self, session_id, param):
         """Register a new node (post-request)."""
         new_node_id = struct.pack('>L', self._node_id)
-        self._node_id += 1
-
         self._net_cache.add_node(self._node_id, session_id)
+        self.logger.info("New node id '%d' given to node using session id: %d",
+                         self._node_id, session_id)
+
+        self._node_id += 1
 
         return (new_node_id, (None,))  # send new node id and terminate
 

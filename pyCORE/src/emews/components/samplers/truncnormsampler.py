@@ -33,7 +33,7 @@ class TruncnormSampler(emews.components.samplers.basesampler.BaseSampler):
         """Sample from a truncated normal distribution."""
         return int(round(self._dist.rvs(1)[0]))
 
-    def update_sampler(self, **kwargs):
+    def update_sampler(self):
         """@Override re-instantiate distribution with new parameters."""
         mu = self.upper_bound / 2.0
         self._dist = truncnorm((self.lower_bound - mu) / self.sigma,

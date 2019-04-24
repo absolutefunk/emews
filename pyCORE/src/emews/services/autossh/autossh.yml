@@ -1,10 +1,10 @@
 # Configuration file for AutoSSH
 # YAML 1.2 compliant
 parameters:  # instance variables
-  host: 10.0.0.11
+  host: 10.0.0.10
   port: 22
   username: coreuser
-  password: P28c7RtO0
+  password: P28c7Rto0
 
   command_list:
   - uptime
@@ -38,7 +38,7 @@ parameters:  # instance variables
     component: samplers.UniformSampler
     parameters:
       lower_bound: 1  # lower bound (sec)
-      upper_bound: 48  # upper bound (sec)
+      upper_bound: 20  # upper bound (sec)
 
 execution:
   loop: True  # restarts service after expected termination

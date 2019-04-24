@@ -6,10 +6,10 @@ Created on Apr 26, 2018
 """
 import argparse
 import os
-import random
 import signal
 import socket
 import struct
+import sys
 import threading
 
 import emews.base.config
@@ -42,6 +42,7 @@ class SingleServiceClient(object):
         else:
             print "[service_launcher] service configuration path: " + self._service_config_path
 
+        sys.stdout.flush()
         self.interrupted = False
 
     def start(self):
@@ -54,12 +55,14 @@ class SingleServiceClient(object):
         while connect_attempts < self._connect_max_attempts and not self.interrupted:
             try:
                 print "[service_launcher] connect attempt " + str(connect_attempts + 1) + " ..."
+                sys.stdout.flush()
                 sock.connect(('127.0.0.1', self._port))
 
                 if self.interrupted:
                     break
 
                 print "[service_launcher] connected."
+                sys.stdout.flush()
                 sock.sendall(struct.pack('>HLHL',
                                          emews.base.enums.net_protocols.NET_SPAWN,
                                          0,  # node id (clients don't have a node id, leave at zero)
@@ -129,6 +132,7 @@ class SingleServiceClient(object):
             raise IOError("Received NACK from eMews daemon.")
 
         print "[service_launcher] done."
+        sys.stdout.flush()
 
 
 def main():
@@ -144,6 +148,7 @@ def main():
     args = parser.parse_args()
 
     print "[service_launcher] eMews Service Launcher Client."
+    sys.stdout.flush()
 
     client = None
     client_wait = threading.Event()
@@ -165,23 +170,17 @@ def main():
         system_config = emews.base.config.parse(os.path.join(root_path, args.sys_config))
     node_config = emews.base.config.parse(args.node_config) \
         if args.node_config is not None else {}
+
     config_dict_system = emews.base.config.merge_configs(
         base_config['system'], system_config, node_config)
 
     client = SingleServiceClient(config_dict_system, args.service, args.service_config)
 
-    start_delay = config_dict_system['general']['service_start_delay']
-    print "[service_launcher] daemon start delay: " + str(start_delay)
-
-    if start_delay > 10:
-        # wait a bit before trying to connect (spread out the system load)
-        delay_val = random.randint(1, config_dict_system['general']['service_start_delay'] - 8)
-    else:
-        # eMews not configured for a service start delay, or delay is too small
-        delay_val = 1
-
-    print "[service_launcher] waiting for " + str(delay_val) + " seconds before connecting ..."
-    client_wait.wait(delay_val)
+    start_delay = config_dict_system['client']['service_launch_delay']
+    if start_delay > 0:
+        print "[service_launcher] waiting for " + str(start_delay) + " seconds before connecting ..."
+        sys.stdout.flush()
+        client_wait.wait(start_delay)
 
     client.start()
 

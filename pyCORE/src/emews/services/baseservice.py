@@ -55,7 +55,7 @@ class BaseService(object):
 
     def start(self):
         """Start the service."""
-        self.logger.debug("%s: starting [looped=%s].", self.service_name, self.looped)
+        self.logger.info("%s: starting [looped=%s].", self.service_name, self.looped)
 
         try:
             if self._service_loop is not None:

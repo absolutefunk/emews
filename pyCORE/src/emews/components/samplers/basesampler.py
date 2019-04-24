@@ -28,17 +28,15 @@ class BaseSampler(emews.components.basecomponent.BaseComponent):
 
     def update(self, **params):
         """Update parameters of the model."""
-        do_update = False
-        for param, val in params:
+        if not params:
+            self.logger.debug("Not invoking update_sampler(), as no parameters updated.")
+            return
+
+        for param, val in params.iteritems():
             try:
                 setattr(self, param, val)
-                do_update = True
             except AttributeError:
                 self.logger.debug("Ignoring parameter '%s', which does not exist.")
                 continue
-
-        if not do_update:
-            self.logger.debug("Not invoking update_sampler(), as no parameters updated.")
-            return
 
         self.update_sampler()
