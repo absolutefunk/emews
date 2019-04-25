@@ -33,7 +33,7 @@ class HttpsService(CoreService):
             return cls.generateapache2conf(node, filename)
         elif filename == cls.configs[1]:
             return cls.generateenvvars(node, filename)
-        elif filename == cls._configs[2]:
+        elif filename == cls.configs[2]:
             return cls.generatekeygen(node, filename)
         else:
             return ""
@@ -225,11 +225,17 @@ export LANG
     @classmethod
     def generatekeygen(cls, node, filename):
         """Generate a cert for Apache to use."""
+        cert_cn = node.name
+        for iface in node.netifs():
+            if iface.name == "eth0":
+                print iface.addrlist[0].split("/")[0]
+                cert_cn = iface.addrlist[0].split("/")[0]  # m4d h4x
+                break
         cfg = """\
 #!/bin/sh
 # We assume that the node only has one interface, so we assign to the cert the IP of this interface.
 openssl req -new -x509 -days 365 -sha1 -newkey rsa:1024 -nodes -keyout /var/run/apache2/ssl/key/httpd.key -out /var/run/apache2/ssl/cert/httpd.crt -subj '/O=CORE/OU=CORE-emu/CN="""
-        cfg += node.name
+        cfg += cert_cn
         cfg += """'
 # Launch Apache here so we know that cert/key was generated first.
 apache2ctl start
