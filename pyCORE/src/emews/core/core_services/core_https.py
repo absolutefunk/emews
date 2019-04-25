@@ -11,7 +11,7 @@ from core.service import CoreService
 from core.misc import utils
 
 
-class HttpService(CoreService):
+class HttpsService(CoreService):
     """Start an apache server (HTTPS support)."""
 
     name = "Serv_HTTPS"
@@ -146,16 +146,11 @@ LoadModule authz_user_module /usr/lib/apache2/modules/mod_authz_user.so
 LoadModule autoindex_module /usr/lib/apache2/modules/mod_autoindex.so
 LoadModule dir_module /usr/lib/apache2/modules/mod_dir.so
 LoadModule env_module /usr/lib/apache2/modules/mod_env.so
+LoadModule ssl_module /usr/lib/apache2/modules/mod_ssl.so
 
 NameVirtualHost *:80
 Listen 80
-
-<IfModule mod_ssl.c>
-    Listen 443
-</IfModule>
-<IfModule mod_gnutls.c>
-    Listen 443
-</IfModule>
+Listen 443
 
 LogFormat "%v:%p %h %l %u %t \\"%r\\" %>s %O \\"%{Referer}i\\" \\"%{User-Agent}i\\"" vhost_combined
 LogFormat "%h %l %u %t \\"%r\\" %>s %O \\"%{Referer}i\\" \\"%{User-Agent}i\\"" combined
@@ -168,25 +163,48 @@ ServerSignature On
 TraceEnable Off
 
 <VirtualHost *:80>
-	ServerAdmin webmaster@localhost
-	DocumentRoot /var/www
-	<Directory />
-		Options FollowSymLinks
-		AllowOverride None
-	</Directory>
-	<Directory /var/www/>
-		Options Indexes FollowSymLinks MultiViews
-		AllowOverride None
+    ServerAdmin webmaster@cmu.sv.mews
+    DocumentRoot /var/www/html
+    <Directory />
+        Options FollowSymLinks
+        AllowOverride None
+    </Directory>
+    <Directory /var/www/html/>
+        Options Indexes FollowSymLinks MultiViews
+        AllowOverride None
 """
         cfg += permstr2[version]
         cfg += """\
-	</Directory>
-	ErrorLog ${APACHE_LOG_DIR}/error.log
-	LogLevel warn
-	CustomLog ${APACHE_LOG_DIR}/access.log combined
+    </Directory>
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    LogLevel warn
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
 </VirtualHost>
-
+<VirtualHost *:443>
+    SSLEngine on
+    SSLVerifyClient none
+    SSLCertificateFile "/var/run/apache2/ssl/cert/httpd.crt"
+    SSLCertificateKeyFile "/var/run/apache2/ssl/key/httpd.key"
+    ServerAdmin webmaster@cmu.sv.mews
+    DocumentRoot /var/www/html
+    <Directory />
+        Options FollowSymLinks
+        AllowOverride None
+    </Directory>
+    <Directory /var/www/html/>
+        Options Indexes FollowSymLinks MultiViews
+        AllowOverride None
 """
+        cfg += permstr2[version]
+        cfg += """\
+        </Directory>
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+        LogLevel warn
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+"""
+
+
         return cfg
 
     @classmethod
@@ -206,6 +224,7 @@ export LANG
 
     @classmethod
     def generatekeygen(cls, node, filename):
+        """Generate a cert for Apache to use."""
         cfg = """\
 #!/bin/sh
 # We assume that the node only has one interface, so we assign to the cert the IP of this interface.
