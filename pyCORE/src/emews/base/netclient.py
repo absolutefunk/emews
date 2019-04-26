@@ -72,12 +72,12 @@ class NetClient(emews.base.baseobject.BaseObject):
         Note that this is a client-side (blocking) operation, and thus is expected to run either
         under the main thread before ConnectionManager starts, or from a service thread.
         """
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(self._conn_timeout)
         connect_attempts = 0
 
         while not self._interrupted and connect_attempts < self._conn_max_attempts:
             try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(self._conn_timeout)
                 sock.connect((self._hub_addr, self._port))
 
                 if self._interrupted:
@@ -104,6 +104,7 @@ class NetClient(emews.base.baseobject.BaseObject):
                 result = struct.unpack('>L', chunk)[0]
             except (socket.error, struct.error):
                 connect_attempts += 1
+                sock.close()
                 continue
 
             break

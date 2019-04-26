@@ -4,14 +4,16 @@
 # needed, as this file would be unique to each node.
 # YAML 1.2 compliant
 general:  # general eMews daemon options
+  # Delay (seconds) to start the eMews daemon.  Useful in waiting for routing to setup.  Hub node ignores this.
+  system_start_delay: 60
   # Delay (seconds) to start services from eMews daemon invocation.
-  service_start_delay: 30
+  service_start_delay: 20
   # Delay to wait for 'graceful' thread shutdown.  After this wait, continue shut down.
   thread_shutdown_wait: 3  # in seconds (-1 = disable)
   # If true, then halt eMews on service-originated exceptions
   halt_on_service_exceptions: False
 client:
-  service_launch_delay: 20
+  service_launch_delay: 80  # should be higher than system_start_delay
 communication:  # communication related eMews daemon options
   port: 32518      # port to use
 logging:
@@ -19,6 +21,7 @@ logging:
   message_level: DEBUG
 hub:
   node_name: n1
+  node_address: 10.0.0.20  # hub node broadcast most likely will be dropped by routers
 
 startup_services:
   # Any services which should start, for all nodes, should be placed here.  Most services will start

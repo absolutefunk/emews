@@ -229,7 +229,6 @@ export LANG
         cert_cn = node.name
         for iface in node.netifs():
             if iface.name == "eth0":
-                print iface.addrlist[0].split("/")[0]
                 cert_cn = iface.addrlist[0].split("/")[0]  # m4d h4x
                 break
         cfg = """\

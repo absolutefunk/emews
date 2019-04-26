@@ -133,16 +133,24 @@ class SystemManager(object):
             self._finish_sysprop()
 
             self._startup_services()
-            if self.sys.is_hub and self._config['hub']['node_address'] is None:
-                # we are the hub, and our address is not known to other nodes
-                bcast_int = self._config['hub']['init_broadcast_interval']
-                bcast_dur = self._config['hub']['init_broadcast_duration']
-                self._thread_dispatcher.dispatch(
-                    self._net_client.broadcast_message(self.sys.node_name, bcast_int, bcast_dur),
-                    force_start=True
-                )
-                self.logger.info("Broadcasting our presence every %d seconds for %d seconds ...",
-                                 bcast_int, bcast_dur)
+            if self.sys.is_hub:
+                if self._config['hub']['node_address'] is None:
+                    # We are the hub, and our address is not known to other nodes.
+                    # Note that for non-hub nodes, config['hub']['node_address'] is populated
+                    # with the hub node address in system_init.
+                    bcast_int = self._config['hub']['init_broadcast_interval']
+                    bcast_dur = self._config['hub']['init_broadcast_duration']
+                    self._thread_dispatcher.dispatch(
+                        self._net_client.broadcast_message(
+                            self.sys.node_name, bcast_int, bcast_dur),
+                        force_start=True
+                    )
+                    self.logger.info(
+                        "Broadcasting our presence every %d seconds for %d seconds ...",
+                        bcast_int, bcast_dur)
+                else:
+                    self.logger.info(
+                        "Hub node address is given in the system config, not broadcasting it.")
             self._connection_manager.start()  # blocks here
 
         self.logger.info("Shutdown complete.")

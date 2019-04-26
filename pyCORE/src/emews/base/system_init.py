@@ -12,6 +12,7 @@ import os
 import socket
 import struct
 import sys
+import threading
 
 import emews.base.enums
 import emews.base.config
@@ -57,9 +58,27 @@ def system_init(args):
     print "[system_init] Node name: " + str(node_name) + "."
     sys.stdout.flush()
 
+    if config_dict_system['general']['system_start_delay'] > 0:
+        # wait the given amount of time to proceed
+        if is_hub:
+            print "[system_init] System start delay is given, but we are the hub, so ignoring ... "
+            sys.stdout.flush()
+        else:
+            local_wait_event = threading.Event()
+
+            print "[system_init] Waiting " + \
+                str(config_dict_system['general']['system_start_delay']) + " seconds to proceed ..."
+            sys.stdout.flush()
+            try:
+                local_wait_event.wait(config_dict_system['general']['system_start_delay'])
+            except KeyboardInterrupt:
+                print "[system_init] Caught interrupt ..."
+                sys.stdout.flush()
+                return None
+
     if is_hub or args.local:
         node_id = 1  # hub or local mode node id
-        log_host = '127.0.0.1'
+        log_host = '127.0.0.1'  # not used in local mode
     else:
         # The node id is assigned by the hub node.
         # Once node id is assigned, this node will use it whenever connecting to the hub.
@@ -75,12 +94,18 @@ def system_init(args):
                                 config_dict_init['general']['node_name_length'],
                                 config_dict_system['hub']['node_name'])
 
+            print "[system_init] Hub node address: " + str(config_dict_system['hub']['node_address'])
+            sys.stdout.flush()
+
             node_id = _get_node_id(config_dict_system['hub']['node_address'],
                                    config_dict_system['communication']['port'],
                                    config_dict_system['communication']['connect_timeout'],
                                    config_dict_system['communication']['connect_max_attempts'])
-        except (IOError, KeyboardInterrupt):
-            # time to exit
+        except IOError as ex:
+            print "[system_init] " + str(ex)
+            sys.stdout.flush()
+            return None
+        except KeyboardInterrupt:
             return None
 
         log_host = config_dict_system['hub']['node_address']
@@ -153,7 +178,8 @@ def _listen_hub(port, timeout, max_attempts, buf_size, hub_name):
             recv_attempts += 1
             continue
         except KeyboardInterrupt:
-            print "Caught interrupt ..."
+            print "[system_init] Caught interrupt ..."
+            sys.stdout.flush()
             sock.close()
             raise
 
@@ -162,7 +188,6 @@ def _listen_hub(port, timeout, max_attempts, buf_size, hub_name):
     sock.close()
     if recv_attempts == max_attempts:
         # could not recv a broadcast from the hub node
-        print "[system_init] Did not receive broadcast from hub node."
         raise IOError("Did not receive broadcast from hub node.")
 
     print "[system_init] Hub node address: " + str(addr[0])
@@ -172,8 +197,6 @@ def _listen_hub(port, timeout, max_attempts, buf_size, hub_name):
 
 def _get_node_id(addr, port, timeout, max_attempts):
     """Connect to the address given (assuming to be the hub node) to obtain the node id."""
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(timeout)
     connect_attempts = 0
 
     while connect_attempts < max_attempts:
@@ -183,6 +206,8 @@ def _get_node_id(addr, port, timeout, max_attempts):
         sys.stdout.flush()
 
         try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(timeout)
             sock.connect((addr, port))
             sock.sendall(struct.pack('>HLHL',
                                      emews.base.enums.net_protocols.NET_HUB,
@@ -194,32 +219,20 @@ def _get_node_id(addr, port, timeout, max_attempts):
             node_id = struct.unpack('>L', chunk)[0]
         except (socket.error, struct.error):
             connect_attempts += 1
+            sock.close()
             continue
         except KeyboardInterrupt:
-            print "Caught interrupt ..."
-
-            try:
-                # this may fail if socket endpoint is already closed
-                sock.shutdown(socket.SHUT_RDWR)
-            except socket.error:
-                pass
-
+            print "[system_init] Caught interrupt ..."
+            sys.stdout.flush()
             sock.close()
             raise
 
         break
 
-    try:
-        # this most likely will fail as the hub node should have closed the connection
-        sock.shutdown(socket.SHUT_RDWR)
-    except socket.error:
-        pass
-
     sock.close()
 
     if connect_attempts == max_attempts:
         # could not get the node id
-        print "[system_init] Could not obtain a node id from hub node."
         raise IOError("Could not obtain a node id from hub node.")
 
     return node_id

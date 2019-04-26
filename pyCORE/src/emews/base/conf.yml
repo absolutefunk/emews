@@ -25,13 +25,14 @@ system:
   readonly: {}
   overrides:
     client:
-      service_launch_delay: -1 # Delay (seconds) to connect and send service launch request.
+      service_launch_delay: -1 # Delay (seconds) to connect and send service launch request.  Should be higher than general-->system_start_delay.
     communication: # communication related eMews daemon options
       port: 32518 # port to use
       connect_timeout: 5 # seconds to wait during connection attempts
       connect_max_attempts: 10 # max connection attempts before giving up
     general: # general eMews daemon options
-      service_start_delay: -1 # Delay (seconds) to start services from eMews daemon invocation.
+      system_start_delay: -1  # Delay (seconds) to start the eMews daemon (non-hub).  Useful in waiting for routing to setup.
+      service_start_delay: -1 # Delay (seconds) to start services from eMews daemon invocation (after system_start_delay).
       thread_shutdown_wait: -1 # Delay (seconds) to wait for 'graceful' thread shutdown.  After this wait, continue shut down.
       halt_on_service_exceptions: True # If true, then halt eMews on service-originated exceptions
     hub:
