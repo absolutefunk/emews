@@ -18,49 +18,23 @@ class SysProp(object):
 
     MSG_RO = "System properties are read-only."
 
-    class NetProp(object):
-        """Provides a read-only container for the system net properties."""
-
-        # Net system properties
-        __slots__ = ('_ro',
-                     'hub_query')
-
-        def __init__(self, **kwargs):
-            """Constructor."""
-            object.__setattr__(self, '_ro', False)
-            self.hub_query = unassigned_method
-
-        def __setattr__(self, attr, value):
-            """Attributes are not mutable."""
-            if self._ro:
-                raise AttributeError(SysProp.MSG_RO)
-
-            object.__setattr__(self, attr, value)
-
-    # Root system properties
-    __slots__ = ('_ro',
-                 'node_name',
+    __slots__ = ('node_name',
                  'node_id',
                  'root_path',
                  'is_hub',
-                 'local',
-                 'net')
+                 'local')
 
     def __init__(self, **kwargs):
         """Constructor."""
-        object.__setattr__(self, '_ro', False)
-        self.net = SysProp.NetProp()
         for attr, value in kwargs.iteritems():
-            self.__setattr__(attr, value)
+            object.__setattr__(attr, value)
 
     def __setattr__(self, attr, value):
         """Attributes are not mutable."""
-        if self._ro:
-            raise AttributeError(SysProp.MSG_RO)
-
-        object.__setattr__(self, attr, value)
+        raise AttributeError(SysProp.MSG_RO)
 
     # SysProp service methods
+    # TODO: move this somewhere else
     def import_component(self, config):
         """Import a component from a properly formatted config dictionary."""
         class_name = config['component'].split('.')[-1]

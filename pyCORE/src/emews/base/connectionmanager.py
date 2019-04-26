@@ -31,7 +31,7 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
     __slots__ = ('_port', '_socks', '_listener_sock', '_net_serv', '_pending_ids', '_cb',
                  '_r_socks', '_w_socks', '_e_socks', '_conn_id')
 
-    def __init__(self, config, thread_dispatcher):
+    def __init__(self, config, thread_dispatcher, net_client):
         """Constructor."""
         super(ConnectionManager, self).__init__()
 
@@ -43,7 +43,8 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
         self._pending_ids = {}  # FDs (socks) that are pending an established connection
         self._listener_sock = None  # listener socket (will be instantiated on start())
 
-        self._net_serv = emews.base.netserv.NetServ(thread_dispatcher, _inject={'sys': self.sys})
+        self._net_serv = emews.base.netserv.NetServ(
+            thread_dispatcher, net_client, _inject={'sys': self.sys})
 
         self._r_socks = []  # list of socket objects to manage for a readable state
         self._w_socks = []  # list of socket objects to manage for a writable state

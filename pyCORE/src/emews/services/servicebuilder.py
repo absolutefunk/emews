@@ -17,7 +17,7 @@ import emews.components.samplers.zerosampler
 class ServiceBuilder(emews.base.baseobject.BaseObject):
     """classdocs."""
 
-    __slots__ = ('_service_count')
+    __slots__ = ('_service_count', '_net_client')
 
     def __init__(self):
         """Constructor."""
@@ -112,4 +112,4 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
             # there is no global id in local mode
             return local_service_id
 
-        return self.sys.net.hub_query(emews.base.enums.hub_protocols.HUB_SERVICE_ID_REQ)
+        return self._net_client.hub_query(emews.base.enums.hub_protocols.HUB_SERVICE_ID_REQ)

@@ -66,7 +66,8 @@ class SystemManager(object):
         else:
             self.logger.info("%s startup services.", str(len(startup_services)))
 
-        service_builder = emews.services.servicebuilder.ServiceBuilder(_inject={'sys': self.sys})
+        service_builder = emews.services.servicebuilder.ServiceBuilder(
+            _inject={'sys': self.sys, '_net_client': self._net_client})
 
         for service_name in startup_services:
             # services may have parameters, or just the service name
@@ -122,15 +123,15 @@ class SystemManager(object):
                 self.logger.info("No services running.")
 
         else:
-            self._connection_manager = emews.base.connectionmanager.ConnectionManager(
-                self._config['communication'], self._thread_dispatcher, _inject={'sys': self.sys})
             self._net_client = emews.base.netclient.NetClient(
                 self._config['communication'],
                 self._config['hub']['node_address'],
                 _inject={'sys': self.sys})
-
-            # finish building sysprop
-            self._finish_sysprop()
+            self._connection_manager = emews.base.connectionmanager.ConnectionManager(
+                self._config['communication'],
+                self._thread_dispatcher,
+                self._net_client,
+                _inject={'sys': self.sys})
 
             self._startup_services()
             if self.sys.is_hub:
@@ -162,14 +163,3 @@ class SystemManager(object):
 
         # shut down any dispatched threads that may be running
         self._thread_dispatcher.shutdown_all_threads()
-
-    def _finish_sysprop(self):
-        """
-        Finish building the SysProp object.
-
-        This needs to be called before services are launched.
-        """
-        if self.sys.net.hub_query == emews.base.sysprop.unassigned_method:
-            self.sys.net.hub_query = self._net_client.hub_query
-        self.sys.net._ro = True
-        self.sys._ro = True

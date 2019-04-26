@@ -80,7 +80,7 @@ class NetServ(emews.base.baseobject.BaseObject):
 
     __slots__ = ('_proto_cb', '_net_cache')
 
-    def __init__(self, thread_dispatcher):
+    def __init__(self, thread_dispatcher, net_client):
         """Constructor."""
         super(NetServ, self).__init__()
 
@@ -97,7 +97,7 @@ class NetServ(emews.base.baseobject.BaseObject):
         if self.sys.is_hub:
             # Hub node runs the following servers:
             self._proto_cb[emews.base.enums.net_protocols.NET_HUB] = \
-                emews.base.serv_hub.ServHub(_inject=inject_par)
+                emews.base.serv_hub.ServHub(net_client, _inject=inject_par)
             self._proto_cb[emews.base.enums.net_protocols.NET_LOGGING] = \
                 emews.base.serv_logging.ServLogging(_inject=inject_par)
         else:
