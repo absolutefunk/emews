@@ -33,7 +33,8 @@ class InjectionMeta(type):
                 inject_dict = kwargs.pop('_inject')
                 # these are class-specific attributes, could be anything
                 for attr_name, attr_value in inject_dict.iteritems():
-                    setattr(self, attr_name, attr_value)
+                    if hasattr(self, attr_name):
+                        setattr(self, attr_name, attr_value)
 
             subcls_init(self, *args, **kwargs)
 

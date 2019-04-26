@@ -84,7 +84,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         service_name_full = service_name + '_' + str(local_service_id)
         self.logger.debug("Service '%s' assigned service id: %d", service_name_full, service_id)
 
-        # inject dict
+        # inject dict (BaseService)
         service_config_inject = {}
         service_config_inject['service_name'] = service_name_full
         service_config_inject['local_service_id'] = local_service_id
@@ -92,6 +92,8 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         service_config_inject['_service_loop'] = service_loop
         service_config_inject['_sys'] = self.sys
         service_config_inject['logger'] = self.logger
+        # BaseAgent
+        service_config_inject['_agent_query'] = self._net_client.agent_query
 
         # instantiate service object
         try:
