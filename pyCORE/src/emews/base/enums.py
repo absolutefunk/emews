@@ -45,6 +45,17 @@ class spawner_protocols(object):
     SPAWNER_LAUNCH_SERVICE = 1  # launch (spawn) a service
 
 
+class agent_protocols(object):
+    """Enumerations for supported agent requests."""
+
+    __slots__ = ()
+
+    ENUM_SIZE = 2
+
+    AGENT_NONE = 0  # placeholder
+    AGENT_TELL = 1  # update a state for an environment or environments
+
+
 class net_state(object):
     """Constants for different net states."""
 

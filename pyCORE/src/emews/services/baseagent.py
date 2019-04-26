@@ -13,41 +13,27 @@ import emews.services.baseservice
 class BaseAgent(emews.services.baseservice.BaseService):
     """Classdocs."""
 
-    __slots__ = ('_net_handler')
-
-    class HandlerAgent(emews.base.basehandler.BaseHandler):
-        """Handler for networking tasks."""
-
-        __slots__ = ()
-
-        def handle_init(self, id):
-            """Post connection established, prepare to write."""
-            return (self._send_query, 0)  # zero buf designates write mode
-
-        def handle_close(self, id):
-            """Handle connection close."""
-            pass
-
-        def _send_query(self, id):
-            """Send the query."""
-            return ("", self._recv_response, 8)  # TODO: put in actual query and expected bytes of response
-
-        def _recv_response(self, id, chunk):
-            """Response received from query."""
+    __slots__ = ('_env_state')
 
     def __init__(self):
         """Constructor."""
         super(BaseAgent, self).__init__()
-        self._net_handler = emews.services.baseagent.BaseAgent.HandlerAgent(_inject={
-            '_sys': self._sys,
-            'logger': self._sys.logger
-        })
+
+        self._env_state = {}
 
     def ask(self, context):
         """
         Ask (sense) the environment, returning an environment state.
 
-        Environmental 'sensing' is accomplished by asking eMews what the environment looks like
-        given some context, such as a webpage and other state.
+        The environment state is cached here, pushed by the hub when it receives updates.  Each
+        context refers to a specific environment which we are subscribed to.
         """
-        return None
+        return self._env_state.get(context, {})
+
+    def tell(self, context, key, val):
+        """
+        Tell (update) the environment to a new state (k/v).
+
+        The context is the specific environment in which to update.  We must be subscribed to the
+        environment for any updates we give to be stored.
+        """
