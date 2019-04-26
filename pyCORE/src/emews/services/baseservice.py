@@ -68,10 +68,11 @@ class BaseService(object):
                     self.run_service()
             else:
                 self.run_service()
-        except:  # noqa
+        except StandardError as ex:
             # We need to catch everything here so we can call the exit callback of our dispatcher
             # Don't worry, we reraise it.
             self.interrupt()
+            self.logger.error("%s: %s: %s", self.service_name, ex.__class__.__name__, ex)
             self._dispatcher.cb_thread_exit(self, on_exception=True)
             raise
 

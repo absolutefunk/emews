@@ -21,6 +21,7 @@ class HttpsService(CoreService):
             "/run/lock", "/var/lock/apache2", "/var/run/apache2/ssl",
             "/var/run/apache2/ssl/cert", "/var/run/apache2/ssl/key",)
     startup = ("chown www-data /var/lock/apache2", "sh httpd_start.sh",)
+    startindex = 50
     shutdown = ("apache2ctl stop",)
     validate = ("pidof apache2",)
 

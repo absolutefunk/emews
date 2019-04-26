@@ -4,15 +4,10 @@
 # needed, as this file would be unique to each node.
 # YAML 1.2 compliant
 general:  # general eMews daemon options
-  # Delay (seconds) to start services from eMews daemon invocation.
-  service_start_delay: 20
   # Delay to wait for 'graceful' thread shutdown.  After this wait, continue shut down.
   thread_shutdown_wait: 5  # in seconds (-1 = disable)
   # If true, then halt eMews on service-originated exceptions
   halt_on_service_exceptions: False
 
-communication:  # communication related eMews daemon options
-  port: 32518      # port to use
-
 startup_services:
-- AutoSSH
+- SiteCrawler

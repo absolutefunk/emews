@@ -30,12 +30,11 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         if service_config_dict is not None:
             # checks
             if not isinstance(service_config_dict, collections.Mapping):
-                err_str = "Service configuration passed as argument is not a dictionary."
+                err_str = "Service configuration (dict arg) is not a dictionary."
                 self.logger.error(err_str)
                 raise AttributeError(err_str)
             if 'parameters' not in service_config_dict:
-                err_str = "Service configuration passed as argument missing required section " \
-                          "'parameters'."
+                err_str = "Service configuration (dict arg) missing required section: parameters."
                 self.logger.error(err_str)
                 raise AttributeError(err_str)
 
@@ -53,6 +52,11 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
             except IOError:
                 self.logger.error("Could not load service configuration: %s", service_config_path)
                 raise
+
+            if 'parameters' not in service_config:
+                err_str = "Service configuration (from file) missing required section: parameters."
+                self.logger.error(err_str)
+                raise AttributeError(err_str)
 
             self.logger.debug("Loaded service configuration: %s", service_config_path)
 

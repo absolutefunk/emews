@@ -61,7 +61,7 @@ class AutoSSH(emews.services.baseservice.BaseService):
             self.logger.warning("pxssh could not login to server: %s", ex)
             return
 
-        self.logger.debug("Connected to SSH server.")
+        self.logger.info("Connected to SSH server, executing commands ...")
 
         # As we are sampling without replacement, we need to copy the original list
         command_list = list(self._command_list)
@@ -83,7 +83,7 @@ class AutoSSH(emews.services.baseservice.BaseService):
 
             self.sleep(self._command_delay_sampler.sample())
 
-        self.logger.debug("Done executing commands, logging out...")
+        self.logger.info("Done executing commands, logging out...")
 
         try:
             ssh_client.logout()

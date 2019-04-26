@@ -100,8 +100,8 @@ class ServSpawner(emews.base.baseserv.BaseServ):
                 service_name, service_config_file=service_config_name)
         except StandardError as ex:
             self.logger.warning(
-                "Session id: %d, ServiceBuilder threw exception while building service: %s.",
-                session_id, ex)
+                "Session id: %d, ServiceBuilder threw exception while building service: %s: %s",
+                session_id, ex.__class__.__name__, ex)
             return (struct.pack('>H', emews.base.enums.net_state.STATE_NACK), (None,))
 
         self._thread_dispatcher.dispatch(service_obj)

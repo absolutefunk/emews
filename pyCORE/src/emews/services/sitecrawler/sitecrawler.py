@@ -59,12 +59,11 @@ class SiteCrawler(emews.services.baseservice.BaseService):
             # keep looping until a valid link is found
             # parameters updated here as removing links will change our upper_bound
             if std_deviation is None:
-                self._link_sampler.update_parameters(upper_bound=len(page_links) - 1)
+                self._link_sampler.update(upper_bound=len(page_links) - 1)
             else:
-                self._link_sampler.update_parameters(upper_bound=len(page_links) - 1,
-                                                     sigma=std_deviation)
+                self._link_sampler.update(upper_bound=len(page_links) - 1, sigma=std_deviation)
 
-            selected_link_index = self._link_sampler.next_value
+            selected_link_index = self._link_sampler.sample()
 
             if self._checklink(page_links[selected_link_index]):
                 break
@@ -100,7 +99,7 @@ class SiteCrawler(emews.services.baseservice.BaseService):
             # Handle target environment that doesn't support HTTPS verification
             ssl._create_default_https_context = _create_unverified_https_context
 
-        site_url = self._siteURLs[self._site_sampler.next_value]
+        site_url = self._siteURLs[self._site_sampler.sample()]
         try:
             self._br.open(site_url)
         except Exception as ex:
@@ -108,7 +107,7 @@ class SiteCrawler(emews.services.baseservice.BaseService):
             return
         # Forces output to be considered HTML (output usually is).
         self._br._factory.is_html = True  # pylint: disable=W0212
-        self.logger.info("Starting crawl at %s ...", site_url)
+        self.logger.info("HTTP server up, starting crawl at %s ...", site_url)
 
         # Crawl to the first link.  This will allow us to set the link delay parameters correctly.
         page_links = list(self._br.links())
@@ -117,7 +116,7 @@ class SiteCrawler(emews.services.baseservice.BaseService):
             return
 
         next_link = page_links[selected_link_index]  # get next link from list
-        self.sleep(self._link_delay_sampler.next_value)  # wait a random amount of time
+        self.sleep(self._link_delay_sampler.sample())  # wait a random amount of time
         # we need to check if the end of sleep was due to being interrupted
         if self.interrupted:
             return
@@ -137,8 +136,8 @@ class SiteCrawler(emews.services.baseservice.BaseService):
         # TODO: the heuristic presents a subtle bug if the selected index is zero, given that the
         # lower bound on the sampler is also zero.  Currently just using the page link count, which
         # works well for index pages of small link count.
-        self._num_links_sampler.update_parameters(upper_bound=len(page_links))
-        num_links_to_crawl = self._num_links_sampler.next_value
+        self._num_links_sampler.update(upper_bound=len(page_links))
+        num_links_to_crawl = self._num_links_sampler.sample()
 
         # now crawl for (max) num_links_to_crawl
         for _ in range(num_links_to_crawl):
@@ -152,7 +151,7 @@ class SiteCrawler(emews.services.baseservice.BaseService):
                 break
 
             next_link = page_links[selected_link_index]
-            self.sleep(self._link_delay_sampler.next_value)
+            self.sleep(self._link_delay_sampler.sample())
             # we need to check if the end of sleep was due to being interrupted
             if self.interrupted:
                 break
@@ -165,3 +164,5 @@ class SiteCrawler(emews.services.baseservice.BaseService):
             except Exception as ex:
                 self.logger.warning("On follow_link: %s, (server: %s)", ex, site_url)
                 break
+
+        self.logger.info("Finished crawl at %s ...", site_url)

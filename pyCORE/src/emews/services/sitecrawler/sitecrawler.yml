@@ -1,57 +1,42 @@
 # Configuration file for SiteCrawler
 # YAML 1.2 compliant
-
-config:  # service configuration
+parameters:  # service configuration
   user_agent: 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:57.0) Gecko/20100101 Firefox/57.0'
   invalid_link_prefixes:  # prefix list for links which we should NOT visit
   - java
   - none
   start_sites: # site address to start crawling from
-  - 'https://10.0.14.10'
-  - 'https://10.0.0.11'
-  - 'https://10.0.19.10'
-  - 'https://10.0.19.11'
-  - 'https://10.0.17.10'
-  - 'https://10.0.24.10'
-  - 'https://10.0.24.11'
-  - 'https://10.0.24.12'
-  - 'https://10.0.30.10'
-  - 'https://10.0.77.10'
-  - 'https://10.0.77.11'
-  - 'https://10.0.77.12'
-  - 'https://10.0.77.13'
-  - 'https://10.0.79.10'
-  - 'https://10.0.79.11'
-  - 'https://10.0.79.12'
+  - 'https://10.0.0.10'
+  - 'https://10.0.0.10'
 
-helpers:   # helpers which this service will use (many to one)
   site_sampler:  # sampler used to pick the site to crawl
-    helper: samplers.UniformSampler
-    config:
+    component: samplers.UniformSampler
+    parameters:
       lower_bound: 0  # index 0
-      upper_bound: 15  # should match the list size of start_sites -1 (index starts at zero)
+      upper_bound: 1  # should match the list size of start_sites -1 (index starts at zero)
   num_links_sampler:  # sampler used to pick the number of links to crawl.  Dependent on first link
-    helper: samplers.TruncnormSampler
-    config:
+    component: samplers.TruncnormSampler
+    parameters:
       upper_bound: null
       sigma: 5.0
   link_sampler:  # sampler used to pick the next link in a crawl
-    helper: samplers.TruncnormSampler
-    config:  # config applied directly to the helper
+    component: samplers.TruncnormSampler
+    parameters:  # config applied directly to the helper
       upper_bound: null
       sigma: 7.0
-      sigma_next: 1.8  # std deviation of picking next link around mu (> first iteration)
-  link_delay_sampler:  # sampler used to determine delay in crawling to next link
-    helper: samplers.UniformSampler
-    config:
-      lower_bound: 2  # lower bound (sec) - a_4
-      upper_bound: 56  # upper bound (sec) - b_4
 
-extensions:  # extend core service behavior (one to one)
-  run.LoopedService:  # LoopedService decorator
-    helpers:  # additional classes that this decorator requires
-      loop_sampler:  # unique name to describe the dependency
-        helper: samplers.UniformSampler
-        config:
-          lower_bound: 8  # lower bound (sec) - a_3
-          upper_bound: 180  # upper bound (sec) - b_3
+  link_sampler_sigma_next: 1.8  # std deviation of picking next link around mu (> first iteration)
+
+  link_delay_sampler:  # sampler used to determine delay in crawling to next link
+    component: samplers.UniformSampler
+    parameters:
+      lower_bound: 2  # lower bound (sec) - a_4
+      upper_bound: 8  # upper bound (sec) - b_4
+
+execution:
+  loop: True  # restarts service after expected termination
+  loop_using_sampler:
+    component: samplers.UniformSampler
+    parameters:
+      lower_bound: 8  # lower bound (sec) - a_3
+      upper_bound: 30  # upper bound (sec) - b_3
