@@ -50,10 +50,12 @@ class agent_protocols(object):
 
     __slots__ = ()
 
-    ENUM_SIZE = 2
+    ENUM_SIZE = 4
 
-    AGENT_NONE = 0  # placeholder
-    AGENT_TELL = 1  # update a state for an environment or environments
+    AGENT_NONE = 0     # placeholder
+    AGENT_ENV_ID = 1   # get id from environment context
+    AGENT_ASK = 2      # get a state key from a env context
+    AGENT_TELL = 3     # update a value toward a state
 
 
 class net_state(object):

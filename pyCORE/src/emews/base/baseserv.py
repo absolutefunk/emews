@@ -12,7 +12,7 @@ import emews.base.baseobject
 class BaseServ(emews.base.baseobject.BaseObject):
     """Classdocs."""
 
-    __slots__ = ('_net_cache')
+    __slots__ = ('_net_cache', '_net_client')
 
     def handle_init(self, node_id, session_id):
         """Session init."""

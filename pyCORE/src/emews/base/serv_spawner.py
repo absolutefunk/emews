@@ -35,7 +35,7 @@ class ServSpawner(emews.base.baseserv.BaseServ):
 
     def serv_close(self, session_id):
         """Close a session."""
-        pass
+        del self._session_data[session_id]
 
     def _spawn_query(self, session_id, chunk):
         """

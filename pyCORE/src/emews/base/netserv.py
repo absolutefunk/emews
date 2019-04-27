@@ -86,29 +86,32 @@ class NetServ(emews.base.baseobject.BaseObject):
 
         self._net_cache = NetCache()  # net cache shared among the servers
 
+        nonsupported_invalid = NonSupportedInvalid()
+        nonsupported_hub = NonSupportedHub()
         # protocol mappings
         self._proto_cb = [None] * emews.base.enums.net_protocols.ENUM_SIZE
-        self._proto_cb[emews.base.enums.net_protocols.NET_NONE] = NonSupportedInvalid()
-        self._proto_cb[emews.base.enums.net_protocols.NET_CC_1] = NonSupportedInvalid()
-        self._proto_cb[emews.base.enums.net_protocols.NET_CC_2] = NonSupportedInvalid()
+        self._proto_cb[emews.base.enums.net_protocols.NET_NONE] = nonsupported_invalid
+        self._proto_cb[emews.base.enums.net_protocols.NET_CC_1] = nonsupported_invalid
+        self._proto_cb[emews.base.enums.net_protocols.NET_CC_2] = nonsupported_invalid
 
-        inject_par = {'sys': self.sys, '_net_cache': self._net_cache}
+        inject_par = {'sys': self.sys, '_net_cache': self._net_cache, '_net_client': net_client}
 
         if self.sys.is_hub:
             # Hub node runs the following servers:
             self._proto_cb[emews.base.enums.net_protocols.NET_HUB] = \
-                emews.base.serv_hub.ServHub(net_client, _inject=inject_par)
+                emews.base.serv_hub.ServHub(_inject=inject_par)
             self._proto_cb[emews.base.enums.net_protocols.NET_LOGGING] = \
                 emews.base.serv_logging.ServLogging(_inject=inject_par)
+            self._proto_cb[emews.base.enums.net_protocols.NET_AGENT] = \
+                emews.base.serv_agent.ServAgent(_inject=inject_par)
         else:
-            self._proto_cb[emews.base.enums.net_protocols.NET_HUB] = NonSupportedHub()
-            self._proto_cb[emews.base.enums.net_protocols.NET_LOGGING] = NonSupportedHub()
+            self._proto_cb[emews.base.enums.net_protocols.NET_HUB] = nonsupported_hub
+            self._proto_cb[emews.base.enums.net_protocols.NET_LOGGING] = nonsupported_hub
+            self._proto_cb[emews.base.enums.net_protocols.NET_AGENT] = nonsupported_hub
 
         # The following servers run on all nodes:
         self._proto_cb[emews.base.enums.net_protocols.NET_SPAWN] = \
             emews.base.serv_spawner.ServSpawner(thread_dispatcher, _inject=inject_par)
-        self._proto_cb[emews.base.enums.net_protocols.NET_AGENT] = \
-            emews.base.serv_agent.ServAgent(_inject=inject_par)
 
     def handle_init(self, session_id, int_addr):
         """Init tasks."""
