@@ -38,6 +38,10 @@ class BaseAgent(emews.services.baseservice.BaseService):
 
         Each call to ask will query the hub node.
         """
+        if state_key is None or state_key == '':
+            self.logger.warning("%s: state key passed is empty.", self.service_name)
+            return None
+
         while not self._interrupted and self._client_session is None:
             self._client_session = self._net_client.connect_node()
 
@@ -47,8 +51,10 @@ class BaseAgent(emews.services.baseservice.BaseService):
         state_val = self._net_client.node_query(
             self._client_session,
             emews.base.enums.net_protocols.NET_AGENT,
-            'HLH%ds' % len(state_key),
+            'HLL%ds' % len(state_key),
             [emews.base.enums.agent_protocols.AGENT_ASK, self._env_id, len(state_key), state_key])
+
+        return state_val
 
     def tell(self, context, key, val):
         """
@@ -57,3 +63,4 @@ class BaseAgent(emews.services.baseservice.BaseService):
         Evidence is provided to the environment, and state is what is ultimately calculated from the
         given evidence.
         """
+        pass

@@ -130,12 +130,13 @@ class NetClient(emews.base.baseobject.BaseObject):
 
         sock.close()
 
-    def node_query(self, session_id, proto, query_commands):
+    def node_query(self, session_id, proto, query_type_str, query_commands, return_type='L'):
         """
         Query a node, return the result.
 
         proto = protocol (corresonding server) to handle query
-        query_commands = list of commands to send (each command is a tuple of (command, datatype))
+        query_type_str = string of types, each type at index maps to command at index in list
+        query_commands = list of commands to send
         """
         sock = self._sock_state.get(session_id, None)
 
@@ -150,43 +151,24 @@ class NetClient(emews.base.baseobject.BaseObject):
             self.close_connection(session_id)
             return None
 
-        # prepare the commands to send
-        struct_list = []
-        current_struct_string = ''
-        cmd_list = []
-        current_cmd_list = []
-        for cmd_tup in query_commands:
-            if cmd_tup[1] == 's' or cmd_tup[1] == 'p':
-                # we don't pack strings
-                struct_list.append(current_struct_string)  # add the current struct string
-                struct_list.append('s')  # this signifies a string at pos in cmd_list
-                current_struct_string = ''
-                cmd_list.append(current_cmd_list)  # add the current list of cmds
-                cmd_list.append(cmd_tup[0])  # add the string
-                current_cmd_list = []
+        if self._interrupted:
+            return None
+
+        # prepare type string
+        struct_format = '>'
+        for type_chr, cmd in zip(query_type_str, query_commands):
+            if type_chr == 's':
+                struct_format += 'L' + str(len(cmd)) + 's'  # 4 bytes for str len
             else:
-                current_struct_string += cmd_tup[1]
-                current_cmd_list.append(cmd_tup[0])
+                struct_format += type_chr
 
-        if len(current_cmd_list):
-            struct_list.append(current_struct_string)
-            cmd_list.append(current_cmd_list)
-
-        # send all commands
-        for struct_format, cur_cmds in zip(struct_list, cmd_list):
-            if self._interrupted:
-                return None
-
-            try:
-                if struct_format != 's':
-                    sock.sendall(struct.pack(struct_format, *cur_cmds))
-                else:
-                    sock.sendall(cur_cmds)  # a string
-            except socket.error as ex:
-                self.logger.warning(
-                    "Connection issue (query command send) from session id %d: %s", session_id, ex)
-                self.close_connection(session_id)
-                return None
+        try:
+            sock.sendall(struct.pack(struct_format, *query_commands))
+        except socket.error as ex:
+            self.logger.warning(
+                "Connection issue (query command send) from session id %d: %s", session_id, ex)
+            self.close_connection(session_id)
+            return None
 
         # receive result
         try:
@@ -198,7 +180,7 @@ class NetClient(emews.base.baseobject.BaseObject):
             if self._interrupted:
                 return None
 
-            result = struct.unpack('>L', chunk)[0]
+            result = struct.unpack('>%s' % return_type, chunk)[0]
         except socket.error as ex:
             self.logger.warning(
                 "Connection issue (query result receive) from session id %d: %s", session_id, ex)
@@ -210,7 +192,7 @@ class NetClient(emews.base.baseobject.BaseObject):
 
         return result
 
-    def hub_query(self, request, param=0):
+    def hub_query(self, request):
         """
         Given a request, return the corresponding result.
 
@@ -222,7 +204,7 @@ class NetClient(emews.base.baseobject.BaseObject):
             return None
 
         result = self.node_query(
-            session_id, emews.base.enums.net_protocols.NET_HUB, 'HL', [request, 0])
+            session_id, emews.base.enums.net_protocols.NET_HUB, 'H', [request])
 
         self.close_connection(session_id)
         return result

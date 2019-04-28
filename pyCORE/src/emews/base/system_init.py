@@ -209,11 +209,10 @@ def _get_node_id(addr, port, timeout, max_attempts):
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(timeout)
             sock.connect((addr, port))
-            sock.sendall(struct.pack('>HLHL',
+            sock.sendall(struct.pack('>HLH',
                                      emews.base.enums.net_protocols.NET_HUB,
                                      0,  # node id (not assigned yet, so leave at zero),
-                                     emews.base.enums.hub_protocols.HUB_NODE_ID_REQ,
-                                     0  # params (none)
+                                     emews.base.enums.hub_protocols.HUB_NODE_ID_REQ
                                      ))
             chunk = sock.recv(4)  # node_id (4 bytes)
             node_id = struct.unpack('>L', chunk)[0]

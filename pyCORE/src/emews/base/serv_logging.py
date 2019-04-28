@@ -18,7 +18,7 @@ class ServLogging(emews.base.baseserv.BaseServ):
     def __init__(self):
         """Constructor."""
         super(ServLogging, self).__init__()
-        self.handlers = emews.base.baseserv.Handler(self._process_message, 'Ls')
+        self.handlers = emews.base.baseserv.Handler(self._process_message, 's')
 
     def serv_init(self, node_id, session_id):
         """Return the expected number of bytes to receive first and the callback."""

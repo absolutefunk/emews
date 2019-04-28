@@ -52,6 +52,21 @@ class SingleServiceClient(object):
         connect_attempts = 0
         ack = None
 
+        cmd_list = []
+        cmd_list.append(emews.base.enums.net_protocols.NET_SPAWN)
+        cmd_list.append(0)  # node id (clients don't have a node id, leave at zero)
+        cmd_list.append(emews.base.enums.spawner_protocols.SPAWNER_LAUNCH_SERVICE)
+        cmd_list.append(len(self._service_name))
+        cmd_list.append(self._service_name)
+
+        if self._service_config_path is None:
+            struct_format = '>HLHLL%dsL' % len(self._service_name)
+            cmd_list.append(0)
+        else:
+            struct_format = '>HLHLL%dsL%ds' % (len(self._service_name), len(self._service_config_path))
+            cmd_list.append(len(self._service_config_path))
+            cmd_list.append(self._service_config_path)
+
         while connect_attempts < self._connect_max_attempts and not self.interrupted:
             try:
                 print "[service_launcher] connect attempt " + str(connect_attempts + 1) + " ..."
@@ -63,44 +78,12 @@ class SingleServiceClient(object):
 
                 print "[service_launcher] connected."
                 sys.stdout.flush()
-                sock.sendall(struct.pack('>HLHL',
-                                         emews.base.enums.net_protocols.NET_SPAWN,
-                                         0,  # node id (clients don't have a node id, leave at zero)
-                                         emews.base.enums.spawner_protocols.SPAWNER_LAUNCH_SERVICE,
-                                         len(self._service_name)  # params (service name length)
-                                         ))
-
-                if self.interrupted:
-                    break
-
-                sock.sendall(self._service_name)
-
-                if self.interrupted:
-                    break
-
-                if self._service_config_path is not None:
-                    sock.sendall(struct.pack('L',
-                                             len(self._service_config_path)  # config length
-                                             ))
-                else:
-                    # have the daemon resolve the default path
-                    sock.sendall(struct.pack('L',
-                                             0  # config length
-                                             ))
-
-                if self.interrupted:
-                    break
-
-                if self._service_config_path is not None:
-                    sock.sendall(self._service_config_path)
+                sock.sendall(struct.pack(struct_format, *cmd_list))
 
                 if self.interrupted:
                     break
 
                 chunk = sock.recv(2)  # ACK (2 bytes)
-
-                if self.interrupted:
-                    break
 
                 ack = struct.unpack('>H', chunk)[0]
             except (socket.error, struct.error):

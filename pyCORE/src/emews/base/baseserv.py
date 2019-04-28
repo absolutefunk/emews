@@ -22,21 +22,17 @@ class Handler(object):
 
         # split the format string if any type is 's' (string type)
         cur_format_str = ''
-        prev_type = ''
         for type_chr in format_str:
             if type_chr == 's':
-                if not (prev_type == 'H' or prev_type == 'I' or prev_type == 'L' or prev_type == 'Q'):
-                    # a string has to have a length defined
-                    raise AttributeError("Passed types_list contains a string without a valid len type (previous type in the list).")
-                self.recv_list.append(('>' + cur_format_str, self._calc_recv_len(cur_format_str)))
+                self.recv_list.append(
+                    ('>%sL' % cur_format_str, self._calc_recv_len(cur_format_str)) + 4)
                 cur_format_str = ''
                 self.recv_list.append(('s', 0))  # we don't know the recv_len yet
             else:
                 cur_format_str += type_chr
-                prev_type = type_chr
 
         if cur_format_str != '':
-            self.recv_list.append(('>' + cur_format_str, self._calc_recv_len(cur_format_str)))
+            self.recv_list.append(('>%s' % cur_format_str, self._calc_recv_len(cur_format_str)))
 
     def _calc_recv_len(self, format_str):
         """Calculate the number of bytes we should expected to receive."""

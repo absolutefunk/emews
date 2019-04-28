@@ -189,39 +189,38 @@ class NetServ(emews.base.baseobject.BaseObject):
 
         if session_data.recv_index == len(handler.recv_list) - 1:
             # no more data to recv, invoke callback
-            ret_val = handler.callback(session_id, *session_data.recv_args.extend(var_tup))
-
-            # handle return types
-            if ret_val is None:
-                # end the session
-                return None
-            elif (isinstance(ret_val, tuple)):
-                if handler.send_type_str is None or handler.send_type_str == '':
-                    self.logger.warning(
-                        "Session id: %d, type specified to pack string is empty.", session_id)
-                    return None
-
-                send_data = struct.pack(handler.send_type_str, ret_val[0])
-                if ret_val[1] is None:
-                    # send some data and then end the session.
-                    return (send_data, None)
-                # send some data and then invoke new handler
-                return (send_data, self._new_handler_invocation(session_id, ret_val))
-
-            # new handler (keep same session)
-            return self._new_handler_invocation(session_id, ret_val)
+            session_data.recv_args.extend(var_tup)
+            return self._invoke_handler(session_id, handler)
 
         session_data.recv_index += 1
 
         # return the next expected bytes to receive
         recv_str = handler.recv_list[session_data.recv_index][0]
         if recv_str == 's':
-            # prepare for string reception
-            session_data.recv_type_str = '>%ds' % var_tup[-1]
             session_data.recv_args.extend(var_tup[:-1])  # don't append last type, as it's the s len
-            next_recv_bytes = var_tup[-1]  # next recv bytes correspond to s len
+
+            # prepare for string reception
+            s_len = var_tup[-1]
+            if s_len > 0:
+                session_data.recv_type_str = '>%ds' % var_tup[-1]
+                next_recv_bytes = s_len  # next recv bytes correspond to s len
+            else:
+                # s_len is zero (or possibly negative), so just append a None val for the string
+                self.logger.debug(
+                    "Session id: %d, received zero len string, appending None ...", session_id)
+
+                session_data.recv_args.append(None)
+                session_data.recv_index += 1  # skip the string recv_str (None var appended)
+
+                if session_data.recv_index == len(handler.recv_list) - 1:
+                    # no more data to recv, invoke callback
+                    return self._invoke_handler(session_id, handler)
+
+                session_data.recv_type_str = handler.recv_list[session_data.recv_index][0]
+                next_recv_bytes = handler.recv_list[session_data.recv_index][1]  # next recv bytes
+
         else:
-            session_data.recv_type_str = handler.recv_list[session_data.recv_index][0]
+            session_data.recv_type_str = recv_str
             session_data.recv_args.extend(var_tup)
             next_recv_bytes = handler.recv_list[session_data.recv_index][1]  # next recv bytes
 
@@ -243,3 +242,28 @@ class NetServ(emews.base.baseobject.BaseObject):
 
         session_data.recv_type_str = handler.recv_list[0][0]
         return (self._handle_data, handler.recv_list[0][1])
+
+    def _invoke_handler(self, session_id, handler):
+        """Invoke the handler callback once all data has been received."""
+        session_data = self._net_cache.session[session_id]
+        ret_val = handler.callback(session_id, *session_data.recv_args)
+
+        # handle return types
+        if ret_val is None:
+            # end the session
+            return None
+        elif (isinstance(ret_val, tuple)):
+            if handler.send_type_str is None or handler.send_type_str == '':
+                self.logger.warning(
+                    "Session id: %d, type specified to pack string is empty.", session_id)
+                return None
+
+            send_data = struct.pack(handler.send_type_str, ret_val[0])
+            if ret_val[1] is None:
+                # send some data and then end the session.
+                return (send_data, None)
+            # send some data and then invoke new handler
+            return (send_data, self._new_handler_invocation(session_id, ret_val[1]))
+
+        # new handler (keep same session)
+        return self._new_handler_invocation(session_id, ret_val)
