@@ -10,20 +10,22 @@ import struct
 
 import emews.base.enums
 import emews.base.baseserv
+import emews.base.queryserv
 
 
-class ServAgent(emews.base.baseserv.BaseServ):
+class ServAgent(emews.base.queryserv.QueryServ):
     """Classdocs."""
 
-    __slots__ = ('_cb', '_env_evidence', '_env_state', '_session_data', '_env_id_map', '_env_id')
+    __slots__ = ('_env_evidence', '_env_state', '_session_data', '_env_id_map', '_env_id')
 
     def __init__(self):
         """Constructor."""
         super(ServAgent, self).__init__()
 
-        self._cb = [None] * emews.base.enums.agent_protocols.ENUM_SIZE
+        self.handlers = [None] * emews.base.enums.agent_protocols.ENUM_SIZE
+        self.handlers[emews.base.enums.agent_protocols.AGENT_ASK] = \
+            emews.base.baseserv.Handler(self._agent_ask_env_req, 'HHs', send_type_str='L')
         self._cb[emews.base.enums.agent_protocols.AGENT_TELL] = self._agent_tell_env_req
-        self._cb[emews.base.enums.agent_protocols.AGENT_ASK] = self._agent_ask_env_req
         self._cb[emews.base.enums.agent_protocols.AGENT_ENV_ID] = self._agent_env_reg_req
 
         self._session_data = {}
@@ -47,67 +49,29 @@ class ServAgent(emews.base.baseserv.BaseServ):
         self._env_id += 1
 
     def serv_init(self, node_id, session_id):
-        """Init of new agent session.  Next expected chunk is request from remote agent."""
-        self._session_data[session_id] = None
-        return (self._agent_query, 6)
+        """Init of new agent session."""
+        pass
 
     def serv_close(self, session_id):
         """Close a session."""
-        del self._session_data[session_id]
-
-    def _agent_query(self, session_id, chunk):
-        """
-        Process a request sent by a node.
-
-        req_id (2 bytes) + param_s (4 bytes)
-        """
-        try:
-            req_id, param_s = struct.unpack('>HL', chunk)
-        except struct.error as ex:
-            self.logger.warning("Session id: %d, struct error when unpacking agent query: %s",
-                                session_id, ex)
-            return None
-
-        try:
-            ret_tup = self._cb[req_id](session_id, param_s)
-        except IndexError:
-            self.logger.warning("Session id: %d, invalid query id: %d", session_id, req_id)
-
-        return ret_tup
+        pass
 
     # agent ask
-    def _agent_ask_env_req(self, session_id, env_id):
+    def _agent_ask_env_req(self, session_id, env_id, state_key):
         """Remote agent wants a state key from the given env_id."""
         if env_id < 1 or env_id >= len(self._env_state):
             self.logger.warning("Session id: %d, env id '%d' not registered.",
                                 session_id, env_id)
             return None
 
-        self._session_data[session_id] = env_id  # environment index
-        return (self._agent_ask_key_req, 2)
+        state_val = self._env_state[env_id].get(state_key, None)
 
-    def _agent_ask_key_req(self, session_id, chunk):
-        """Return the expected state key length."""
-        try:
-            key_len = struct.unpack('>H', chunk)[0]
-        except struct.error as ex:
-            self.logger.warning("Session id: %d, struct error when unpacking state key length: %s",
-                                session_id, ex)
-            return None
-
-        return (self._agent_ask_key_post, key_len)
-
-    def _agent_ask_key_post(self, session_id, key):
-        """State key name given."""
-        env_id = self._session_data[session_id]
-        env_val = self._env_state[env_id].get(key, None)
-
-        if env_val is None:
+        if state_val is None:
             self.logger.warning("Session id: %d, env id: %d, state key '%s' does not exist.",
-                                session_id, env_id, key)
+                                session_id, env_id, state_key)
             return None
 
-        return (env_val, (self._agent_query, 6))
+        return (state_val, self.handlers[emews.base.enums.agent_protocols.AGENT_TELL])
 
     # agent tell
     def _agent_tell_env_req(self, session_id, env_id):

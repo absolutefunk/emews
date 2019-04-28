@@ -163,3 +163,4 @@ class SystemManager(object):
 
         # shut down any dispatched threads that may be running
         self._thread_dispatcher.shutdown_all_threads()
+        self._net_client.close_all_sockets()

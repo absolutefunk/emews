@@ -6,25 +6,26 @@ Handles core hub related communication.
 Created on Apr 9, 2019
 @author: Brian Ricks
 """
-import struct
-
 import emews.base.enums
 import emews.base.baseserv
+import emews.base.queryserv
 import emews.base.netserv
 
 
-class ServHub(emews.base.baseserv.BaseServ):
+class ServHub(emews.base.queryserv.QueryServ):
     """Classdocs."""
 
-    __slots__ = ('_cb', '_node_id', '_service_id')
+    __slots__ = ('_node_id', '_service_id')
 
     def __init__(self, net_client):
         """Constructor."""
         super(ServHub, self).__init__()
 
-        self._cb = [None] * emews.base.enums.hub_protocols.ENUM_SIZE
-        self._cb[emews.base.enums.hub_protocols.HUB_NODE_ID_REQ] = self._register_node_req
-        self._cb[emews.base.enums.hub_protocols.HUB_SERVICE_ID_REQ] = self._register_service_req
+        self.handlers = [None] * emews.base.enums.hub_protocols.ENUM_SIZE
+        self.handlers[emews.base.enums.hub_protocols.HUB_NODE_ID_REQ] = \
+            emews.base.baseserv.Handler(self._node_id_req, '', send_type_str='L')
+        self.handlers[emews.base.enums.hub_protocols.HUB_SERVICE_ID_REQ] = \
+            emews.base.baseserv.Handler(self._service_id_req, '', send_type_str='L')
 
         self._node_id = 2     # current unassigned node id
         self._service_id = 2  # current unassigned service id
@@ -37,60 +38,40 @@ class ServHub(emews.base.baseserv.BaseServ):
         self._net_cache.node[1] = node_data
 
     def serv_init(self, node_id, session_id):
-        """Init of new node-hub session.  Next expected chunk is request from node."""
-        return (self._hub_query, 6)
+        """Init of new node-hub session."""
+        pass
 
     def serv_close(self, session_id):
         """Close a session."""
         pass
 
-    def _hub_query(self, session_id, chunk):
-        """
-        Process a request sent by a node.
-
-        req_id (2 bytes) + param_s (4 bytes)
-        """
-        try:
-            req_id, param_s = struct.unpack('>HL', chunk)
-        except struct.error as ex:
-            self.logger.warning("Session id: %d, struct error when unpacking hub query: %s",
-                                session_id, ex)
-            return None
-
-        try:
-            ret_tup = self._cb[req_id](session_id, param_s)
-        except IndexError:
-            self.logger.warning("Session id: %d, invalid query id: %d", session_id, req_id)
-
-        return ret_tup
-
-    def _register_node_req(self, session_id, param):
-        """Register a new node (post-request)."""
-        new_node_id = struct.pack('>L', self._node_id)
-        self._net_cache.add_node(self._node_id, session_id)
+    def _node_id_req(self, session_id):
+        """Register a new node."""
+        new_node_id = self._node_id
+        self._net_cache.add_node(new_node_id, session_id)
         self.logger.info("New node id '%d' given to node using session id: %d",
                          self._node_id, session_id)
 
         self._node_id += 1
 
-        return (new_node_id, (None,))  # send new node id and terminate
+        return (new_node_id, None)  # send new node id and terminate
 
-    def _register_service_req(self, session_id, param):
-        """Register a new service specific to a node (post-request)."""
-        new_service_id = struct.pack('>L', self._service_id)
+    def _service_id_req(self, session_id):
+        """Register a new service specific to a node."""
+        new_service_id = self._service_id
         self._service_id += 1
 
         node_id = self._net_cache.session[session_id].node_id
         self._net_cache.node[node_id].services.add(new_service_id)
 
-        return (new_service_id, (None,))  # send new service id and terminate
+        return (new_service_id, None)  # send new service id and terminate
 
-    def direct_hub_query(self, request, param=0):
+    def direct_hub_query(self, request):
         """Hub query method that the hub node uses instead of the netclient version."""
         self._net_cache.session[-1] = emews.base.netserv.NetCache.SessionData()
         self._net_cache.session[-1].node_id = 1
 
-        ret = struct.unpack('>L', self._cb[request](-1, param)[0])[0]
+        ret = self.handlers[request].callback(-1)
 
         del self._net_cache.session[-1]
 
