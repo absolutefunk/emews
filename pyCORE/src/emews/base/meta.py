@@ -3,8 +3,9 @@ Meta classes.
 
 @author Brian Ricks
 """
-
 import abc
+
+import emews.base.logger
 
 
 class InjectionMeta(type):
@@ -33,7 +34,11 @@ class InjectionMeta(type):
                 inject_dict = kwargs.pop('_inject')
                 # these are class-specific attributes, could be anything
                 for attr_name, attr_value in inject_dict.iteritems():
-                    setattr(self, attr_name, attr_value)
+                    try:
+                        setattr(self, attr_name, attr_value)
+                    except AttributeError as ex:
+                        # most likely due to a attr which doesn't exist in the class
+                        emews.base.logger.get_logger().debug("On attribute injection: %s", ex)
 
             subcls_init(self, *args, **kwargs)
 

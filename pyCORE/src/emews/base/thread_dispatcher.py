@@ -207,6 +207,6 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
 
                 if len(thread_names) > 0:
                     thr_names_str = ", ".join(thread_names)
-                    self.logger.warning(
+                    self.logger.info(
                         "The following threads did not shut down within the timeout period: [%s].  "
                         "Shutdown proceeding ...", thr_names_str)
