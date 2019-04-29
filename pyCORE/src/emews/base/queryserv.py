@@ -34,8 +34,4 @@ class QueryServ(emews.base.baseserv.BaseServ):
             self.logger.warning("Session id: %d, invalid query request id: %d", session_id, req_id)
             return None
 
-        if not len(handler.recv_list):
-            # handler doesn't need any data received
-            return handler.callback(session_id)
-
         return handler

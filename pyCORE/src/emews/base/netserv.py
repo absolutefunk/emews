@@ -237,9 +237,10 @@ class NetServ(emews.base.baseobject.BaseObject):
         session_data.handler = handler
 
         if not len(handler.recv_list):
-            self.logger.warning(
-                "Session id: %d, handler doesn't require any received data.", session_id)
-            return (None, 0)
+            self.logger.debug(
+                "Session id: %d, handler doesn't require received data., invoking immediately ...",
+                session_id)
+            return self._invoke_handler(session_id, handler)
 
         session_data.recv_type_str = handler.recv_list[0][0]
         return (self._handle_data, handler.recv_list[0][1])

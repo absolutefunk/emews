@@ -49,6 +49,11 @@ def system_init(args):
     config_dict_system = emews.base.config.merge_configs(
         base_config['system'], system_config, node_config)
 
+    hub_node_name = config_dict_system['hub']['node_name']
+    node_name_max_len = config_dict_init['general']['node_name_length']
+    config_dict_system['hub']['node_name'] = hub_node_name[:node_name_max_len] \
+        if len(hub_node_name) > node_name_max_len else hub_node_name
+
     node_name = _get_node_name(config_dict_init['general']['node_name'],
                                args.node_name,
                                config_dict_init['general']['node_name_length'])
@@ -190,8 +195,6 @@ def _listen_hub(port, timeout, max_attempts, buf_size, hub_name):
         # could not recv a broadcast from the hub node
         raise IOError("Did not receive broadcast from hub node.")
 
-    print "[system_init] Hub node address: " + str(addr[0])
-    sys.stdout.flush()
     return addr[0]
 
 
