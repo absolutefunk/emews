@@ -21,7 +21,7 @@ logging:
   message_level: DEBUG
 hub:
   node_name: n1
-  node_address: null  # hub node broadcast most likely will be dropped by routers
+  node_address: 10.0.0.20  # hub node broadcast most likely will be dropped by routers
 
 startup_services:
   # Any services which should start, for all nodes, should be placed here.  Most services will start
