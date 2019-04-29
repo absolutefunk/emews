@@ -27,7 +27,7 @@ class SysProp(object):
     def __init__(self, **kwargs):
         """Constructor."""
         for attr, value in kwargs.iteritems():
-            object.__setattr__(attr, value)
+            object.__setattr__(self, attr, value)
 
     def __setattr__(self, attr, value):
         """Attributes are not mutable."""

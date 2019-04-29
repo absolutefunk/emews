@@ -25,7 +25,7 @@ class Handler(object):
         for type_chr in format_str:
             if type_chr == 's':
                 self.recv_list.append(
-                    ('>%sL' % cur_format_str, self._calc_recv_len(cur_format_str)) + 4)
+                    ('>%sL' % cur_format_str, self._calc_recv_len(cur_format_str) + 4))
                 cur_format_str = ''
                 self.recv_list.append(('s', 0))  # we don't know the recv_len yet
             else:
@@ -57,6 +57,7 @@ class BaseServ(emews.base.baseobject.BaseObject):
 
     def __init__(self):
         """Constructor."""
+        super(BaseServ, self).__init__()
         self.handlers = None
 
     def handle_init(self, node_id, session_id):

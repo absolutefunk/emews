@@ -198,7 +198,8 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
                 ret_tup = sock_state[SockState.SOCK_NEXT_CB](
                     sock_state[SockState.SOCK_SESSION_ID], chunk)
             except StandardError as ex:
-                self.logger.error("Handler threw exception: %s.", ex)
+                self.logger.error("Session handler '%s' threw exception: %s.",
+                                  sock_state[SockState.SOCK_NEXT_CB], ex)
                 raise
 
             if ret_tup is None:

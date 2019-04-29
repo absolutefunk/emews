@@ -47,8 +47,6 @@ class SingleServiceClient(object):
 
     def start(self):
         """Connect to eMews daemon and send command."""
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(self._connect_timeout)
         connect_attempts = 0
         ack = None
 
@@ -60,10 +58,10 @@ class SingleServiceClient(object):
         cmd_list.append(self._service_name)
 
         if self._service_config_path is None:
-            struct_format = '>HLHLL%dsL' % len(self._service_name)
+            struct_format = '>HLHL%dsL' % len(self._service_name)
             cmd_list.append(0)
         else:
-            struct_format = '>HLHLL%dsL%ds' % (len(self._service_name), len(self._service_config_path))
+            struct_format = '>HLHL%dsL%ds' % (len(self._service_name), len(self._service_config_path))
             cmd_list.append(len(self._service_config_path))
             cmd_list.append(self._service_config_path)
 
@@ -71,6 +69,8 @@ class SingleServiceClient(object):
             try:
                 print "[service_launcher] connect attempt " + str(connect_attempts + 1) + " ..."
                 sys.stdout.flush()
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(self._connect_timeout)
                 sock.connect(('127.0.0.1', self._port))
 
                 if self.interrupted:
@@ -85,9 +85,17 @@ class SingleServiceClient(object):
 
                 chunk = sock.recv(2)  # ACK (2 bytes)
 
+                if not len(chunk):
+                    sock.close()
+                    connect_attempts += 1
+                    print "[service_launcher] Connection reset by peer."
+                    continue
+
                 ack = struct.unpack('>H', chunk)[0]
-            except (socket.error, struct.error):
+            except socket.error as ex:
+                sock.close()
                 connect_attempts += 1
+                print "[service_launcher] Socket error: %s." % ex
                 continue
             except KeyboardInterrupt:
                 try:

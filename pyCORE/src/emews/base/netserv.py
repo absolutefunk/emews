@@ -212,8 +212,9 @@ class NetServ(emews.base.baseobject.BaseObject):
                 session_data.recv_args.append(None)
                 session_data.recv_index += 1  # skip the string recv_str (None var appended)
 
-                if session_data.recv_index == len(handler.recv_list) - 1:
+                if session_data.recv_index == len(handler.recv_list):
                     # no more data to recv, invoke callback
+                    # comparison here is to the recv_list len, as we increment recv_index by 2
                     return self._invoke_handler(session_id, handler)
 
                 session_data.recv_type_str = handler.recv_list[session_data.recv_index][0]

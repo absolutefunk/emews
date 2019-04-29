@@ -13,15 +13,15 @@ general:  # general eMews daemon options
   # If true, then halt eMews on service-originated exceptions
   halt_on_service_exceptions: False
 client:
-  service_launch_delay: 80  # should be higher than system_start_delay
+  service_launch_delay: 5  # should be higher than system_start_delay
 communication:  # communication related eMews daemon options
   port: 32518      # port to use
 logging:
-  output: file
+  output: console
   message_level: DEBUG
 hub:
-  node_name: n1
-  node_address: 10.0.0.20  # hub node broadcast most likely will be dropped by routers
+  node_name: absolutefunk-Inspiron-13-737
+  node_address: null  # hub node broadcast most likely will be dropped by routers
 
 startup_services:
   # Any services which should start, for all nodes, should be placed here.  Most services will start

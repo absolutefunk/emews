@@ -93,7 +93,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
         service_config_inject['_sys'] = self.sys
         service_config_inject['logger'] = self.logger
         # BaseAgent
-        service_config_inject['_agent_query'] = self._net_client.agent_query
+        service_config_inject['_net_client'] = self._net_client
 
         # instantiate service object
         try:

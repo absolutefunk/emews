@@ -17,7 +17,7 @@ class ServHub(emews.base.queryserv.QueryServ):
 
     __slots__ = ('_node_id', '_service_id')
 
-    def __init__(self, net_client):
+    def __init__(self):
         """Constructor."""
         super(ServHub, self).__init__()
 
@@ -31,7 +31,7 @@ class ServHub(emews.base.queryserv.QueryServ):
         self._service_id = 2  # current unassigned service id
 
         # we are the hub node, so use a direct query instead of connecting to myself
-        net_client.hub_query = self.direct_hub_query
+        self._net_client.hub_query = self.direct_hub_query
 
         # register my node id
         node_data = emews.base.netserv.NetCache.NodeData()
@@ -71,7 +71,7 @@ class ServHub(emews.base.queryserv.QueryServ):
         self._net_cache.session[-1] = emews.base.netserv.NetCache.SessionData()
         self._net_cache.session[-1].node_id = 1
 
-        ret = self.handlers[request].callback(-1)
+        ret = self.handlers[request].callback(-1)[0]
 
         del self._net_cache.session[-1]
 

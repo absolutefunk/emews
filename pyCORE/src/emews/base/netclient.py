@@ -52,7 +52,7 @@ class NetClient(emews.base.baseobject.BaseObject):
     """Classdocs."""
 
     __slots__ = ('_port', '_hub_addr', '_conn_timeout', '_conn_max_attempts', '_num_clients',
-                 '_socks')
+                 '_sock_state', '_session_id', 'hub_query')
 
     def __init__(self, config, hub_addr):
         """Constructor."""
@@ -68,6 +68,9 @@ class NetClient(emews.base.baseobject.BaseObject):
 
         self._sock_state = {}  # sock management for NetClient sockets
         self._session_id = 1  # sock session id (note, different than ConnectionManager session ids)
+
+        # method pointers (allows monkey-patching)
+        self.hub_query = self._hub_query
 
     def close_all_sockets(self):
         """Close all managed sockets (self._sock_state)."""
@@ -192,7 +195,7 @@ class NetClient(emews.base.baseobject.BaseObject):
 
         return result
 
-    def hub_query(self, request):
+    def _hub_query(self, request):
         """
         Given a request, return the corresponding result.
 

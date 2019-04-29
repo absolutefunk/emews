@@ -14,7 +14,7 @@ import emews.base.queryserv
 class ServAgent(emews.base.queryserv.QueryServ):
     """Classdocs."""
 
-    __slots__ = ('_env_evidence', '_env_state', '_env_id_map', '_env_id')
+    __slots__ = ('_env_evidence', '_env_state', '_env_id', '_env_id_map')
 
     def __init__(self):
         """Constructor."""
@@ -34,11 +34,11 @@ class ServAgent(emews.base.queryserv.QueryServ):
         self._env_state.append(None)  # env id 0 is invalid
         self._env_id = 1
 
-        self._env_map = {}  # env context to id mapping
+        self._env_id_map = {}  # env context to id mapping
 
     def env_register(self, from_env, env_context):
         """Register a new env context from an agent environment."""
-        self._env_map[env_context] = self._env_id
+        self._env_id_map[env_context] = self._env_id
         self._env_evidence.append({})  # dict for env evidence K/Vs at specific context
         self._env_state.append({})  # dict for env state K/Vs at specific context
         self.logger.info("Agent environment '%s' registered new env context '%s', assigned id: %d.",
@@ -92,9 +92,9 @@ class ServAgent(emews.base.queryserv.QueryServ):
     # agent env id request
     def _agent_env_id_req(self, session_id, env_context):
         """Remote agent wants the env id for a given env context."""
-        if env_context not in self._env_map:
+        if env_context not in self._env_id_map:
             self.logger.warning("Session id: %d, env context '%s' is not registered.",
                                 session_id, env_context)
             return None
 
-        return (self._env_map[env_context], self.query_handler)
+        return (self._env_id_map[env_context], self.query_handler)
