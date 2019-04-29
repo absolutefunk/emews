@@ -99,6 +99,8 @@ class NetClient(emews.base.baseobject.BaseObject):
                     connect_attempts, str(conn_addr), ex)
                 continue
 
+            break  # forgetting this results in some nice flooding action
+
         if self._interrupted:
             return None
 
@@ -191,6 +193,7 @@ class NetClient(emews.base.baseobject.BaseObject):
             return None
         except struct.error as ex:
             self.logger.warning("Unexpected data format from session id %d: %s", session_id, ex)
+            self.close_connection(session_id)
             return None
 
         return result

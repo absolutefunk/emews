@@ -64,6 +64,9 @@ class ServHub(emews.base.queryserv.QueryServ):
         node_id = self._net_cache.session[session_id].node_id
         self._net_cache.node[node_id].services.add(new_service_id)
 
+        self.logger.info("New service id '%d' given to node with id '%d' using session id: %d",
+                         new_service_id, node_id, session_id)
+
         return (new_service_id, None)  # send new service id and terminate
 
     def direct_hub_query(self, request):

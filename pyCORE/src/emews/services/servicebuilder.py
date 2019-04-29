@@ -81,6 +81,10 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
 
         local_service_id = self._service_count.get(service_name, -1) + 1
         service_id = self._get_service_id(local_service_id)
+
+        if service_id is None:
+            raise ValueError("No service id given.")
+
         service_name_full = service_name + '_' + str(local_service_id)
         self.logger.debug("Service '%s' assigned service id: %d", service_name_full, service_id)
 
