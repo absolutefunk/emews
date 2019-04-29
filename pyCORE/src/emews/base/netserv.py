@@ -238,7 +238,7 @@ class NetServ(emews.base.baseobject.BaseObject):
 
         if not len(handler.recv_list):
             self.logger.debug(
-                "Session id: %d, handler doesn't require received data., invoking immediately ...",
+                "Session id: %d, handler doesn't require received data, invoking immediately ...",
                 session_id)
             return self._invoke_handler(session_id, handler)
 
