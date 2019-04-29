@@ -25,11 +25,11 @@ class BaseAgent(emews.services.baseservice.BaseService):
         """Constructor."""
         super(BaseAgent, self).__init__()
 
-        self._client_session = None  # session id for our session with the hub node
+        self._client_session = self._net_client.create_client_session()  # NetClient session
         self._env_id = None  # id for the environment we will interact with
 
-    def _register_env_context(self, env_context):
-        """Register the given env_context with the hub node."""
+    def _get_env_id(self, env_context):
+        """Get the id of the env_context from the hub node.  Env id must already exist."""
         pass
 
     def ask(self, env_context, state_key):
@@ -42,11 +42,8 @@ class BaseAgent(emews.services.baseservice.BaseService):
             self.logger.warning("%s: state key passed is empty.", self.service_name)
             return None
 
-        while not self._interrupted and self._client_session is None:
-            self._client_session = self._net_client.connect_node()
-
         if self._env_id is None:
-            self._register_env_context(env_context)
+            self._get_env_id(env_context)
 
         state_val = self._net_client.node_query(
             self._client_session,

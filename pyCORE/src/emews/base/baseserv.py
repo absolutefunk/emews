@@ -9,6 +9,26 @@ from abc import abstractmethod
 import emews.base.baseobject
 
 
+def calculate_recv_len(format_str):
+    """Calculate the number of bytes we should expected to receive."""
+    recv_len = 0
+    for type_chr in format_str:
+        if type_chr == '>':
+            continue
+        if type_chr == 'H' or type_chr == 'h':
+            recv_len += 2
+        elif type_chr == 'I' or type_chr == 'i' or type_chr == 'L' or type_chr == 'l' or type_chr == 'f':
+            recv_len += 4
+        elif type_chr == 'Q' or type_chr == 'q' or type_chr == 'd':
+            recv_len += 8
+        elif type_chr == 's':
+            raise AttributeError("Format type 's' in string '%s' cannot be present to calculate length" % format_str)
+        else:
+            raise AttributeError("Format type '%s' in string '%s' not supported" % type_chr, format_str)
+
+    return recv_len
+
+
 class Handler(object):
     """Container for handler data."""
 
@@ -25,29 +45,14 @@ class Handler(object):
         for type_chr in format_str:
             if type_chr == 's':
                 self.recv_list.append(
-                    ('>%sL' % cur_format_str, self._calc_recv_len(cur_format_str) + 4))
+                    ('>%sL' % cur_format_str, calculate_recv_len(cur_format_str) + 4))
                 cur_format_str = ''
                 self.recv_list.append(('s', 0))  # we don't know the recv_len yet
             else:
                 cur_format_str += type_chr
 
         if cur_format_str != '':
-            self.recv_list.append(('>%s' % cur_format_str, self._calc_recv_len(cur_format_str)))
-
-    def _calc_recv_len(self, format_str):
-        """Calculate the number of bytes we should expected to receive."""
-        recv_len = 0
-        for type_chr in format_str:
-            if type_chr == 'H' or type_chr == 'h':
-                recv_len += 2
-            elif type_chr == 'I' or type_chr == 'i' or type_chr == 'L' or type_chr == 'l' or type_chr == 'f':
-                recv_len += 4
-            elif type_chr == 'Q' or type_chr == 'q' or type_chr == 'd':
-                recv_len += 8
-            else:
-                raise AttributeError("Format type '%s' in string '%s' not supported" % type_chr, format_str)
-
-        return recv_len
+            self.recv_list.append(('>%s' % cur_format_str, calculate_recv_len(cur_format_str)))
 
 
 class BaseServ(emews.base.baseobject.BaseObject):

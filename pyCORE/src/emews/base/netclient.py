@@ -9,6 +9,7 @@ import struct
 
 import emews.base.baseclient
 import emews.base.baseobject
+import emews.base.baseserv
 import emews.base.enums
 
 
@@ -52,7 +53,7 @@ class NetClient(emews.base.baseobject.BaseObject):
     """Classdocs."""
 
     __slots__ = ('_port', '_hub_addr', '_conn_timeout', '_conn_max_attempts', '_num_clients',
-                 '_sock_state', '_session_id', 'hub_query')
+                 '_sock_state', '_session_id', 'hub_query', '_client_sessions')
 
     def __init__(self, config, hub_addr):
         """Constructor."""
@@ -67,6 +68,7 @@ class NetClient(emews.base.baseobject.BaseObject):
         self._num_clients = 0  # unique id given to client object instances
 
         self._sock_state = {}  # sock management for NetClient sockets
+        self._client_sessions = {}  # sock management for client sessions (persistent)
         self._session_id = 1  # sock session id (note, different than ConnectionManager session ids)
 
         # method pointers (allows monkey-patching)
@@ -126,6 +128,9 @@ class NetClient(emews.base.baseobject.BaseObject):
         if sock is None:
             return
 
+        if session_id in self._client_sessions:
+            self._client_sessions[session_id] = None
+
         del self._sock_state[session_id]
 
         try:
@@ -176,21 +181,29 @@ class NetClient(emews.base.baseobject.BaseObject):
             return None
 
         # receive result
-        try:
-            # If a signal is caught to shutdown, but the socket does not catch it (say because
-            # it is running from another thread than the main one), the hub node will catch it
-            # and close the socket from its side, unblocking it here.
-            chunk = sock.recv(4)  # query result (4 bytes)
+        buf_len = emews.base.baseserv.calculate_recv_len(return_type)
+        bytes_recv = 0
+        while not self._interrupted and bytes_recv < buf_len:
+            try:
+                # If a signal is caught to shutdown, but the socket does not catch it (say because
+                # it is running from another thread than the main one), the hub node will catch it
+                # and close the socket from its side, unblocking it here.
+                chunk = sock.recv(buf_len)  # query result (4 bytes)
 
-            if self._interrupted:
+                if not len(chunk):
+                    self.logger.warning("Connection closed remotely from session id %d", session_id)
+                    self.close_connection(session_id)
+                    return None
+
+                bytes_recv += len(chunk)
+            except socket.error as ex:
+                self.logger.warning(
+                    "Connection issue (query result receive) from session id %d: %s", session_id, ex)
+                self.close_connection(session_id)
                 return None
 
+        try:
             result = struct.unpack('>%s' % return_type, chunk)[0]
-        except socket.error as ex:
-            self.logger.warning(
-                "Connection issue (query result receive) from session id %d: %s", session_id, ex)
-            self.close_connection(session_id)
-            return None
         except struct.error as ex:
             self.logger.warning("Unexpected data format from session id %d: %s", session_id, ex)
             self.close_connection(session_id)
@@ -226,6 +239,26 @@ class NetClient(emews.base.baseobject.BaseObject):
         self._num_clients += 1
 
         return class_def(*args, _inject=inject_dict)
+
+    # client session methods - client sessions are persistent, and their session ids remain static
+    def create_client_session(self, addr=None):
+        """Create a persistent session and return its session id."""
+        session_id = self.connect_node(addr=addr)
+
+        if session_id is None:
+            return None
+
+        self._client_sessions[session_id] = self._sock_state[session_id]
+        self.logger.info("New client session established with id '%d'", session_id)
+        return session_id
+
+    def client_session_get(self, session_id, protocol, send_vals, return_type='L'):
+        """Get a value (type is return_type), based on protocol and byte string to send."""
+        pass
+
+    def client_session_put(self, session_id, protocol, send_vals):
+        """Put data somewhere, based on protocol and byte string to send."""
+        pass
 
     # clients which need to run in a thread - these methods return an object suitable for dispatch
     def broadcast_message(self, message, interval, duration):
