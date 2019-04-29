@@ -62,7 +62,6 @@ class NetCache(object):
             self.recv_args = []      # current list of args received and unpacked
             self.recv_index = 0      # current index in handler for expected recv bytes / type str
 
-
     __slots__ = ('node', 'session')
 
     def __init__(self):
@@ -141,7 +140,7 @@ class NetServ(emews.base.baseobject.BaseObject):
         except struct.error as ex:
             self.logger.warning("Session id: %d, struct error when unpacking protocol: %s",
                                 session_id, ex)
-            return None
+            return (None, 0)
 
         session_data = self._net_cache.session[session_id]
 
@@ -154,7 +153,7 @@ class NetServ(emews.base.baseobject.BaseObject):
                     self.logger.warning(
                         "Session id: %d, unrecognized node id given: %d, from address: %s",
                         session_id, node_id, socket.inet_ntoa(struct.pack(">I", session_data.addr)))
-                    return None
+                    return (None, 0)
 
                 # if not the hub node, assume node id is legit
                 # TODO: validate node id with hub node
@@ -167,7 +166,7 @@ class NetServ(emews.base.baseobject.BaseObject):
             self.logger.warning(
                 "Session id: %d, unrecognized protocol id given: %d, from address: %s",
                 session_id, proto_id, socket.inet_ntoa(struct.pack(">I", session_data.addr)))
-            return None
+            return (None, 0)
 
         session_data.serv = self._proto_cb[proto_id]
         self.logger.debug("Session id: %d, protocol requested: %d", session_id, proto_id)
@@ -177,6 +176,7 @@ class NetServ(emews.base.baseobject.BaseObject):
 
     def _handle_data(self, session_id, chunk):
         """Handle chunk during a session with a serv."""
+        # connection manager expects: (cb, buf) for read mode, (cb, buf, data) for write mode
         session_data = self._net_cache.session[session_id]
         handler = session_data.handler
 
@@ -185,7 +185,7 @@ class NetServ(emews.base.baseobject.BaseObject):
         except struct.error as ex:
             self.logger.warning("Session id: %d, struct error when unpacking chunk: %s",
                                 session_id, ex)
-            return None
+            return (None, 0)
 
         if session_data.recv_index == len(handler.recv_list) - 1:
             # no more data to recv, invoke callback
@@ -239,7 +239,7 @@ class NetServ(emews.base.baseobject.BaseObject):
         if not len(handler.recv_list):
             self.logger.warning(
                 "Session id: %d, handler doesn't require any received data.", session_id)
-            return None
+            return (None, 0)
 
         session_data.recv_type_str = handler.recv_list[0][0]
         return (self._handle_data, handler.recv_list[0][1])
@@ -252,19 +252,23 @@ class NetServ(emews.base.baseobject.BaseObject):
         # handle return types
         if ret_val is None:
             # end the session
-            return None
+            return (None, 0)
         elif (isinstance(ret_val, tuple)):
+            # send some data
             if handler.send_type_str is None or handler.send_type_str == '':
                 self.logger.warning(
                     "Session id: %d, type specified to pack string is empty.", session_id)
-                return None
+                return (None, 0)
 
             send_data = struct.pack(handler.send_type_str, ret_val[0])
+
             if ret_val[1] is None:
                 # send some data and then end the session.
-                return (send_data, None)
-            # send some data and then invoke new handler
-            return (send_data, self._new_handler_invocation(session_id, ret_val[1]))
+                return (None, 0, send_data)
+
+            # send some data and invoke new handler
+            inv_tup = self._new_handler_invocation(session_id, ret_val[1])
+            return (inv_tup[0], inv_tup[1], send_data)
 
         # new handler (keep same session)
         return self._new_handler_invocation(session_id, ret_val)

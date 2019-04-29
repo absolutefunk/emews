@@ -78,6 +78,7 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
                 # connection could not be established
                 del self._pending_ids[session_id]
                 self.logger.debug("Connection not established for session id %d.", session_id)
+            self.logger.debug("Closed session id %d.", session_id)
 
         try:
             sock.shutdown(socket.SHUT_RDWR)
@@ -194,7 +195,7 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
             sock_state[SockState.SOCK_BUFFER] = ""  # clear cache
 
             try:
-                # read cb: returns (cb, buf) for read mode, (data, (cb, buf)) for write mode
+                # read cb: returns (cb, buf) for read mode, (cb, buf, data) for write mode
                 ret_tup = sock_state[SockState.SOCK_NEXT_CB](
                     sock_state[SockState.SOCK_SESSION_ID], chunk)
             except StandardError as ex:
@@ -202,27 +203,21 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
                                   sock_state[SockState.SOCK_NEXT_CB], ex)
                 raise
 
-            if ret_tup is None:
-                # close the socket
+            # handle ret_tup
+            if ret_tup[0] is None and len(ret_tup) == 2:
+                # close the socket (not write mode)
                 self._close_socket(sock)
-            elif isinstance(ret_tup[1], tuple):
-                # write mode
-                if ret_tup[1][0] is None:
-                    # close the socket after write
-                    sock_state[SockState.SOCK_NEXT_CB] = None
-                    sock_state[SockState.SOCK_EXPECTED_BYTES] = 0
-                else:
-                    sock_state[SockState.SOCK_NEXT_CB] = ret_tup[1][0]  # next cb
-                    sock_state[SockState.SOCK_EXPECTED_BYTES] = ret_tup[1][1]  # next expected bytes
+                return
 
-                sock_state[SockState.SOCK_BUFFER] = ret_tup[0]  # data to be sent
+            sock_state[SockState.SOCK_NEXT_CB] = ret_tup[0]  # next cb
+            sock_state[SockState.SOCK_EXPECTED_BYTES] = ret_tup[1]  # next expected bytes
+
+            if len(ret_tup) == 3:
+                # write mode
+                sock_state[SockState.SOCK_BUFFER] = ret_tup[2]  # data to be sent
 
                 self._r_socks.remove(sock)
                 self._w_socks.append(sock)
-            else:
-                # read mode
-                sock_state[SockState.SOCK_NEXT_CB] = ret_tup[0]  # next cb
-                sock_state[SockState.SOCK_EXPECTED_BYTES] = ret_tup[1]  # next expected bytes
 
     def _writable_socket(self, sock):
         """
@@ -241,15 +236,15 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
             return
 
         # all bytes sent
-        sock_state[SockState.SOCK_BUFFER] = ""  # clear cache
         if sock_state[SockState.SOCK_NEXT_CB] is None:
             # close the socket
             self._close_socket(sock)
             return
-        else:
-            # switch to read mode
-            self._w_socks.remove(sock)
-            self._r_socks.append(sock)
+
+        sock_state[SockState.SOCK_BUFFER] = ""  # clear cache
+        # switch to read mode
+        self._w_socks.remove(sock)
+        self._r_socks.append(sock)
 
     def _exceptional_socket(self, sock):
         """Close a sock in such a state."""
