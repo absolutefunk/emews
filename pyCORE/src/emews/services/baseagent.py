@@ -26,11 +26,15 @@ class BaseAgent(emews.services.baseservice.BaseService):
         super(BaseAgent, self).__init__()
 
         self._client_session = self._net_client.create_client_session()  # NetClient session
-        self._env_id = None  # id for the environment we will interact with
+        self._env_id = {}  # [env_context] = env_id
 
     def _get_env_id(self, env_context):
         """Get the id of the env_context from the hub node.  Env id must already exist."""
-        pass
+        env_id = self._net_client.client_session_get()
+
+        if env_id == 0:
+            self.logger.error("Invalid environment id returned (0).  Is the env_context registered?")
+            raise ValueError("Invalid environment id returned (0).  Is the env_context registered?")
 
     def ask(self, env_context, state_key):
         """
@@ -39,17 +43,22 @@ class BaseAgent(emews.services.baseservice.BaseService):
         Each call to ask will query the hub node.
         """
         if state_key is None or state_key == '':
-            self.logger.warning("%s: state key passed is empty.", self.service_name)
-            return None
+            self.logger.error("%s: state key passed is empty.", self.service_name)
+            raise ValueError("%s: state key passed is empty." % self.service_name)
 
-        if self._env_id is None:
-            self._get_env_id(env_context)
+        if env_context not in self._env_id:
+            env_id = self._get_env_id(env_context)
+            self._env_id[env_context] = env_id
 
-        state_val = self._net_client.node_query(
+        state_val = self._net_client.client_session_get(
             self._client_session,
             emews.base.enums.net_protocols.NET_AGENT,
-            'HLL%ds' % len(state_key),
-            [emews.base.enums.agent_protocols.AGENT_ASK, self._env_id, len(state_key), state_key])
+            [
+                (emews.base.enums.agent_protocols.AGENT_ASK, 'H'),
+                (self._env_id, 'L'),
+                (state_key, 's')
+            ]
+            )
 
         return state_val
 

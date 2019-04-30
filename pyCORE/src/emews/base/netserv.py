@@ -205,11 +205,11 @@ class NetServ(emews.base.baseobject.BaseObject):
                 session_data.recv_type_str = '>%ds' % var_tup[-1]
                 next_recv_bytes = s_len  # next recv bytes correspond to s len
             else:
-                # s_len is zero (or possibly negative), so just append a None val for the string
                 self.logger.debug(
-                    "Session id: %d, received zero len string, appending None ...", session_id)
+                    "Session id: %d, received zero len string, appending empty string ...",
+                    session_id)
 
-                session_data.recv_args.append(None)
+                session_data.recv_args.append('')
                 session_data.recv_index += 1  # skip the string recv_str (None var appended)
 
                 if session_data.recv_index == len(handler.recv_list):

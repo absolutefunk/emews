@@ -41,7 +41,7 @@ class ServiceBuilder(emews.base.baseobject.BaseObject):
             service_config = service_config_dict
             self.logger.debug("Using service configuration passed as argument.")
         else:
-            if service_config_file is None:
+            if service_config_file is None or service_config_file == '':
                 service_config_file = service_name.lower() + ".yml"
 
             service_config_path = os.path.join(

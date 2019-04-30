@@ -24,7 +24,7 @@ class ServAgent(emews.base.queryserv.QueryServ):
         self.handlers[emews.base.enums.agent_protocols.AGENT_ASK] = \
             emews.base.baseserv.Handler(self._agent_ask_env_req, 'Ls', send_type_str='L')
         self.handlers[emews.base.enums.agent_protocols.AGENT_TELL] = \
-            emews.base.baseserv.Handler(self._agent_tell_env_req, 'LsL')
+            emews.base.baseserv.Handler(self._agent_tell_env_req, 'LsL', send_type_str='H')
         self.handlers[emews.base.enums.agent_protocols.AGENT_ENV_ID] = \
             emews.base.baseserv.Handler(self._agent_env_id_req, 's', send_type_str='L')
 
@@ -60,14 +60,14 @@ class ServAgent(emews.base.queryserv.QueryServ):
         if env_id < 1 or env_id >= len(self._env_state):
             self.logger.warning("Session id: %d, env id '%d' not registered.",
                                 session_id, env_id)
-            return None
+            return (0, None)  # Note: passing back zero here may conflict with legit zero values
 
         state_val = self._env_state[env_id].get(state_key, None)
 
         if state_val is None:
             self.logger.warning("Session id: %d, env id: %d, state key '%s' does not exist.",
                                 session_id, env_id, state_key)
-            return None
+            return (0, None)  # Note: passing back zero here may conflict with legit zero values
 
         return (state_val, self.query_handler)
 
@@ -77,7 +77,7 @@ class ServAgent(emews.base.queryserv.QueryServ):
         if env_id < 1 or env_id >= len(self._env_evidence):
             self.logger.warning("Session id: %d, env id '%d' not registered.",
                                 session_id, env_id)
-            return None
+            return (emews.base.enums.net_state.STATE_NACK, self.query_handler)
 
         self._env_evidence[env_id][ev_key] = ev_val
 
@@ -87,7 +87,7 @@ class ServAgent(emews.base.queryserv.QueryServ):
 
         # TODO: call appropriate update method to update environment based on evidence update
 
-        return self.query_handler
+        return (emews.base.enums.net_state.STATE_ACK, self.query_handler)
 
     # agent env id request
     def _agent_env_id_req(self, session_id, env_context):
@@ -95,6 +95,6 @@ class ServAgent(emews.base.queryserv.QueryServ):
         if env_context not in self._env_id_map:
             self.logger.warning("Session id: %d, env context '%s' is not registered.",
                                 session_id, env_context)
-            return None
+            return (0, None)
 
         return (self._env_id_map[env_context], self.query_handler)
