@@ -29,6 +29,21 @@ def calculate_recv_len(format_str):
     return recv_len
 
 
+def build_query(send_vals):
+    """Build the query type string from a list of (send values, value type) tuples."""
+    format_type_str = '>'
+    val_list = []
+    for val, val_type in send_vals.iteritems():
+        if val_type == 's':
+            format_type_str += 'L' + str(len(val)) + 's'  # 4 bytes for str len
+            val_list.append(str(len(val)))
+        else:
+            format_type_str += val_type
+        val_list.append(val)
+
+    return (format_type_str, val_list)
+
+
 class Handler(object):
     """Container for handler data."""
 

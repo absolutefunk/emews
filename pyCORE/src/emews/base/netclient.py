@@ -140,13 +140,12 @@ class NetClient(emews.base.baseobject.BaseObject):
 
         sock.close()
 
-    def node_query(self, session_id, proto, query_type_str, query_commands, return_type='L'):
+    def node_query(self, session_id, proto, send_vals, return_type='L'):
         """
         Query a node, return the result.
 
         proto = protocol (corresonding server) to handle query
-        query_type_str = string of types, each type at index maps to command at index in list
-        query_commands = list of commands to send
+        send_vals = list of (value, value_type) tuples
         """
         sock = self._sock_state.get(session_id, None)
 
@@ -157,26 +156,21 @@ class NetClient(emews.base.baseobject.BaseObject):
             sock.sendall(struct.pack('>HL', proto, self.sys.node_id))
         except socket.error as ex:
             self.logger.warning(
-                "Connection issue (protocol send) from session id %d: %s", session_id, ex)
+                "Client-side session id %d: connection issue (protocol send): %s", session_id, ex)
             self.close_connection(session_id)
             return None
 
         if self._interrupted:
             return None
 
-        # prepare type string
-        struct_format = '>'
-        for type_chr, cmd in zip(query_type_str, query_commands):
-            if type_chr == 's':
-                struct_format += 'L' + str(len(cmd)) + 's'  # 4 bytes for str len
-            else:
-                struct_format += type_chr
+        struct_format, query_commands = emews.base.baseserv.build_query(send_vals)
 
         try:
             sock.sendall(struct.pack(struct_format, *query_commands))
         except socket.error as ex:
             self.logger.warning(
-                "Connection issue (query command send) from session id %d: %s", session_id, ex)
+                "Client-side session id %d: connection issue (query command send): %s",
+                session_id, ex)
             self.close_connection(session_id)
             return None
 
@@ -191,21 +185,24 @@ class NetClient(emews.base.baseobject.BaseObject):
                 chunk = sock.recv(buf_len)  # query result (4 bytes)
 
                 if not len(chunk):
-                    self.logger.warning("Connection closed remotely from session id %d", session_id)
+                    self.logger.warning(
+                        "Client-side session id %d: connection closed remotely.", session_id)
                     self.close_connection(session_id)
                     return None
 
                 bytes_recv += len(chunk)
             except socket.error as ex:
                 self.logger.warning(
-                    "Connection issue (query result receive) from session id %d: %s", session_id, ex)
+                    "Client-side session id %d: connection issue (query result receive): %s",
+                    session_id, ex)
                 self.close_connection(session_id)
                 return None
 
         try:
             result = struct.unpack('>%s' % return_type, chunk)[0]
         except struct.error as ex:
-            self.logger.warning("Unexpected data format from session id %d: %s", session_id, ex)
+            self.logger.warning("Client-side session id %d: unexpected data format from: %s",
+                                session_id, ex)
             self.close_connection(session_id)
             return None
 
@@ -254,7 +251,14 @@ class NetClient(emews.base.baseobject.BaseObject):
 
     def client_session_get(self, session_id, protocol, send_vals, return_type='L'):
         """Get a value (type is return_type), based on protocol and byte string to send."""
-        pass
+        result = self.node_query(session_id, protocol, send_vals, return_type=return_type)
+
+        if result is None and self.connect_node is None:
+            # If the query fails, and subsequently reconnecting the session fails, then
+            # most likely there is a bad connection issue going on.
+            return None
+
+        return result
 
     def client_session_put(self, session_id, protocol, send_vals):
         """Put data somewhere, based on protocol and byte string to send."""
