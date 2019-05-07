@@ -30,7 +30,15 @@ class BaseAgent(emews.services.baseservice.BaseService):
 
     def _get_env_id(self, env_context):
         """Get the id of the env_context from the hub node.  Env id must already exist."""
-        env_id = self._net_client.client_session_get()
+        env_id = self._net_client.client_session_get(
+            self._client_session,
+            emews.base.enums.net_protocols.NET_AGENT,
+            [
+                (emews.base.enums.agent_protocols.AGENT_ENV_ID, 'H')
+                (env_context, 's')
+            ],
+            return_type='H'
+            )
 
         if env_id == 0:
             self.logger.error("Invalid environment id returned (0).  Is the env_context registered?")
@@ -62,11 +70,17 @@ class BaseAgent(emews.services.baseservice.BaseService):
 
         return state_val
 
-    def tell(self, context, key, val):
+    def tell(self, env_context, state_key, state_val):
         """
         Tell (update) and environment evidence key.
 
         Evidence is provided to the environment, and state is what is ultimately calculated from the
         given evidence.
         """
-        pass
+        if state_key is None or state_key == '':
+            self.logger.error("%s: state key passed is empty.", self.service_name)
+            raise ValueError("%s: state key passed is empty." % self.service_name)
+
+        if env_context not in self._env_id:
+            env_id = self._get_env_id(env_context)
+            self._env_id[env_context] = env_id

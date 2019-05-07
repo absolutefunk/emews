@@ -17,11 +17,6 @@ TODO: Refactor this to only use a single connection to the hub node.  So instead
 connections to the hub per node, we establish a single connection, and keep it persistent
 throughout an experimental run.  This would have the additional benefit of freeing 'None' for use
 to return (ie, if something being looked up doesn't exist).
-
-TODO: Refactor type_str sending to eliminate type string creation.  The server classes already
-contain what typed are expected to be received and sent, so we don't need to have clients recreating
-these type strings.  So instead of passing types at the client, simply pass the values only (ie,
-get rid of tuple) and lookup from the server what the type string should be.
 """
 
 

@@ -90,7 +90,7 @@ class BaseServ(emews.base.baseobject.BaseObject):
 
     @abstractmethod
     def serv_init(self, node_id, session_id):
-        """Return the first callback used for this server."""
+        """Server init."""
         pass
 
     @abstractmethod
