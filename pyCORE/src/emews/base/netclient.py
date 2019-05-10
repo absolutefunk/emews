@@ -60,7 +60,7 @@ class NetClient(emews.base.baseobject.BaseObject):
     """Classdocs."""
 
     __slots__ = ('_port', '_hub_addr', '_conn_timeout', '_conn_max_attempts', '_num_clients',
-                 '_session_id', 'hub_query', '_client_sessions')
+                 '_session_id', 'hub_query', '_client_sessions', 'protocols')
 
     def __init__(self, config, hub_addr):
         """Constructor."""
@@ -76,6 +76,8 @@ class NetClient(emews.base.baseobject.BaseObject):
 
         self._client_sessions = {}  # sock management for client sessions
         self._session_id = 1  # sock session id (note, different than ConnectionManager session ids)
+
+        self.protocols = [None] * emews.base.enums.net_protocols.ENUM_SIZE  # protocol specs
 
         # method pointers (allows monkey-patching)
         self.hub_query = self._hub_query

@@ -19,14 +19,18 @@ class ServAgent(emews.base.queryserv.QueryServ):
     def __init__(self):
         """Constructor."""
         super(ServAgent, self).__init__()
+        self.serv_id = emews.base.enums.net_protocols.NET_AGENT
 
         self.handlers = [None] * emews.base.enums.agent_protocols.ENUM_SIZE
         self.handlers[emews.base.enums.agent_protocols.AGENT_ASK] = \
-            emews.base.baseserv.Handler(self._agent_ask_env_req, 'Ls', send_type_str='L')
+            emews.base.baseserv.Handler(
+            emews.base.baseserv.NetProto('Ls', 'L'), self._agent_ask_env_req)
         self.handlers[emews.base.enums.agent_protocols.AGENT_TELL] = \
-            emews.base.baseserv.Handler(self._agent_tell_env_req, 'LsL', send_type_str='H')
+            emews.base.baseserv.Handler(
+            emews.base.baseserv.NetProto('LsL', 'H'), self._agent_tell_env_req)
         self.handlers[emews.base.enums.agent_protocols.AGENT_ENV_ID] = \
-            emews.base.baseserv.Handler(self._agent_env_id_req, 's', send_type_str='L')
+            emews.base.baseserv.Handler(
+            emews.base.baseserv.NetProto('s', 'L'), self._agent_env_id_req)
 
         self._env_evidence = []  # environment evidence cache
         self._env_state = []  # environment state cache

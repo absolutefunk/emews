@@ -44,41 +44,62 @@ def build_query(send_vals):
     return (format_type_str, val_list)
 
 
+class NetProto(object):
+    """Specification for a server protocol."""
+
+    __slots__ = ('_type_str', '_type_ret')
+
+    def __init__(self, type_str, type_ret):
+        """Constructor."""
+        self._type_str = type_str
+        self._type_ret = type_ret
+
+    @property
+    def return_type(self):
+        """Return the return type."""
+        return self._type_ret
+
+    def type_at(self, index):
+        """Return the type at specified index."""
+        return self._type_str[index]
+
+
 class Handler(object):
     """Container for handler data."""
 
-    __slots__ = ('callback', 'recv_list', 'send_type_str')
+    __slots__ = ('callback', 'recv_types', 'protocol')
 
-    def __init__(self, callback, format_str, send_type_str=None):
+    def __init__(self, protocol, callback):
         """Constructor."""
         self.callback = callback  # callback to invoke once data is fully received
-        self.recv_list = []  # tuples of (struct unpack string, recv_len)
-        self.send_type_str = '>%s' % send_type_str if send_type_str is not None else None
+        self.recv_types = []  # tuples of (struct unpack string, recv_len)
+        self.protocol = protocol
 
         # split the format string if any type is 's' (string type)
         cur_format_str = ''
-        for type_chr in format_str:
+        for type_chr in protocol._type_str:
             if type_chr == 's':
-                self.recv_list.append(
+                self.recv_types.append(
                     ('>%sL' % cur_format_str, calculate_recv_len(cur_format_str) + 4))
                 cur_format_str = ''
-                self.recv_list.append(('s', 0))  # we don't know the recv_len yet
+                self.recv_types.append(('s', 0))  # we don't know the recv_len yet
             else:
                 cur_format_str += type_chr
 
         if cur_format_str != '':
-            self.recv_list.append(('>%s' % cur_format_str, calculate_recv_len(cur_format_str)))
+            self.recv_types.append(('>%s' % cur_format_str, calculate_recv_len(cur_format_str)))
 
 
 class BaseServ(emews.base.baseobject.BaseObject):
     """Classdocs."""
 
-    __slots__ = ('_net_cache', '_net_client', 'handlers')
+    __slots__ = ('_net_cache', '_net_client', 'handlers', 'serv_id')
 
     def __init__(self):
         """Constructor."""
         super(BaseServ, self).__init__()
         self.handlers = None
+        self.serv_id = -1
 
     def handle_init(self, node_id, session_id):
         """Session init."""
@@ -97,3 +118,6 @@ class BaseServ(emews.base.baseobject.BaseObject):
     def serv_close(self, session_id):
         """Handle any session closing tasks."""
         pass
+
+    def build_protocol(self, proto_id, type_str, type_ret, callback):
+        """Builds protocol information from the given args."""

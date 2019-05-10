@@ -33,11 +33,8 @@ class BaseAgent(emews.services.baseservice.BaseService):
         env_id = self._net_client.client_session_get(
             self._client_session,
             emews.base.enums.net_protocols.NET_AGENT,
-            [
-                (emews.base.enums.agent_protocols.AGENT_ENV_ID, 'H')
-                (env_context, 's')
-            ],
-            return_type='H'
+            emews.base.enums.agent_protocols.AGENT_ENV_ID,
+            env_context,
             )
 
         if env_id == 0:
