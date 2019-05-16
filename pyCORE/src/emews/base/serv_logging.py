@@ -18,10 +18,12 @@ class ServLogging(emews.base.baseserv.BaseServ):
     def __init__(self):
         """Constructor."""
         super(ServLogging, self).__init__()
-        self.handlers = emews.base.baseserv.Handler(self._process_message, 's')
+        self.handlers = emews.base.baseserv.Handler(
+            emews.base.baseserv.NetProto('s'),
+            self._process_message)
 
     def serv_init(self, node_id, session_id):
-        """Return the expected number of bytes to receive first and the callback."""
+        """Init of new logging session."""
         return self.handlers
 
     def serv_close(self, session_id):
