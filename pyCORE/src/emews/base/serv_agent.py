@@ -19,18 +19,31 @@ class ServAgent(emews.base.queryserv.QueryServ):
     def __init__(self):
         """Constructor."""
         super(ServAgent, self).__init__()
-        self.serv_id = emews.base.enums.net_protocols.NET_AGENT
+        self._net_client.protocols[emews.base.enums.net_protocols.NET_AGENT] = \
+            [None] * emews.base.enums.agent_protocols.ENUM_SIZE
 
         self.handlers = [None] * emews.base.enums.agent_protocols.ENUM_SIZE
-        self.handlers[emews.base.enums.agent_protocols.AGENT_ASK] = \
-            emews.base.baseserv.Handler(
-            emews.base.baseserv.NetProto('Ls', 'L'), self._agent_ask_env_req)
-        self.handlers[emews.base.enums.agent_protocols.AGENT_TELL] = \
-            emews.base.baseserv.Handler(
-            emews.base.baseserv.NetProto('LsL', 'H'), self._agent_tell_env_req)
-        self.handlers[emews.base.enums.agent_protocols.AGENT_ENV_ID] = \
-            emews.base.baseserv.Handler(
-            emews.base.baseserv.NetProto('s', 'L'), self._agent_env_id_req)
+
+        new_proto = emews.base.baseserv.NetProto(
+            'Ls', type_return='L',
+            proto_id=emews.base.enums.net_protocols.NET_AGENT,
+            request_id=emews.base.enums.agent_protocols.AGENT_ASK)
+        self._net_client.protocols[new_proto.proto_id][new_proto.request_id] = new_proto
+        self.handlers[new_proto.request_id] = emews.base.baseserv.Handler(new_proto, self._agent_ask_env_req)
+
+        new_proto = emews.base.baseserv.NetProto(
+            'LsL', type_return='H',
+            proto_id=emews.base.enums.net_protocols.NET_AGENT,
+            request_id=emews.base.enums.agent_protocols.AGENT_TELL)
+        self._net_client.protocols[new_proto.proto_id][new_proto.request_id] = new_proto
+        self.handlers[new_proto.request_id] = emews.base.baseserv.Handler(new_proto, self._agent_tell_env_req)
+
+        new_proto = emews.base.baseserv.NetProto(
+            's', type_return='L',
+            proto_id=emews.base.enums.net_protocols.NET_AGENT,
+            request_id=emews.base.enums.agent_protocols.AGENT_ENV_ID)
+        self._net_client.protocols[new_proto.proto_id][new_proto.request_id] = new_proto
+        self.handlers[new_proto.request_id] = emews.base.baseserv.Handler(new_proto, self._agent_env_id_req)
 
         self._env_evidence = []  # environment evidence cache
         self._env_state = []  # environment state cache

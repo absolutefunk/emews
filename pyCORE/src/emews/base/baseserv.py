@@ -47,21 +47,33 @@ def build_query(send_vals):
 class NetProto(object):
     """Specification for a server protocol."""
 
-    __slots__ = ('_type_str', '_type_ret')
+    __slots__ = ('proto_id', 'request_id', '_type_str', '_type_ret', '_len')
 
-    def __init__(self, type_str, type_ret):
+    def __init__(self, type_string, type_return=None, proto_id=-1, request_id=-1):
         """Constructor."""
-        self._type_str = type_str
-        self._type_ret = type_ret
+        self.proto_id = proto_id
+        self.request_id = request_id
+        self._type_str = type_string
+        self._type_ret = type_return
+        self._len = len(type_string)
 
     @property
     def return_type(self):
         """Return the return type."""
         return self._type_ret
 
+    @property
+    def format_string(self):
+        """Return the type_str."""
+        return self._type_str
+
     def type_at(self, index):
         """Return the type at specified index."""
         return self._type_str[index]
+
+    def __len__(self):
+        """Return the length of the type_str string."""
+        return self._len
 
 
 class Handler(object):
@@ -72,7 +84,7 @@ class Handler(object):
     def __init__(self, protocol, callback):
         """Constructor."""
         self.callback = callback  # callback to invoke once data is fully received
-        self.recv_types = []  # tuples of (struct unpack string, recv_len)
+        self.recv_types = []  # tuples of (struct unpack type string, recv_len)
         self.protocol = protocol
 
         # split the format string if any type is 's' (string type)
@@ -99,7 +111,6 @@ class BaseServ(emews.base.baseobject.BaseObject):
         """Constructor."""
         super(BaseServ, self).__init__()
         self.handlers = None
-        self.serv_id = -1
 
     def handle_init(self, node_id, session_id):
         """Session init."""
@@ -118,6 +129,3 @@ class BaseServ(emews.base.baseobject.BaseObject):
     def serv_close(self, session_id):
         """Handle any session closing tasks."""
         pass
-
-    def build_protocol(self, proto_id, type_str, type_ret, callback):
-        """Builds protocol information from the given args."""

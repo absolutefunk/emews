@@ -187,7 +187,7 @@ class NetServ(emews.base.baseobject.BaseObject):
                                 session_id, ex)
             return (None, 0)
 
-        if session_data.recv_index == len(handler.recv_list) - 1:
+        if session_data.recv_index == len(handler.protocol) - 1:
             # no more data to recv, invoke callback
             session_data.recv_args.extend(var_tup)
             return self._invoke_handler(session_id, handler)
@@ -195,7 +195,7 @@ class NetServ(emews.base.baseobject.BaseObject):
         session_data.recv_index += 1
 
         # return the next expected bytes to receive
-        recv_str = handler.recv_list[session_data.recv_index][0]
+        recv_str = handler.recv_types[session_data.recv_index][0]
         if recv_str == 's':
             session_data.recv_args.extend(var_tup[:-1])  # don't append last type, as it's the s len
 
@@ -212,18 +212,18 @@ class NetServ(emews.base.baseobject.BaseObject):
                 session_data.recv_args.append('')
                 session_data.recv_index += 1  # skip the string recv_str (None var appended)
 
-                if session_data.recv_index == len(handler.recv_list):
+                if session_data.recv_index == len(handler.recv_types):
                     # no more data to recv, invoke callback
                     # comparison here is to the recv_list len, as we increment recv_index by 2
                     return self._invoke_handler(session_id, handler)
 
-                session_data.recv_type_str = handler.recv_list[session_data.recv_index][0]
-                next_recv_bytes = handler.recv_list[session_data.recv_index][1]  # next recv bytes
+                session_data.recv_type_str = handler.recv_types[session_data.recv_index][0]
+                next_recv_bytes = handler.recv_types[session_data.recv_index][1]  # next recv bytes
 
         else:
             session_data.recv_type_str = recv_str
             session_data.recv_args.extend(var_tup)
-            next_recv_bytes = handler.recv_list[session_data.recv_index][1]  # next recv bytes
+            next_recv_bytes = handler.recv_types[session_data.recv_index][1]  # next recv bytes
 
         return (self._handle_data, next_recv_bytes)
 
@@ -236,14 +236,14 @@ class NetServ(emews.base.baseobject.BaseObject):
 
         session_data.handler = handler
 
-        if not len(handler.recv_list):
+        if not len(handler.recv_types):
             self.logger.debug(
                 "Session id: %d, handler doesn't require received data, invoking immediately ...",
                 session_id)
             return self._invoke_handler(session_id, handler)
 
-        session_data.recv_type_str = handler.recv_list[0][0]
-        return (self._handle_data, handler.recv_list[0][1])
+        session_data.recv_type_str = handler.recv_types[0][0]
+        return (self._handle_data, handler.recv_types[0][1])
 
     def _invoke_handler(self, session_id, handler):
         """Invoke the handler callback once all data has been received."""
@@ -256,7 +256,7 @@ class NetServ(emews.base.baseobject.BaseObject):
             return (None, 0)
         elif (isinstance(ret_val, tuple)):
             # send some data
-            if handler.send_type_str is None or handler.send_type_str == '':
+            if handler.protocol.return_type is None or handler.protocol.return_type == '':
                 self.logger.warning(
                     "Session id: %d, type specified to pack string is empty.", session_id)
                 return (None, 0)

@@ -179,12 +179,12 @@ class NetClient(emews.base.baseobject.BaseObject):
 
         sock.close()
 
-    def node_query(self, session_id, proto, send_vals, return_type='L'):
+    def node_query(self, session_id, protocol, val_list=['']):
         """
         Query a node, return the result.
 
         proto = protocol (corresonding server) to handle query
-        send_vals = list of (value, value_type) tuples
+        send_vals = list of values to send, types according to protocol
         """
         if session_id not in self._client_sessions:
             err_msg = "Session id '%d' does not exist" % session_id
@@ -194,20 +194,8 @@ class NetClient(emews.base.baseobject.BaseObject):
         sock, _ = self._client_sessions[session_id]
 
         try:
-            sock.sendall(struct.pack('>HL', proto, self.sys.node_id))
-        except socket.error as ex:
-            self.logger.warning(
-                "Client-side session id %d: connection issue (protocol send): %s", session_id, ex)
-            sock.close()
-            raise
-
-        if self._interrupted:
-            return None
-
-        struct_format, query_commands = emews.base.baseserv.build_query(send_vals)
-
-        try:
-            sock.sendall(struct.pack(struct_format, *query_commands))
+            send_vals = [protocol.proto_id, self.sys.node_id, protocol.request_id].extend(val_list)
+            sock.sendall(struct.pack('>HLH%s' % protocol.format_string, *send_vals))
         except socket.error as ex:
             self.logger.warning(
                 "Client-side session id %d: connection issue (query command send): %s",
@@ -216,7 +204,7 @@ class NetClient(emews.base.baseobject.BaseObject):
             raise
 
         # receive result
-        buf_len = emews.base.baseserv.calculate_recv_len(return_type)
+        buf_len = emews.base.baseserv.calculate_recv_len(protocol.return_type)
         bytes_recv = 0
         while not self._interrupted and bytes_recv < buf_len:
             try:
@@ -240,7 +228,7 @@ class NetClient(emews.base.baseobject.BaseObject):
                 raise
 
         try:
-            result = struct.unpack('>%s' % return_type, chunk)[0]
+            result = struct.unpack('>%s' % protocol.return_type, chunk)[0]
         except struct.error as ex:
             self.logger.warning("Client-side session id %d: unexpected data format from: %s",
                                 session_id, ex)
@@ -270,14 +258,14 @@ class NetClient(emews.base.baseobject.BaseObject):
 
         return session_id
 
-    def _client_session_query(self, session_id, protocol, send_vals, return_type):
+    def _client_session_query(self, session_id, protocol, val_list):
         """Get a value (type is return_type), based on protocol and byte string to send."""
         if self._interrupted:
             return None
 
         while not self._interrupted:
             try:
-                result = self.node_query(session_id, protocol, send_vals, return_type=return_type)
+                result = self.node_query(session_id, protocol, val_list=val_list)
             except socket.error:
                 # attempt to reconnect and try again (if reconnect fails, exception raised)
                 self._client_session_reconnect(session_id)
@@ -287,13 +275,13 @@ class NetClient(emews.base.baseobject.BaseObject):
 
         return result
 
-    def client_session_get(self, session_id, protocol, send_vals, return_type='L'):
+    def client_session_get(self, session_id, protocol, val_list):
         """Put data somewhere, based on protocol and byte string to send."""
-        return self._client_session_query(session_id, protocol, send_vals, return_type)
+        return self._client_session_query(session_id, protocol, val_list)
 
-    def client_session_put(self, session_id, protocol, send_vals):
+    def client_session_put(self, session_id, protocol, val_list):
         """Put data somewhere, based on protocol and byte string to send."""
-        return self._client_session_query(session_id, protocol, send_vals, 'H')
+        return self._client_session_query(session_id, protocol, val_list)
 
     # clients which need to run in a thread - these methods return an object suitable for dispatch
     def broadcast_message(self, message, interval, duration):

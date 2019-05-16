@@ -19,7 +19,7 @@ import emews.services.baseservice
 class BaseAgent(emews.services.baseservice.BaseService):
     """Classdocs."""
 
-    __slots__ = ('_net_client', '_client_session', '_env_id')
+    __slots__ = ('_net_client', '_client_session', '_env_id', '_proto')
 
     def __init__(self):
         """Constructor."""
@@ -27,14 +27,14 @@ class BaseAgent(emews.services.baseservice.BaseService):
 
         self._client_session = self._net_client.create_client_session()  # NetClient session
         self._env_id = {}  # [env_context] = env_id
+        self._proto = self._net_client.protocols[emews.base.enums.net_protocols.NET_AGENT]
 
     def _get_env_id(self, env_context):
         """Get the id of the env_context from the hub node.  Env id must already exist."""
         env_id = self._net_client.client_session_get(
             self._client_session,
-            emews.base.enums.net_protocols.NET_AGENT,
-            emews.base.enums.agent_protocols.AGENT_ENV_ID,
-            env_context,
+            self._proto[emews.base.enums.agent_protocols.AGENT_ENV_ID],
+            [env_context]
             )
 
         if env_id == 0:
@@ -57,12 +57,8 @@ class BaseAgent(emews.services.baseservice.BaseService):
 
         state_val = self._net_client.client_session_get(
             self._client_session,
-            emews.base.enums.net_protocols.NET_AGENT,
-            [
-                (emews.base.enums.agent_protocols.AGENT_ASK, 'H'),
-                (self._env_id, 'L'),
-                (state_key, 's')
-            ]
+            self._proto[emews.base.enums.agent_protocols.AGENT_ASK],
+            [self._env_id, state_key]
             )
 
         return state_val
@@ -81,3 +77,12 @@ class BaseAgent(emews.services.baseservice.BaseService):
         if env_context not in self._env_id:
             env_id = self._get_env_id(env_context)
             self._env_id[env_context] = env_id
+
+        ack_val = self._net_client.client_session_get(
+            self._client_session,
+            self._proto[emews.base.enums.agent_protocols.AGENT_TELL],
+            [self._env_id, env_context, state_key, state_val]
+            )
+
+        if ack_val != emews.base.enums.net_state.STATE_ACK:
+            raise ValueError("%s: NACK returned when providing evidence (TELL)." % self.service_name)

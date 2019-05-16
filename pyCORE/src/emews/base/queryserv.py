@@ -15,7 +15,10 @@ class QueryServ(emews.base.baseserv.BaseServ):
     def __init__(self):
         """Constructor."""
         super(QueryServ, self).__init__()
-        self.query_handler = emews.base.baseserv.Handler(self._query, 'H')
+        self.query_handler = emews.base.baseserv.Handler(
+            emews.base.baseserv.NetProto('H'),
+            self._query
+        )
 
     def handle_init(self, node_id, session_id):
         """Session init."""
