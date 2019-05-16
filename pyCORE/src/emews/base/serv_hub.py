@@ -17,28 +17,36 @@ class ServHub(emews.base.queryserv.QueryServ):
 
     __slots__ = ('_node_id', '_service_id')
 
+    @classmethod
+    def build_protocols(cls):
+        """Build the protocols for this server, and add them to BaseServ.protocols."""
+        proto_id = emews.base.enums.net_protocols.NET_HUB
+        cls.protocols[proto_id] = [None] * emews.base.enums.hub_protocols.ENUM_SIZE
+
+        new_proto = emews.base.baseserv.NetProto(
+            '', type_return='L',
+            proto_id=proto_id,
+            request_id=emews.base.enums.hub_protocols.HUB_NODE_ID_REQ)
+        cls.protocols[proto_id][new_proto.request_id] = new_proto
+
+        new_proto = emews.base.baseserv.NetProto(
+            '', type_return='L',
+            proto_id=proto_id,
+            request_id=emews.base.enums.hub_protocols.HUB_SERVICE_ID_REQ)
+        cls.protocols[proto_id][new_proto.request_id] = new_proto
+
     def __init__(self):
         """Constructor."""
         super(ServHub, self).__init__()
 
-        self._net_client.protocols[emews.base.enums.net_protocols.NET_HUB] = \
-            [None] * emews.base.enums.hub_protocols.ENUM_SIZE
-
         self.handlers = [None] * emews.base.enums.hub_protocols.ENUM_SIZE
+        proto_id = emews.base.enums.net_protocols.NET_HUB
 
-        new_proto = emews.base.baseserv.NetProto(
-            '', type_return='L',
-            proto_id=emews.base.enums.net_protocols.NET_HUB,
-            request_id=emews.base.enums.hub_protocols.HUB_NODE_ID_REQ)
-        self._net_client.protocols[new_proto.proto_id][new_proto.request_id] = new_proto
-        self.handlers[new_proto.request_id] = emews.base.baseserv.Handler(new_proto, self._node_id_req)
+        request_id = emews.base.enums.hub_protocols.HUB_NODE_ID_REQ
+        self.handlers[request_id] = emews.base.baseserv.Handler(self.protocols[proto_id][request_id], self._node_id_req)
 
-        new_proto = emews.base.baseserv.NetProto(
-            '', type_return='L',
-            proto_id=emews.base.enums.net_protocols.NET_HUB,
-            request_id=emews.base.enums.hub_protocols.HUB_SERVICE_ID_REQ)
-        self._net_client.protocols[new_proto.proto_id][new_proto.request_id] = new_proto
-        self.handlers[new_proto.request_id] = emews.base.baseserv.Handler(new_proto, self._service_id_req)
+        request_id = emews.base.enums.hub_protocols.HUB_SERVICE_ID_REQ
+        self.handlers[request_id] = emews.base.baseserv.Handler(self.protocols[proto_id][request_id], self._service_id_req)
 
         self._node_id = 2     # current unassigned node id
         self._service_id = 2  # current unassigned service id

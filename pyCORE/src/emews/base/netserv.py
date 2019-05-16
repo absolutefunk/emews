@@ -101,6 +101,11 @@ class NetServ(emews.base.baseobject.BaseObject):
 
         inject_par = {'sys': self.sys, '_net_cache': self._net_cache, '_net_client': net_client}
 
+        # build net protocols (must be called before instantiation)
+        emews.base.serv_hub.ServHub.build_protocols()
+        emews.base.serv_agent.ServAgent.build_protocols()
+        emews.base.serv_spawner.ServSpawner.build_protocols()
+
         if self.sys.is_hub:
             # Hub node runs the following servers:
             self._proto_cb[emews.base.enums.net_protocols.NET_HUB] = \
@@ -187,7 +192,7 @@ class NetServ(emews.base.baseobject.BaseObject):
                                 session_id, ex)
             return (None, 0)
 
-        if session_data.recv_index == len(handler.protocol) - 1:
+        if session_data.recv_index == len(handler.recv_types) - 1:
             # no more data to recv, invoke callback
             session_data.recv_args.extend(var_tup)
             return self._invoke_handler(session_id, handler)
@@ -197,10 +202,11 @@ class NetServ(emews.base.baseobject.BaseObject):
         # return the next expected bytes to receive
         recv_str = handler.recv_types[session_data.recv_index][0]
         if recv_str == 's':
-            session_data.recv_args.extend(var_tup[:-1])  # don't append last type, as it's the s len
+            session_data.recv_args.extend(var_tup[:-1])  # don't append last val, as it's the s len
 
             # prepare for string reception
             s_len = var_tup[-1]
+
             if s_len > 0:
                 session_data.recv_type_str = '>%ds' % var_tup[-1]
                 next_recv_bytes = s_len  # next recv bytes correspond to s len
@@ -261,7 +267,7 @@ class NetServ(emews.base.baseobject.BaseObject):
                     "Session id: %d, type specified to pack string is empty.", session_id)
                 return (None, 0)
 
-            send_data = struct.pack(handler.send_type_str, ret_val[0])
+            send_data = struct.pack('>%s' % handler.protocol.return_type, ret_val[0])
 
             if ret_val[1] is None:
                 # send some data and then end the session.

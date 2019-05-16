@@ -77,13 +77,13 @@ class NetClient(emews.base.baseobject.BaseObject):
         self._client_sessions = {}  # sock management for client sessions
         self._session_id = 1  # sock session id (note, different than ConnectionManager session ids)
 
-        self.protocols = [None] * emews.base.enums.net_protocols.ENUM_SIZE  # protocol specs
+        self.protocols = emews.base.baseserv.BaseServ.protocols
 
         # method pointers (allows monkey-patching)
         self.hub_query = self._hub_query
 
     def _sock_connect(self, addr=None):
-        """Connect to addr, return a socket."""
+        """Connect to addr, return a (socket, dest_addr)."""
         connect_attempts = 0
         conn_addr = addr if addr is not None else self._hub_addr
 
@@ -111,7 +111,7 @@ class NetClient(emews.base.baseobject.BaseObject):
             self.logger.error(err_msg)
             raise IOError(err_msg)
 
-        return sock
+        return (sock, conn_addr)
 
     def _client_session_reconnect(self, session_id):
         """Attempt to reconnect a failed connection."""
@@ -122,13 +122,13 @@ class NetClient(emews.base.baseobject.BaseObject):
 
         _, addr = self._client_sessions[session_id]
 
-        sock = self._sock_connect(addr)
+        sock, dest_addr = self._sock_connect(addr)
 
-        self._client_sessions[session_id] = (sock, addr)
+        self._client_sessions[session_id] = (sock, dest_addr)
 
         self.logger.info(
             "Client-side session id %d: connection re-established to node address '%s'",
-            session_id, str(addr))
+            session_id, str(dest_addr))
 
     def _get_client_instance(self, class_def, *args):
         """Return an inject dict for new net clients."""
@@ -142,16 +142,16 @@ class NetClient(emews.base.baseobject.BaseObject):
 
         return class_def(*args, _inject=inject_dict)
 
-    def _hub_query(self, request):
+    def _hub_query(self, request_id):
         """
         Given a request, return the corresponding result.
 
         Note that this is a client-side (blocking) operation.
         """
         session_id = self.create_client_session()
+        protocol = self.protocols[emews.base.enums.net_protocols.NET_HUB][request_id]
 
-        result = self.node_query(
-            session_id, emews.base.enums.net_protocols.NET_HUB, 'H', [request])
+        result = self.node_query(session_id, protocol)
 
         self.close_connection(session_id)
         return result
@@ -179,7 +179,7 @@ class NetClient(emews.base.baseobject.BaseObject):
 
         sock.close()
 
-    def node_query(self, session_id, protocol, val_list=['']):
+    def node_query(self, session_id, protocol, val_list=[]):
         """
         Query a node, return the result.
 
@@ -194,7 +194,8 @@ class NetClient(emews.base.baseobject.BaseObject):
         sock, _ = self._client_sessions[session_id]
 
         try:
-            send_vals = [protocol.proto_id, self.sys.node_id, protocol.request_id].extend(val_list)
+            send_vals = [protocol.proto_id, self.sys.node_id, protocol.request_id]
+            send_vals.extend(val_list)
             sock.sendall(struct.pack('>HLH%s' % protocol.format_string, *send_vals))
         except socket.error as ex:
             self.logger.warning(
@@ -243,18 +244,18 @@ class NetClient(emews.base.baseobject.BaseObject):
 
         Note that this is a client-side (blocking) operation.
         """
-        sock = self._sock_connect(addr)
+        sock, dest_addr = self._sock_connect(addr)
 
         if self._interrupted:
             return None
 
         session_id = self._session_id
         self._session_id += 1
-        self._client_sessions[session_id] = (sock, addr)
+        self._client_sessions[session_id] = (sock, dest_addr)
 
         self.logger.info(
             "Client-side session id %d: New connection established to node address '%s'",
-            session_id, str(addr))
+            session_id, str(dest_addr))
 
         return session_id
 

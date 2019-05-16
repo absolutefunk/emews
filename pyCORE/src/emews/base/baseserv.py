@@ -94,7 +94,7 @@ class Handler(object):
                 self.recv_types.append(
                     ('>%sL' % cur_format_str, calculate_recv_len(cur_format_str) + 4))
                 cur_format_str = ''
-                self.recv_types.append(('s', 0))  # we don't know the recv_len yet
+                self.recv_types.append(('s', 0))  # we don't know the recv_len yet (also why no '>')
             else:
                 cur_format_str += type_chr
 
@@ -106,6 +106,12 @@ class BaseServ(emews.base.baseobject.BaseObject):
     """Classdocs."""
 
     __slots__ = ('_net_cache', '_net_client', 'handlers', 'serv_id')
+    protocols = [None] * emews.base.enums.net_protocols.ENUM_SIZE  # net protocol specs
+
+    @classmethod
+    def build_protocols(cls):
+        """Build the protocols for this server, and add them to BaseServ.protocols."""
+        raise NotImplementedError("Derived Server class must implement this class method")
 
     def __init__(self):
         """Constructor."""

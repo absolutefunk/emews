@@ -115,7 +115,7 @@ def system_init(args):
 
         log_host = config_dict_system['hub']['node_address']
 
-    print "[system_init] Node id: " + str(node_id) + "."
+    print "[system_init] Node id: " + str(node_id)
     sys.stdout.flush()
 
     emews.base.logger._base_logger = logging.LoggerAdapter(
