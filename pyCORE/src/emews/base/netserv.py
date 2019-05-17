@@ -66,7 +66,7 @@ class NetCache(object):
 
     def __init__(self):
         """Constructor."""
-        self.node = {}    # [node_id]: [services]
+        self.node = {}    # [node_id]: NodeData
         self.session = {}  # [session_id]: SessionData
 
     def add_node(self, node_id, session_id):

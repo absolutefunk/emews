@@ -120,15 +120,24 @@ class NetClient(emews.base.baseobject.BaseObject):
             self.logger.error(err_msg)
             raise AttributeError(err_msg)
 
-        _, addr = self._client_sessions[session_id]
+        _, addr, serv_proto = self._client_sessions[session_id]
 
-        sock, dest_addr = self._sock_connect(addr)
+        sock = self._sock_connect(addr)[0]
 
-        self._client_sessions[session_id] = (sock, dest_addr)
+        self._client_sessions[session_id] = (sock, addr)
 
         self.logger.info(
             "Client-side session id %d: connection re-established to node address '%s'",
-            session_id, str(dest_addr))
+            session_id, str(addr))
+
+        try:
+            sock.sendall(struct.pack(">HL", serv_proto, self.sys.node_id))
+        except socket.error as ex:
+            self.logger.warning(
+                "Client-side session id %d: connection issue on reconnect (serv protocol send): %s",
+                session_id, ex)
+            sock.close()
+            raise
 
     def _get_client_instance(self, class_def, *args):
         """Return an inject dict for new net clients."""
@@ -168,7 +177,7 @@ class NetClient(emews.base.baseobject.BaseObject):
             self.logger.error(err_msg)
             raise AttributeError(err_msg)
 
-        sock, _ = self._client_sessions[session_id]
+        sock = self._client_sessions[session_id][0]
 
         del self._client_sessions[session_id]
 
@@ -181,22 +190,22 @@ class NetClient(emews.base.baseobject.BaseObject):
 
     def node_query(self, session_id, protocol, val_list=[]):
         """
-        Query a node, return the result.
+        Query a node, using an existing session, and return the result.
 
-        proto = protocol (corresonding server) to handle query
-        send_vals = list of values to send, types according to protocol
+        protocol: specific protocol on the server (server is established on session connection)
+        val_list: values to send (types specified in the protocol)
         """
         if session_id not in self._client_sessions:
             err_msg = "Session id '%d' does not exist" % session_id
             self.logger.error(err_msg)
             raise AttributeError(err_msg)
 
-        sock, _ = self._client_sessions[session_id]
+        sock = self._client_sessions[session_id][0]
 
         try:
-            send_vals = [protocol.proto_id, self.sys.node_id, protocol.request_id]
+            send_vals = [protocol.request_id]
             send_vals.extend(val_list)
-            sock.sendall(struct.pack('>HLH%s' % protocol.format_string, *send_vals))
+            sock.sendall(struct.pack('>H%s' % protocol.format_string, *send_vals))
         except socket.error as ex:
             self.logger.warning(
                 "Client-side session id %d: connection issue (query command send): %s",
@@ -214,19 +223,20 @@ class NetClient(emews.base.baseobject.BaseObject):
                 # and close the socket from its side, unblocking it here.
                 chunk = sock.recv(buf_len)  # query result (4 bytes)
 
-                if not len(chunk):
-                    warn_msg = "Client-side session id %d: connection closed remotely." % session_id
-                    self.logger.warning(warn_msg)
-                    sock.close()
-                    raise socket.error(warn_msg)
-
-                bytes_recv += len(chunk)
             except socket.error as ex:
                 self.logger.warning(
                     "Client-side session id %d: connection issue (query result receive): %s",
                     session_id, ex)
                 sock.close()
                 raise
+
+            if not len(chunk):
+                warn_msg = "Client-side session id %d: connection closed remotely." % session_id
+                self.logger.warning(warn_msg)
+                sock.close()
+                raise socket.error(warn_msg)
+
+            bytes_recv += len(chunk)
 
         try:
             result = struct.unpack('>%s' % protocol.return_type, chunk)[0]
@@ -238,11 +248,13 @@ class NetClient(emews.base.baseobject.BaseObject):
         return result
 
     # client session methods - client sessions are persistent, and their session ids remain static
-    def create_client_session(self, addr=None):
+    def create_client_session(self, serv_proto, addr=None):
         """
         Attempt to make a connection to the node given by address.
 
-        Note that this is a client-side (blocking) operation.
+        Note that this is a client-side (blocking) operation.  Currently client sessions are bound
+        to a specific server protocol.  This is due to legacy design choices back when server
+        connections were for single requests.
         """
         sock, dest_addr = self._sock_connect(addr)
 
@@ -251,11 +263,20 @@ class NetClient(emews.base.baseobject.BaseObject):
 
         session_id = self._session_id
         self._session_id += 1
-        self._client_sessions[session_id] = (sock, dest_addr)
+        self._client_sessions[session_id] = (sock, dest_addr, serv_proto)
 
         self.logger.info(
             "Client-side session id %d: New connection established to node address '%s'",
             session_id, str(dest_addr))
+
+        try:
+            sock.sendall(struct.pack(">HL", serv_proto, self.sys.node_id))
+        except socket.error as ex:
+            self.logger.warning(
+                "Client-side session id %d: connection issue (serv protocol send): %s",
+                session_id, ex)
+            sock.close()
+            raise
 
         return session_id
 

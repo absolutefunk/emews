@@ -110,7 +110,8 @@ class ServAgent(emews.base.queryserv.QueryServ):
             self.logger.warning("Session id: %d, env id '%d' not registered.", session_id, env_id)
             return (emews.base.enums.net_state.STATE_NACK, self.query_handler)
 
-        self._env_handler[env_id][1].update_observation(obs_key, obs_val)
+        self._env_handler[env_id][1].put_observation(
+            obs_key, self._net_cache.session.node_id, obs_val)
 
         return (emews.base.enums.net_state.STATE_ACK, self.query_handler)
 
