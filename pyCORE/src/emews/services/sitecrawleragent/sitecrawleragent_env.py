@@ -13,6 +13,6 @@ class SiteCrawlerEnv(emews.services.base_env.BaseEnv):
 
     __slots__ = ()
 
-    def __init__(self, config):
+    def __init__(self):
         """Constructor."""
         super(SiteCrawlerEnv, self).__init__()

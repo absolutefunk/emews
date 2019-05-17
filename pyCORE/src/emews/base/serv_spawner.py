@@ -59,7 +59,6 @@ class ServSpawner(emews.base.queryserv.QueryServ):
             self.logger.warning(
                 "Session id: %d, ServiceBuilder threw exception while building service: %s: %s",
                 session_id, ex.__class__.__name__, ex)
-            raise
             return (emews.base.enums.net_state.STATE_NACK, None)
 
         self._thread_dispatcher.dispatch(service_obj)
