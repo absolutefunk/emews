@@ -113,7 +113,7 @@ class NetServ(emews.base.baseobject.BaseObject):
             self._proto_cb[emews.base.enums.net_protocols.NET_LOGGING] = \
                 emews.base.serv_logging.ServLogging(_inject=inject_par)
             self._proto_cb[emews.base.enums.net_protocols.NET_AGENT] = \
-                emews.base.serv_agent.ServAgent(_inject=inject_par)
+                emews.base.serv_agent.ServAgent(thread_dispatcher, _inject=inject_par)
         else:
             self._proto_cb[emews.base.enums.net_protocols.NET_HUB] = nonsupported_hub
             self._proto_cb[emews.base.enums.net_protocols.NET_LOGGING] = nonsupported_hub

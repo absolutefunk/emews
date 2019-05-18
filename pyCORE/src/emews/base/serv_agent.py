@@ -15,7 +15,7 @@ import emews.base.queryserv
 class ServAgent(emews.base.queryserv.QueryServ):
     """Classdocs."""
 
-    __slots__ = ('_env_id', '_env_handler')
+    __slots__ = ('_env_id', '_env_handler', '_thread_dispatcher')
 
     @classmethod
     def build_protocols(cls):
@@ -41,9 +41,11 @@ class ServAgent(emews.base.queryserv.QueryServ):
             request_id=emews.base.enums.agent_protocols.AGENT_ENV_ID)
         cls.protocols[proto_id][new_proto.request_id] = new_proto
 
-    def __init__(self):
+    def __init__(self, thread_dispatcher):
         """Constructor."""
         super(ServAgent, self).__init__()
+
+        self._thread_dispatcher = thread_dispatcher
 
         self.handlers = [None] * emews.base.enums.agent_protocols.ENUM_SIZE
         proto_id = emews.base.enums.net_protocols.NET_AGENT
@@ -69,12 +71,19 @@ class ServAgent(emews.base.queryserv.QueryServ):
                 class_name=service_name + 'Env')
         except ImportError:
             self.logger.error(
-                "Agent environment class '%s' could not be imported.", service_name + '_env')
+                "Agent environment class '%s' could not be imported.", service_name + 'Env')
             raise
 
         new_env_id = len(self._env_handler)
         self._env_id[service_name] = new_env_id
-        self._env_handler.append([service_name, env_obj(_inject={'_env_id': new_env_id})])
+        self._env_handler.append(
+            [service_name,
+             env_obj(_inject={
+                'sys': self.sys,
+                'env_name': service_name + 'Env',
+                '_env_id': new_env_id,
+                '_thread_dispatcher': self._thread_dispatcher
+                })])
 
         self.logger.info("Agent environment '%s_env' assigned id: %d.", service_name)
 

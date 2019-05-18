@@ -21,6 +21,7 @@ class Observation(object):
 
     __slots__ = ('timestamp',
                  'node_id',
+                 'key',
                  'value')
 
     def __init__(self, **kwargs):
@@ -36,7 +37,7 @@ class Observation(object):
 class BaseEnv(emews.base.baseobject.BaseObject):
     """Classdocs."""
 
-    __slots__ = ('_env_id', '_obs_cache', '_ev_cache')
+    __slots__ = ('env_name', '_env_id', '_thread_dispatcher', '_obs_cache', '_ev_cache')
 
     def __init__(self):
         """Constructor."""
@@ -68,7 +69,7 @@ class BaseEnv(emews.base.baseobject.BaseObject):
 
     def put_observation(self, node_id, obs_key, obs_val):
         """Given an observation key and value, update the observation."""
-        new_obs = Observation(timestamp=time.time(), node_id=node_id, value=obs_val)
+        new_obs = Observation(timestamp=time.time(), node_id=node_id, key=obs_key, value=obs_val)
 
         obs_list = self._obs_cache.get(obs_key, None)
 

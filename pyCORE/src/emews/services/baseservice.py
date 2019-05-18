@@ -84,12 +84,12 @@ class BaseService(object):
         self.logger.debug("%s: dispatcher '%s' registered.", self.service_name, str(dispatcher))
 
     def interrupt(self):
-        """Interrupt the component."""
+        """Interrupt the service."""
         self._interrupt_event.set()
         self._interrupted = True
 
     def sleep(self, time):
-        """Block the runnable for the given amount of time (in seconds)."""
+        """Block the service for the given amount of time (in seconds)."""
         if self._interrupted or time <= 0:
             return
 

@@ -25,7 +25,8 @@ class BaseAgent(emews.services.baseservice.BaseService):
         """Constructor."""
         super(BaseAgent, self).__init__()
 
-        self._client_session = self._net_client.create_client_session()  # NetClient session
+        self._client_session = self._net_client.create_client_session(
+            emews.base.enums.net_protocols.NET_AGENT)  # NetClient session
         self._env_id = self._get_env_id()
         self._proto = self._net_client.protocols[emews.base.enums.net_protocols.NET_AGENT]
 

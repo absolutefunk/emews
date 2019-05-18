@@ -157,7 +157,7 @@ class NetClient(emews.base.baseobject.BaseObject):
 
         Note that this is a client-side (blocking) operation.
         """
-        session_id = self.create_client_session()
+        session_id = self.create_client_session(emews.base.enums.net_protocols.NET_HUB)
         protocol = self.protocols[emews.base.enums.net_protocols.NET_HUB][request_id]
 
         result = self.node_query(session_id, protocol)
