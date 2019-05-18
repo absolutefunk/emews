@@ -41,6 +41,7 @@ class BaseEnv(emews.base.baseobject.BaseObject):
 
     def __init__(self):
         """Constructor."""
+        super(BaseEnv, self).__init__()
         self._evidence_cache = {}  # [ev_key]: ev_val (int or list of int)
 
     @property

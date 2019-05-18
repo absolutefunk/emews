@@ -3,11 +3,12 @@
 # For environments in which each node has its own copy of eMews, the node configuration file is not
 # needed, as this file would be unique to each node.
 # YAML 1.2 compliant
+debug:
+  # If true, then halt eMews on service-originated exceptions
+  halt_on_service_exceptions: False
 general:  # general eMews daemon options
   # Delay to wait for 'graceful' thread shutdown.  After this wait, continue shut down.
   thread_shutdown_wait: 5  # in seconds (-1 = disable)
-  # If true, then halt eMews on service-originated exceptions
-  halt_on_service_exceptions: False
 
 startup_services:
 - SiteCrawler

@@ -1,25 +1,26 @@
 """
-eMews web site crawler service agent.
+eMews web site crawler service.
 
-Created on Mar 28, 2019
+Created on Jan 19, 2018
 @author: Brian Ricks
 """
 import ssl
 
 import mechanize
 
-import emews.services.baseservice
+import emews.services.baseagent
 
 
-class SiteCrawlerAgent(emews.services.baseservice.BaseAgent):
+class SiteCrawlerAgent(emews.services.baseagent.BaseAgent):
     """Classdocs."""
 
     __slots__ = ('_br',
                  '_invalid_link_prefixes',
                  '_siteURLs',
+                 '_std_deviation_link',
                  '_site_sampler',
                  '_num_links_sampler',
-                 '_link_sampler',
+                 '_link_viral_odds',
                  '_link_delay_sampler')
 
     def __init__(self, config):
@@ -35,8 +36,9 @@ class SiteCrawlerAgent(emews.services.baseservice.BaseAgent):
 
         self._site_sampler = self.sys.import_component(config['site_sampler'])
         self._num_links_sampler = self.sys.import_component(config['num_links_sampler'])
-        self._link_sampler = self.sys.import_component(config['link_sampler'])
         self._link_delay_sampler = self.sys.import_component(config['link_delay_sampler'])
+
+        self._link_viral_odds = config['link_viral_odds']
 
         # set user agent string to something real-world
         self._br.addheaders = [('User-agent', config['user_agent'])]
@@ -54,14 +56,15 @@ class SiteCrawlerAgent(emews.services.baseservice.BaseAgent):
 
         while len(page_links) > 1:
             # keep looping until a valid link is found
-            # parameters updated here as removing links will change our upper_bound
-            if std_deviation is None:
-                self._link_sampler.update_parameters(upper_bound=len(page_links) - 1)
-            else:
-                self._link_sampler.update_parameters(upper_bound=len(page_links) - 1,
-                                                     sigma=std_deviation)
+            # sample the next link
+            ev_viral_links = self.ask().get('viral_link', [])
 
-            selected_link_index = self._link_sampler.next_value
+            current_evidence = ''
+            for v_link in ev_viral_links:
+                current_evidence += str(v_link) + ","
+            self.logger.debug("Current evidence: %s", current_evidence)
+
+            selected_link_index = self._inference(ev_viral_links)
 
             if self._checklink(page_links[selected_link_index]):
                 break
@@ -73,9 +76,13 @@ class SiteCrawlerAgent(emews.services.baseservice.BaseAgent):
             self.logger.debug("Crawled page doesn't have any (valid) links to further crawl.")
             return None
 
-        self.tell('link_clicked', selected_link_index)  # update environment with observation
+        self.tell('link_clicked', selected_link_index)
 
         return selected_link_index
+
+    def _inference(self, viral_links):
+        """Perform inference on the factored joint."""
+        return 0
 
     def _checklink(self, link_str):
         """Check a link object's URL for validity (not a javascript link or something)."""
@@ -99,7 +106,7 @@ class SiteCrawlerAgent(emews.services.baseservice.BaseAgent):
             # Handle target environment that doesn't support HTTPS verification
             ssl._create_default_https_context = _create_unverified_https_context
 
-        site_url = self._siteURLs[self._site_sampler.next_value]
+        site_url = self._siteURLs[self._site_sampler.sample()]
         try:
             self._br.open(site_url)
         except Exception as ex:
@@ -107,12 +114,12 @@ class SiteCrawlerAgent(emews.services.baseservice.BaseAgent):
             return
         # Forces output to be considered HTML (output usually is).
         self._br._factory.is_html = True  # pylint: disable=W0212
-        self.logger.info("Starting crawl at %s ...", site_url)
+        self.logger.info("HTTP server up, starting crawl at %s ...", site_url)
 
-        # Setup the total number of links to crawl.  As a heuristic, it uses the index of the
-        # link count of the first crawled page.
-        self._num_links_sampler.update_parameters(upper_bound=len(list(self._br.links())))
-        num_links_to_crawl = self._num_links_sampler.next_value
+        # Setup the total number of links to crawl.  As a heuristic, it uses the number of links
+        # from the first page as an upper bound.
+        self._num_links_sampler.update(upper_bound=len(list(self._br.links())))
+        num_links_to_crawl = self._num_links_sampler.sample()
 
         # now crawl for (max) num_links_to_crawl
         for _ in range(num_links_to_crawl):
@@ -125,7 +132,7 @@ class SiteCrawlerAgent(emews.services.baseservice.BaseAgent):
                 break
 
             next_link = page_links[selected_link_index]
-            self.sleep(self._link_delay_sampler.next_value)
+            self.sleep(self._link_delay_sampler.sample())
             # we need to check if the end of sleep was due to being interrupted
             if self.interrupted:
                 break
@@ -138,3 +145,5 @@ class SiteCrawlerAgent(emews.services.baseservice.BaseAgent):
             except Exception as ex:
                 self.logger.warning("On follow_link: %s, (server: %s)", ex, site_url)
                 break
+
+        self.logger.info("Finished crawl at %s ...", site_url)

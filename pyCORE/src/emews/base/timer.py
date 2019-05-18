@@ -19,17 +19,20 @@ class Timer(emews.base.baseobject.BaseObject):
                  '_callback',
                  '_callback_args')
 
+    _timer_id = 0
+
     def __init__(self, duration, callback, callback_args):
         """Constructor."""
-        self.sys = None  # not needed
-
         super(Timer, self).__init__()
+        self.sys = None  # not needed
 
         self._dispatcher = None
         self._interrupt_event = threading.Event()
         self._duration = duration
         self._callback = callback
         self._callback_args = callback_args
+        self._timer_name = 'Timer_' + str(Timer._timer_id)
+        Timer._timer_id += 1
 
     def __str__(self):
         """Return the client name."""
@@ -44,6 +47,8 @@ class Timer(emews.base.baseobject.BaseObject):
 
         self.logger.debug("%s: timer finished, invoking callback ...", self._timer_name)
         self._callback(*self._callback_args)
+
+        self._dispatcher.cb_thread_exit(self)
 
     def register_dispatcher(self, dispatcher):
         """Register the exit function of the dispatcher handling this timer."""

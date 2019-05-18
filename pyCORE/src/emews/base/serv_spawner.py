@@ -13,7 +13,7 @@ import emews.services.servicebuilder
 class ServSpawner(emews.base.queryserv.QueryServ):
     """Classdocs."""
 
-    __slots__ = ('_thread_dispatcher')
+    __slots__ = ('_thread_dispatcher', '_raise_sb_exceptions')
 
     @classmethod
     def build_protocols(cls):
@@ -27,11 +27,12 @@ class ServSpawner(emews.base.queryserv.QueryServ):
             request_id=emews.base.enums.spawner_protocols.SPAWNER_LAUNCH_SERVICE)
         cls.protocols[proto_id][new_proto.request_id] = new_proto
 
-    def __init__(self, thread_dispatcher):
+    def __init__(self, thread_dispatcher, raise_sb_exceptions):
         """Constructor."""
         super(ServSpawner, self).__init__()
 
         self._thread_dispatcher = thread_dispatcher
+        self._raise_sb_exceptions = raise_sb_exceptions
 
         self.handlers = [None] * emews.base.enums.spawner_protocols.ENUM_SIZE
         proto_id = emews.base.enums.net_protocols.NET_SPAWN
@@ -59,6 +60,11 @@ class ServSpawner(emews.base.queryserv.QueryServ):
             self.logger.warning(
                 "Session id: %d, ServiceBuilder threw exception while building service: %s: %s",
                 session_id, ex.__class__.__name__, ex)
+            if self._raise_sb_exceptions:
+                self.logger.info(
+                    "Session id: %d, raise_on_servicebuilder_exceptions = True, raising exception ...",
+                    session_id)
+                raise
             return (emews.base.enums.net_state.STATE_NACK, None)
 
         self._thread_dispatcher.dispatch(service_obj)

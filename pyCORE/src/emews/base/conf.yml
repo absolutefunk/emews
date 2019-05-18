@@ -30,11 +30,13 @@ system:
       port: 32518 # port to use
       connect_timeout: 5 # seconds to wait during connection attempts
       connect_max_attempts: 10 # max connection attempts before giving up
+    debug:
+      halt_on_service_exceptions: False  # If true, then halt eMews on service-originated exceptions
+      raise_on_servicebuilder_exceptions: False  # If true, then raise exceptions thrown by ServiceBuilder
     general: # general eMews daemon options
       system_start_delay: -1  # Delay (seconds) to start the eMews daemon (non-hub).  Useful in waiting for routing to setup.
       service_start_delay: -1 # Delay (seconds) to start services from eMews daemon invocation (after system_start_delay).
       thread_shutdown_wait: -1 # Delay (seconds) to wait for 'graceful' thread shutdown.  After this wait, continue shut down.
-      halt_on_service_exceptions: True # If true, then halt eMews on service-originated exceptions
     hub:
       node_name: n1 # name of the node to act as the hub
       node_address: null # address of the hub (if null, then for non-hub nodes, look it up)

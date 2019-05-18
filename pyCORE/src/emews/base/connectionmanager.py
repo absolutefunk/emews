@@ -44,7 +44,7 @@ class ConnectionManager(emews.base.baseobject.BaseObject):
         self._listener_sock = None  # listener socket (will be instantiated on start())
 
         self._net_serv = emews.base.netserv.NetServ(
-            thread_dispatcher, net_client, _inject={'sys': self.sys})
+            config, thread_dispatcher, net_client, _inject={'sys': self.sys})
 
         self._r_socks = []  # list of socket objects to manage for a readable state
         self._w_socks = []  # list of socket objects to manage for a writable state

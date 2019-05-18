@@ -29,19 +29,23 @@ def calculate_recv_len(format_str):
     return recv_len
 
 
-def build_query(send_vals):
-    """Build the query type string from a list of (send values, value type) tuples."""
-    format_type_str = '>'
-    val_list = []
-    for val, val_type in send_vals.iteritems():
-        if val_type == 's':
-            format_type_str += 'L' + str(len(val)) + 's'  # 4 bytes for str len
-            val_list.append(str(len(val)))
-        else:
-            format_type_str += val_type
-        val_list.append(val)
+def build_query(proto_format_string, value_list):
+    """Build the query type string from a NetProto format string and values."""
+    if len(proto_format_string) != len(value_list):
+        raise AttributeError("proto_format_string len differs from value_list len")
 
-    return (format_type_str, val_list)
+    query_type_str = '>'
+    query_vals = []
+    for format_type, val in zip(proto_format_string, value_list):
+        if format_type == 's':
+            query_type_str += 'L' + str(len(val)) + 's'  # 4 bytes for str len
+            query_vals.append(len(val))
+        else:
+            query_type_str += format_type
+
+        query_vals.append(val)
+
+    return (query_type_str, query_vals)
 
 
 class NetProto(object):

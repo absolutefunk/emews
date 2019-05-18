@@ -124,7 +124,7 @@ class NetClient(emews.base.baseobject.BaseObject):
 
         sock = self._sock_connect(addr)[0]
 
-        self._client_sessions[session_id] = (sock, addr)
+        self._client_sessions[session_id] = (sock, addr, serv_proto)
 
         self.logger.info(
             "Client-side session id %d: connection re-established to node address '%s'",
@@ -202,10 +202,13 @@ class NetClient(emews.base.baseobject.BaseObject):
 
         sock = self._client_sessions[session_id][0]
 
+        send_vals = [protocol.request_id]
+        send_vals.extend(val_list)
+        query_format_str, send_vals = emews.base.baseserv.build_query(
+            'H%s' % protocol.format_string, send_vals)
+
         try:
-            send_vals = [protocol.request_id]
-            send_vals.extend(val_list)
-            sock.sendall(struct.pack('>H%s' % protocol.format_string, *send_vals))
+            sock.sendall(struct.pack(query_format_str, *send_vals))
         except socket.error as ex:
             self.logger.warning(
                 "Client-side session id %d: connection issue (query command send): %s",
@@ -257,8 +260,8 @@ class NetClient(emews.base.baseobject.BaseObject):
                         session_id, ex)
                     return None
 
-                self.logger.debug("Client-side session id %d: incoming string of len: %d",
-                                  session_id, buf_len)
+                #self.logger.debug("Client-side session id %d: incoming string of len: %d",
+                #                  session_id, buf_len)
                 bytes_recv = ''
 
         try:

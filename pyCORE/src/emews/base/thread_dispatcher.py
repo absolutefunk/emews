@@ -84,6 +84,8 @@ class ThreadDispatcher(emews.base.baseobject.BaseObject):
             self.logger.debug(
                 "Object '%s' has expressed intent to terminate.", str(object_instance))
 
+        del self._thread_map[object_instance]
+
     def dispatch(self, object_instance, force_start=False):
         """
         Create and possibly dispatch object_instance contained in a thread.

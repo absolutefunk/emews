@@ -11,7 +11,6 @@ Concepts:
 Created on Mar 28, 2019
 @author: Brian Ricks
 """
-import emews.base.basehandler
 import emews.base.enums
 import emews.services.baseservice
 
@@ -25,18 +24,21 @@ class BaseAgent(emews.services.baseservice.BaseService):
         """Constructor."""
         super(BaseAgent, self).__init__()
 
+        self._proto = self._net_client.protocols[emews.base.enums.net_protocols.NET_AGENT]
+
         self._client_session = self._net_client.create_client_session(
             emews.base.enums.net_protocols.NET_AGENT)  # NetClient session
         self._env_id = self._get_env_id()
-        self._proto = self._net_client.protocols[emews.base.enums.net_protocols.NET_AGENT]
 
     def _get_env_id(self):
         """Get the id of the environment for this agent."""
         env_id = self._net_client.client_session_get(
             self._client_session,
             self._proto[emews.base.enums.agent_protocols.AGENT_ENV_ID],
-            [self.service_name]
+            [self.service_name.rpartition('_')[0]]
             )
+
+        self.logger.debug("%s: assigned agent environment id: %d", self.service_name, env_id)
 
         return env_id
 
@@ -70,26 +72,16 @@ class BaseAgent(emews.services.baseservice.BaseService):
                 on_key = False
             else:
                 val_str_list = str_token.split(',')
-                if len(val_str_list) == 1:
-                    # not a list
+                val_int_list = []
+                for val_str in val_str_list:
                     try:
-                        ev_dict[cur_key] = int(str_token)  # TODO: allow more types for evidence values
+                        val_int_list.append(int(val_str))
                     except TypeError:
                         self.logger.warning(
-                            "%s: the evidence string returned has a malformed value: %s",
-                            self.service_name, str_token)
+                            "%s: the evidence string returned has a malformed value '%s' in list: %s",
+                            self.service_name, val_str, str_token)
                         return {}
-                else:
-                    val_int_list = []
-                    for val_str in val_str_list:
-                        try:
-                            val_int_list.append(int(val_str))
-                        except TypeError:
-                            self.logger.warning(
-                                "%s: the evidence string returned has a malformed value '%s' in list: %s",
-                                self.service_name, val_str, str_token)
-                            return {}
-                    ev_dict[cur_key] = val_int_list
+                ev_dict[cur_key] = val_int_list
                 on_key = True
 
         return ev_dict

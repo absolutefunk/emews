@@ -3,6 +3,11 @@
 # For environments in which each node has its own copy of eMews, the node configuration file is not
 # needed, as this file would be unique to each node.
 # YAML 1.2 compliant
+debug:
+  # If true, then halt eMews on service-originated exceptions
+  halt_on_service_exceptions: False
+  # If true, then raise exceptions thrown by ServiceBuilder
+  raise_on_servicebuilder_exceptions: True
 general:  # general eMews daemon options
   # Delay (seconds) to start the eMews daemon.  Useful in waiting for routing to setup.  Hub node ignores this.
   system_start_delay: 30
@@ -10,8 +15,6 @@ general:  # general eMews daemon options
   service_start_delay: 18
   # Delay to wait for 'graceful' thread shutdown.  After this wait, continue shut down.
   thread_shutdown_wait: 3  # in seconds (-1 = disable)
-  # If true, then halt eMews on service-originated exceptions
-  halt_on_service_exceptions: False
 client:
   service_launch_delay: 38  # should be higher than system_start_delay
 communication:  # communication related eMews daemon options

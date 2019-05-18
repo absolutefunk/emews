@@ -24,7 +24,7 @@ class ServAgent(emews.base.queryserv.QueryServ):
         cls.protocols[proto_id] = [None] * emews.base.enums.agent_protocols.ENUM_SIZE
 
         new_proto = emews.base.baseserv.NetProto(
-            'Ls', type_return='s',
+            'L', type_return='s',
             proto_id=proto_id,
             request_id=emews.base.enums.agent_protocols.AGENT_ASK)
         cls.protocols[proto_id][new_proto.request_id] = new_proto
@@ -63,7 +63,7 @@ class ServAgent(emews.base.queryserv.QueryServ):
         self._env_handler = []  # agent environment callback assigned to env id at index
         self._env_handler.append(None)  # env id 0 is invalid
 
-    def _env_register(self, service_name):
+    def _env_register(self, session_id, service_name):
         """Register a new agent environment."""
         try:
             env_obj = emews.base.import_tools.import_class_from_module(
@@ -71,7 +71,7 @@ class ServAgent(emews.base.queryserv.QueryServ):
                 class_name=service_name + 'Env')
         except ImportError:
             self.logger.error(
-                "Agent environment class '%s' could not be imported.", service_name + 'Env')
+                "Session id: %d, agent environment class '%s' could not be imported.", session_id, service_name + 'Env')
             raise
 
         new_env_id = len(self._env_handler)
@@ -85,7 +85,7 @@ class ServAgent(emews.base.queryserv.QueryServ):
                 '_thread_dispatcher': self._thread_dispatcher
                 })])
 
-        self.logger.info("Agent environment '%s_env' assigned id: %d.", service_name)
+        self.logger.info("Session id: %d, agent environment '%s_env' assigned id: %d.", session_id, service_name, new_env_id)
 
         return new_env_id
 
@@ -120,7 +120,7 @@ class ServAgent(emews.base.queryserv.QueryServ):
             return (emews.base.enums.net_state.STATE_NACK, self.query_handler)
 
         self._env_handler[env_id][1].put_observation(
-            obs_key, self._net_cache.session.node_id, obs_val)
+            self._net_cache.session[session_id].node_id, obs_key, obs_val)
 
         return (emews.base.enums.net_state.STATE_ACK, self.query_handler)
 
@@ -129,6 +129,6 @@ class ServAgent(emews.base.queryserv.QueryServ):
         """Remote agent wants the env id for its environment."""
         if service_name not in self._env_id:
             # register the service environment
-            return (self._env_register(service_name), self.query_handle)
+            return (self._env_register(session_id, service_name), self.query_handler)
 
         return (self._env_id[service_name], self.query_handler)

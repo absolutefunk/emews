@@ -103,7 +103,8 @@ class SystemManager(object):
 
         # instantiate thread dispatcher and connection manager
         self._thread_dispatcher = emews.base.thread_dispatcher.ThreadDispatcher(
-            self._config['general'], _inject={'sys': self.sys})
+            self._merge_configs('debug', 'general'),
+            _inject={'sys': self.sys})
 
         if self.sys.local:
             # local mode:  do not start ConnectionManager
@@ -127,8 +128,9 @@ class SystemManager(object):
                 self._config['communication'],
                 self._config['hub']['node_address'],
                 _inject={'sys': self.sys})
+
             self._connection_manager = emews.base.connectionmanager.ConnectionManager(
-                self._config['communication'],
+                self._merge_configs('debug', 'communication'),
                 self._thread_dispatcher,
                 self._net_client,
                 _inject={'sys': self.sys})
@@ -164,3 +166,17 @@ class SystemManager(object):
         # shut down any dispatched threads that may be running
         self._thread_dispatcher.shutdown_all_threads()
         self._net_client.close_all_sockets()
+
+    def _merge_configs(self, *sections):
+        """Merge all given sections from the system config.  Return a new dict."""
+        config = {}
+        for section in sections:
+            for key, val in self._config[section].iteritems():
+                if key in config:
+                    self.logger.warning(
+                        "Duplicate key '%s' found during merge, old value '%s' overridden with new value: %s",
+                        str(key), str(config[key]), str(val))
+
+                config[key] = val
+
+        return config

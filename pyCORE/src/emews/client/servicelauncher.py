@@ -19,8 +19,7 @@ import emews.base.enums
 class SingleServiceClient(object):
     """Classdocs."""
 
-    __slots__ = ('_port', '_service_name', '_service_config_path', '_connect_timeout',
-                 '_connect_max_attempts', 'interrupted')
+    __slots__ = ('_port', '_service_name', '_service_config_path', '_connect_timeout')
 
     def __init__(self, config, service_name, service_config_path):
         """Constructor."""
@@ -29,9 +28,6 @@ class SingleServiceClient(object):
 
         self._connect_timeout = config['communication']['connect_timeout']
         print "[service_launcher] connect timeout: " + str(self._connect_timeout)
-
-        self._connect_max_attempts = config['communication']['connect_max_attempts']
-        print "[service_launcher] connect max attempts: " + str(self._connect_max_attempts)
 
         self._service_name = service_name
         print "[service_launcher] service name to request: " + self._service_name
@@ -43,11 +39,9 @@ class SingleServiceClient(object):
             print "[service_launcher] service configuration path: " + self._service_config_path
 
         sys.stdout.flush()
-        self.interrupted = False
 
     def start(self):
         """Connect to eMews daemon and send command."""
-        connect_attempts = 0
         ack = None
 
         cmd_list = []
@@ -65,49 +59,49 @@ class SingleServiceClient(object):
             cmd_list.append(len(self._service_config_path))
             cmd_list.append(self._service_config_path)
 
-        while connect_attempts < self._connect_max_attempts and not self.interrupted:
+        try:
             try:
-                print "[service_launcher] connect attempt " + str(connect_attempts + 1) + " ..."
+                print "[service_launcher] connecting ..."
                 sys.stdout.flush()
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.settimeout(self._connect_timeout)
                 sock.connect(('127.0.0.1', self._port))
+            except socket.error as ex:
+                sock.close()
+                raise IOError("socket error on connect: %s." % ex)
 
-                if self.interrupted:
-                    break
+            print "[service_launcher] connected."
+            sys.stdout.flush()
 
-                print "[service_launcher] connected."
-                sys.stdout.flush()
+            try:
                 sock.sendall(struct.pack(struct_format, *cmd_list))
+            except socket.error as ex:
+                sock.close()
+                raise IOError("socket error on service launch request send: %s." % ex)
 
-                if self.interrupted:
-                    break
+            print "[service_launcher] service launch request sent, waiting response ..."
+            sys.stdout.flush()
 
+            try:
                 chunk = sock.recv(2)  # ACK (2 bytes)
 
                 if not len(chunk):
                     sock.close()
-                    connect_attempts += 1
-                    print "[service_launcher] Connection reset by peer."
-                    continue
+                    raise IOError("connection reset by peer.")
 
                 ack = struct.unpack('>H', chunk)[0]
             except socket.error as ex:
                 sock.close()
-                connect_attempts += 1
-                print "[service_launcher] Socket error: %s." % ex
-                continue
-            except KeyboardInterrupt:
-                try:
-                    # this may fail if socket endpoint is already closed
-                    sock.shutdown(socket.SHUT_RDWR)
-                except socket.error:
-                    pass
+                raise IOError("socket error on response: %s." % ex)
+        except KeyboardInterrupt:
+            try:
+                # this may fail if socket endpoint is already closed
+                sock.shutdown(socket.SHUT_RDWR)
+            except socket.error:
+                pass
 
-                sock.close()
-                raise
-
-            break
+            sock.close()
+            raise
 
         try:
             # this most likely will fail as the hub node should have closed the connection
@@ -117,9 +111,7 @@ class SingleServiceClient(object):
 
         sock.close()
 
-        if connect_attempts == self._connect_max_attempts:
-            raise IOError("Could not send service launch command to eMews daemon.")
-        elif ack == emews.base.enums.net_state.STATE_NACK:
+        if ack == emews.base.enums.net_state.STATE_NACK:
             raise IOError("Received NACK from eMews daemon.")
 
         print "[service_launcher] done."
