@@ -42,7 +42,7 @@ class BaseEnv(emews.base.baseobject.BaseObject):
     def __init__(self):
         """Constructor."""
         self._obs_cache = {}  # [obs_key]: list of observations (ordered by time)
-        self._ev_cache = {}  # [ev_key]: ev_val
+        self._ev_cache = {}  # [ev_key]: ev_val (int or list of int)
 
     @property
     def env_id(self):

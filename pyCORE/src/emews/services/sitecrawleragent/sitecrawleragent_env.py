@@ -54,6 +54,12 @@ class SiteCrawlerEnv(emews.services.base_env.BaseEnv):
 
         if num_clicks > ev_data[SiteCrawlerEnv.EV_DATA_THRESH] and not link_data[new_obs.value][SiteCrawlerEnv.LINK_VIRAL]:
             # viral link
+            viral_link_ev = self._ev_cache.get('viral_link', None)
+            if viral_link_ev is None:
+                self._ev_cache['viral_link'] = []
+
+            viral_link_ev.append(new_obs.value)
+
             self.logger.info("%s: link at index '%d' has gone viral", self.env_name, new_obs.value)
             self._thread_dispatcher.dispatch(
                 emews.base.timer.Timer(
@@ -61,5 +67,14 @@ class SiteCrawlerEnv(emews.services.base_env.BaseEnv):
 
     def _evidence_viral_link_expired(self, link_index):
         """When a timer has finished, this will be invoked."""
-        self._ev_data['viral_link'][SiteCrawlerEnv.EV_DATA_LINK][link_index][SiteCrawlerEnv.LINK_VIRAL] = True
+        link_data = self._ev_data['viral_link'][SiteCrawlerEnv.EV_DATA_LINK]
+        link_data[link_index][SiteCrawlerEnv.LINK_VIRAL] = True
+
+        viral_link_ev = self._ev_cache['viral_link']
+        viral_link_ev.remove(link_index)
+
+        if not len(viral_link_ev):
+            # remove the evidence key as it no longer has any values
+            del self._ev_cache['viral_link']
+
         self.logger.info("%s: link at index '%d' is no longer viral", self.env_name, link_index)
