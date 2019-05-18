@@ -48,9 +48,23 @@ class BaseEnv(emews.base.baseobject.BaseObject):
         """Return the env id."""
         return self._env_id
 
-    def get_evidence(self, ev_key):
-        """Given an evidence key, return the evidence."""
-        return self._ev_cache.get(ev_key, 0)  # 0 should be treated as an invalid value
+    def get_evidence(self):
+        """Return the current evidence."""
+        if not len(self._ev_cache):
+            return '0'
+
+        ev_str = ''
+        for key, val in self._ev_cache.iteritems():
+            ev_str += str(key) + " "
+
+            if isinstance(val, list):
+                for l_val in val:
+                    ev_str += str(l_val) + ","
+                ev_str = ev_str[:-1] + " "  # remove last comma
+            else:
+                ev_str += str(val) + " "
+
+        return ev_str[:-1]  # last character is a space
 
     def put_observation(self, node_id, obs_key, obs_val):
         """Given an observation key and value, update the observation."""

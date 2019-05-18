@@ -26,62 +26,87 @@ class BaseAgent(emews.services.baseservice.BaseService):
         super(BaseAgent, self).__init__()
 
         self._client_session = self._net_client.create_client_session()  # NetClient session
-        self._env_id = {}  # [env_context] = env_id
+        self._env_id = self._get_env_id()
         self._proto = self._net_client.protocols[emews.base.enums.net_protocols.NET_AGENT]
 
-    def _get_env_id(self, env_context):
-        """Get the id of the env_context from the hub node.  Env id must already exist."""
+    def _get_env_id(self):
+        """Get the id of the environment for this agent."""
         env_id = self._net_client.client_session_get(
             self._client_session,
             self._proto[emews.base.enums.agent_protocols.AGENT_ENV_ID],
-            [env_context]
+            [self.service_name]
             )
 
-        if env_id == 0:
-            self.logger.error("Invalid environment id returned (0).  Is the env_context registered?")
-            raise ValueError("Invalid environment id returned (0).  Is the env_context registered?")
+        return env_id
 
-    def ask(self, env_context, state_key):
+    def ask(self):
         """
-        Ask (sense) the environment 'env_context', returning an environment state.
+        Ask (sense) the environment, returning a dict of evidence K/Vs.
 
-        Each call to ask will query the hub node.
+        Evidence values are either integers or a list of integers.
         """
-        if state_key is None or state_key == '':
-            self.logger.error("%s: state key passed is empty.", self.service_name)
-            raise ValueError("%s: state key passed is empty." % self.service_name)
-
-        if env_context not in self._env_id:
-            env_id = self._get_env_id(env_context)
-            self._env_id[env_context] = env_id
-
-        state_val = self._net_client.client_session_get(
+        ev_str = self._net_client.client_session_get(
             self._client_session,
             self._proto[emews.base.enums.agent_protocols.AGENT_ASK],
-            [self._env_id, state_key]
+            [self._env_id]
             )
 
-        return state_val
+        if ev_str == '0':
+            return {}
 
-    def tell(self, env_context, state_key, state_val):
-        """
-        Tell (update) and environment evidence key.
+        str_tokens = ev_str.split(' ')
+        if len(str_tokens) % 2 != 0:
+            # the returned string should have an even number of tokens
+            self.logger.warning("%s: the evidence string returned is malformed.", self.service_name)
+            return {}
 
-        Evidence is provided to the environment, and state is what is ultimately calculated from the
-        given evidence.
+        ev_dict = {}
+        on_key = True
+        cur_key = None
+        for str_token in str_tokens:
+            if on_key:
+                cur_key = str_token
+                on_key = False
+            else:
+                val_str_list = str_token.split(',')
+                if len(val_str_list) == 1:
+                    # not a list
+                    try:
+                        ev_dict[cur_key] = int(str_token)  # TODO: allow more types for evidence values
+                    except TypeError:
+                        self.logger.warning(
+                            "%s: the evidence string returned has a malformed value: %s",
+                            self.service_name, str_token)
+                        return {}
+                else:
+                    val_int_list = []
+                    for val_str in val_str_list:
+                        try:
+                            val_int_list.append(int(val_str))
+                        except TypeError:
+                            self.logger.warning(
+                                "%s: the evidence string returned has a malformed value '%s' in list: %s",
+                                self.service_name, val_str, str_token)
+                            return {}
+                    ev_dict[cur_key] = val_int_list
+                on_key = True
+
+        return ev_dict
+
+    def tell(self, obs_key, obs_val):
         """
-        if state_key is None or state_key == '':
+        Tell (update) the environment with given observation K/V.
+
+        Observations are provided to the environment, and is used to produce evidence.
+        """
+        if obs_key is None or obs_key == '':
             self.logger.error("%s: state key passed is empty.", self.service_name)
             raise ValueError("%s: state key passed is empty." % self.service_name)
-
-        if env_context not in self._env_id:
-            env_id = self._get_env_id(env_context)
-            self._env_id[env_context] = env_id
 
         ack_val = self._net_client.client_session_get(
             self._client_session,
             self._proto[emews.base.enums.agent_protocols.AGENT_TELL],
-            [self._env_id, env_context, state_key, state_val]
+            [self._env_id, obs_key, obs_val]
             )
 
         if ack_val != emews.base.enums.net_state.STATE_ACK:
