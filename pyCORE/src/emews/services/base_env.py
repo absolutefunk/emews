@@ -50,14 +50,23 @@ class BaseEnv(emews.base.baseobject.BaseObject):
 
     def get_evidence(self, ev_key):
         """Given an evidence key, return the evidence."""
-
+        return self._ev_cache.get(ev_key, 0)  # 0 should be treated as an invalid value
 
     def put_observation(self, node_id, obs_key, obs_val):
         """Given an observation key and value, update the observation."""
         new_obs = Observation(timestamp=time.time(), node_id=node_id, value=obs_val)
 
+        obs_list = self._obs_cache.get(obs_key, None)
+
+        if obs_list is None:
+            obs_list = []
+            self._obs_cache[obs_key] = obs_list
+
+        obs_list.append(new_obs)
+
+        self.update_evidence(new_obs)
 
     @abstractmethod
-    def update_evidence(self):
+    def update_evidence(self, new_obs):
         """Produce evidence."""
         pass

@@ -16,3 +16,6 @@ class SiteCrawlerEnv(emews.services.base_env.BaseEnv):
     def __init__(self):
         """Constructor."""
         super(SiteCrawlerEnv, self).__init__()
+
+    def update_evidence(self, new_obs):
+        """Produce evidence."""

@@ -267,7 +267,11 @@ class NetServ(emews.base.baseobject.BaseObject):
                     "Session id: %d, type specified to pack string is empty.", session_id)
                 return (None, 0)
 
-            send_data = struct.pack('>%s' % handler.protocol.return_type, ret_val[0])
+            if handler.protocol.return_type == 's':
+                # string return type - len needs to be part of this
+                send_data = struct.pack('>H%ss' % len(ret_val[0]), len(ret_val[0]), ret_val[0])
+            else:
+                send_data = struct.pack('>%s' % handler.protocol.return_type, ret_val[0])
 
             if ret_val[1] is None:
                 # send some data and then end the session.

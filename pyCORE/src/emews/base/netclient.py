@@ -214,9 +214,16 @@ class NetClient(emews.base.baseobject.BaseObject):
             raise
 
         # receive result
-        buf_len = emews.base.baseserv.calculate_recv_len(protocol.return_type)
-        bytes_recv = 0
-        while not self._interrupted and bytes_recv < buf_len:
+        if protocol.return_type == 's':
+            # we don't know the length of the string, but we will get the length first
+            buf_len = 2
+            str_len_recv = True
+        else:
+            buf_len = emews.base.baseserv.calculate_recv_len(protocol.return_type)
+            str_len_recv = False
+
+        bytes_recv = ''
+        while not self._interrupted and len(bytes_recv) < buf_len:
             try:
                 # If a signal is caught to shutdown, but the socket does not catch it (say because
                 # it is running from another thread than the main one), the hub node will catch it
@@ -236,10 +243,29 @@ class NetClient(emews.base.baseobject.BaseObject):
                 sock.close()
                 raise socket.error(warn_msg)
 
-            bytes_recv += len(chunk)
+            bytes_recv += chunk
+
+            if str_len_recv and len(bytes_recv) == buf_len:
+                # we've received the length of the incoming string
+                str_len_recv = False
+
+                try:
+                    buf_len = struct.unpack('>H', bytes_recv)[0]
+                except struct.error as ex:
+                    self.logger.warning(
+                        "Client-side session id %d: unexpected data format (str len) from: %s",
+                        session_id, ex)
+                    return None
+
+                self.logger.debug("Client-side session id %d: incoming string of len: %d",
+                                  session_id, buf_len)
+                bytes_recv = ''
 
         try:
-            result = struct.unpack('>%s' % protocol.return_type, chunk)[0]
+            if protocol.return_type == 's':
+                result = struct.unpack('>%ss' % len(bytes_recv), bytes_recv)[0]
+            else:
+                result = struct.unpack('>%s' % protocol.return_type, bytes_recv)[0]
         except struct.error as ex:
             self.logger.warning("Client-side session id %d: unexpected data format from: %s",
                                 session_id, ex)

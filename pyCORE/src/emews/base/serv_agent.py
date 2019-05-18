@@ -24,7 +24,7 @@ class ServAgent(emews.base.queryserv.QueryServ):
         cls.protocols[proto_id] = [None] * emews.base.enums.agent_protocols.ENUM_SIZE
 
         new_proto = emews.base.baseserv.NetProto(
-            'Ls', type_return='L',
+            'Ls', type_return='s',
             proto_id=proto_id,
             request_id=emews.base.enums.agent_protocols.AGENT_ASK)
         cls.protocols[proto_id][new_proto.request_id] = new_proto
@@ -64,8 +64,9 @@ class ServAgent(emews.base.queryserv.QueryServ):
     def _env_register(self, service_name):
         """Register a new agent environment."""
         try:
-            env_obj = emews.base.import_tools.import_class(
-                "emews.services.%s" % service_name.lower(), service_name + '_env')
+            env_obj = emews.base.import_tools.import_class_from_module(
+                "emews.services.%s.%s_env" % (service_name.lower(), service_name.lower()),
+                class_name=service_name + 'Env')
         except ImportError:
             self.logger.error(
                 "Agent environment class '%s' could not be imported.", service_name + '_env')
@@ -88,20 +89,19 @@ class ServAgent(emews.base.queryserv.QueryServ):
         pass
 
     # agent ask
-    def _agent_ask_env_req(self, session_id, env_id, ev_key):
-        """Remote agent wants the value at an evidence key from the given env_id."""
+    def _agent_ask_env_req(self, session_id, env_id):
+        """
+        Remote agent wants the available evidence from the given env_id.
+
+        As evidence is variable in size, we return it as a string.
+        """
         if env_id < 1 or env_id >= len(self._env_handler):
             self.logger.warning("Session id: %d, env id '%d' not registered.", session_id, env_id)
-            return (0, None)  # Note: passing back zero here may conflict with legit zero values
+            return ('0', self.query_handler)  # '0' should be treated as invalid
 
-        ev_val = self._env_handler[env_id][1].get_evidence(ev_key)
+        ev_str = self._env_handler[env_id][1].get_evidence()
 
-        if ev_val is None:
-            self.logger.warning("Session id: %d, env id: %d, evidence key '%s' does not exist.",
-                                session_id, env_id, ev_key)
-            return (0, None)  # Note: passing back zero here may conflict with legit zero values
-
-        return (ev_val, self.query_handler)
+        return (ev_str, self.query_handler)
 
     # agent tell
     def _agent_tell_env_req(self, session_id, env_id, obs_key, obs_val):
