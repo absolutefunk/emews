@@ -146,7 +146,7 @@ class SiteCrawler(emews.services.baseservice.BaseService):
 
             page_links = list(self._br.links())
             # use the std_deviation for > first iteration from now on
-            selected_link_index = self._get_next_link_index(page_links, self._std_deviation_link)
+            selected_link_index = self._get_next_link_index(page_links, std_deviation=self._std_deviation_link)
             if selected_link_index is None:
                 break
 

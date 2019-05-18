@@ -1,5 +1,5 @@
 """
-eMews web site crawler service with intelligence.
+eMews web site crawler service agent.
 
 Created on Mar 28, 2019
 @author: Brian Ricks
@@ -17,7 +17,6 @@ class SiteCrawlerAgent(emews.services.baseservice.BaseAgent):
     __slots__ = ('_br',
                  '_invalid_link_prefixes',
                  '_siteURLs',
-                 '_std_deviation_link',
                  '_site_sampler',
                  '_num_links_sampler',
                  '_link_sampler',
@@ -33,8 +32,6 @@ class SiteCrawlerAgent(emews.services.baseservice.BaseAgent):
 
         self._invalid_link_prefixes = config['invalid_link_prefixes']  # list
         self._siteURLs = config['start_sites']  # list
-
-        self._std_deviation_link = config['link_sampler_sigma_next']
 
         self._site_sampler = self.sys.import_component(config['site_sampler'])
         self._num_links_sampler = self.sys.import_component(config['num_links_sampler'])
@@ -76,6 +73,8 @@ class SiteCrawlerAgent(emews.services.baseservice.BaseAgent):
             self.logger.debug("Crawled page doesn't have any (valid) links to further crawl.")
             return None
 
+        self.tell('link_clicked', selected_link_index)  # update environment with observation
+
         return selected_link_index
 
     def _checklink(self, link_str):
@@ -110,34 +109,9 @@ class SiteCrawlerAgent(emews.services.baseservice.BaseAgent):
         self._br._factory.is_html = True  # pylint: disable=W0212
         self.logger.info("Starting crawl at %s ...", site_url)
 
-        # Crawl to the first link.  This will allow us to set the link delay parameters correctly.
-        page_links = list(self._br.links())
-        selected_link_index = self._get_next_link_index(page_links)
-        if selected_link_index is None:
-            return
-
-        next_link = page_links[selected_link_index]  # get next link from list
-        self.sleep(self._link_delay_sampler.next_value)  # wait a random amount of time
-        # we need to check if the end of sleep was due to being interrupted
-        if self.interrupted:
-            return
-
-        try:
-            self._br.follow_link(link=next_link)  # crawl to next link
-        except Exception as ex:
-            self.logger.warning("On follow_link: %s, (server: %s)", ex, site_url)
-            return
-
-        self.logger.debug("selected link index (%d/%d): selected page: %s", selected_link_index,
-                          len(page_links), next_link.absolute_url)
-
         # Setup the total number of links to crawl.  As a heuristic, it uses the index of the
-        # first link selected as the upper bound and selects a total crawl length based on this
-        # index.
-        # TODO: the heuristic presents a subtle bug if the selected index is zero, given that the
-        # lower bound on the sampler is also zero.  Currently just using the page link count, which
-        # works well for index pages of small link count.
-        self._num_links_sampler.update_parameters(upper_bound=len(page_links))
+        # link count of the first crawled page.
+        self._num_links_sampler.update_parameters(upper_bound=len(list(self._br.links())))
         num_links_to_crawl = self._num_links_sampler.next_value
 
         # now crawl for (max) num_links_to_crawl
@@ -146,8 +120,7 @@ class SiteCrawlerAgent(emews.services.baseservice.BaseAgent):
                 break
 
             page_links = list(self._br.links())
-            # use the std_deviation for > first iteration from now on
-            selected_link_index = self._get_next_link_index(page_links, self._std_deviation_link)
+            selected_link_index = self._get_next_link_index(page_links)
             if selected_link_index is None:
                 break
 

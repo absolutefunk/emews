@@ -37,12 +37,11 @@ class Observation(object):
 class BaseEnv(emews.base.baseobject.BaseObject):
     """Classdocs."""
 
-    __slots__ = ('env_name', '_env_id', '_thread_dispatcher', '_obs_cache', '_ev_cache')
+    __slots__ = ('env_name', '_env_id', '_thread_dispatcher', '_evidence_cache')
 
     def __init__(self):
         """Constructor."""
-        self._obs_cache = {}  # [obs_key]: list of observations (ordered by time)
-        self._ev_cache = {}  # [ev_key]: ev_val (int or list of int)
+        self._evidence_cache = {}  # [ev_key]: ev_val (int or list of int)
 
     @property
     def env_id(self):
@@ -51,11 +50,11 @@ class BaseEnv(emews.base.baseobject.BaseObject):
 
     def get_evidence(self):
         """Return the current evidence."""
-        if not len(self._ev_cache):
+        if not len(self._evidence_cache):
             return '0'
 
         ev_str = ''
-        for key, val in self._ev_cache.iteritems():
+        for key, val in self._evidence_cache.iteritems():
             ev_str += str(key) + " "
 
             if isinstance(val, list):
@@ -69,15 +68,9 @@ class BaseEnv(emews.base.baseobject.BaseObject):
 
     def put_observation(self, node_id, obs_key, obs_val):
         """Given an observation key and value, update the observation."""
+        self.logger.debug("%s: new observation from node %d: '%s', %d",
+                          self.env_name, node_id, obs_key, obs_val)
         new_obs = Observation(timestamp=time.time(), node_id=node_id, key=obs_key, value=obs_val)
-
-        obs_list = self._obs_cache.get(obs_key, None)
-
-        if obs_list is None:
-            obs_list = []
-            self._obs_cache[obs_key] = obs_list
-
-        obs_list.append(new_obs)
 
         self.update_evidence(new_obs)
 

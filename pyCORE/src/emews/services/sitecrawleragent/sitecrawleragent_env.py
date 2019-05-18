@@ -12,13 +12,13 @@ import emews.services.base_env
 class SiteCrawlerEnv(emews.services.base_env.BaseEnv):
     """Classdocs."""
 
-    __slots__ = ('_ev_data')
+    __slots__ = ('_env_data')
 
     # enums
-    EV_DATA_CB = 0
-    EV_DATA_LINK = 1
-    EV_DATA_THRESH = 2
-    EV_DATA_EXP = 3
+    ENV_DATA_CB = 0
+    ENV_DATA_LINK = 1
+    ENV_DATA_THRESH = 2
+    ENV_DATA_EXP = 3
     LINK_COUNT = 0
     LINK_VIRAL = 1
     LINK_TIMER = 2
@@ -27,24 +27,24 @@ class SiteCrawlerEnv(emews.services.base_env.BaseEnv):
         """Constructor."""
         super(SiteCrawlerEnv, self).__init__()
 
-        self._ev_data = {}
-        self._ev_data['viral_link'] = [self._evidence_viral_link, {}, 20, 60]  # callback, link data, viral threshold, expiration
+        self._env_data = {}  # [observation key]: environment data
+        self._env_data['link_clicked'] = [self._evidence_viral_link, {}, 20, 60]  # callback, link data, viral threshold, expiration
 
     def update_evidence(self, new_obs):
         """Produce evidence."""
-        ev_data = self._ev_data.get(new_obs.key, None)
+        env_data = self._env_data.get(new_obs.key, None)
 
-        if ev_data is None:
+        if env_data is None:
             self.logger.error("%s: observation key '%s' is unknown", self.env_name, new_obs.key)
             raise AttributeError("%s: observation key '%s' is unknown", self.env_name, new_obs.key)
 
-        ev_data[SiteCrawlerEnv.EV_DATA_CB](new_obs)
+        env_data[SiteCrawlerEnv.ENV_DATA_CB](new_obs)
 
     def _evidence_viral_link(self, new_obs):
         """Given that the last observation was for this evidence, check for viral link."""
         # New_obs.val is the link index clicked on.  Simply check if enough clicks have occurred.
-        ev_data = self._ev_data['viral_link']
-        link_data = ev_data[SiteCrawlerEnv.EV_DATA_LINK]
+        env_data = self._env_data['link_clicked']
+        link_data = env_data[SiteCrawlerEnv.ENV_DATA_LINK]
 
         if new_obs.value not in link_data:
             link_data[new_obs.value] = [0, False, None]  # [link index]: number of clicks, went viral?, viral duration timer
@@ -52,29 +52,29 @@ class SiteCrawlerEnv(emews.services.base_env.BaseEnv):
         num_clicks = link_data[new_obs.value][SiteCrawlerEnv.LINK_COUNT] + 1
         link_data[new_obs.value][SiteCrawlerEnv.LINK_COUNT] = num_clicks
 
-        if num_clicks > ev_data[SiteCrawlerEnv.EV_DATA_THRESH] and not link_data[new_obs.value][SiteCrawlerEnv.LINK_VIRAL]:
+        if num_clicks > env_data[SiteCrawlerEnv.ENV_DATA_THRESH] and not link_data[new_obs.value][SiteCrawlerEnv.LINK_VIRAL]:
             # viral link
-            viral_link_ev = self._ev_cache.get('viral_link', None)
+            viral_link_ev = self._evidence_cache.get('viral_link', None)
             if viral_link_ev is None:
-                self._ev_cache['viral_link'] = []
+                self._evidence_cache['viral_link'] = []
 
             viral_link_ev.append(new_obs.value)
 
             self.logger.info("%s: link at index '%d' has gone viral", self.env_name, new_obs.value)
             self._thread_dispatcher.dispatch(
                 emews.base.timer.Timer(
-                    ev_data[SiteCrawlerEnv.EV_DATA_EXP]), self._evidence_viral_link_expired, [new_obs.value])
+                    env_data[SiteCrawlerEnv.ENV_DATA_EXP]), self._evidence_viral_link_expired, [new_obs.value])
 
     def _evidence_viral_link_expired(self, link_index):
         """When a timer has finished, this will be invoked."""
-        link_data = self._ev_data['viral_link'][SiteCrawlerEnv.EV_DATA_LINK]
+        link_data = self._env_data['link_clicked'][SiteCrawlerEnv.ENV_DATA_LINK]
         link_data[link_index][SiteCrawlerEnv.LINK_VIRAL] = True
 
-        viral_link_ev = self._ev_cache['viral_link']
+        viral_link_ev = self._evidence_cache['viral_link']
         viral_link_ev.remove(link_index)
 
         if not len(viral_link_ev):
             # remove the evidence key as it no longer has any values
-            del self._ev_cache['viral_link']
+            del self._evidence_cache['viral_link']
 
         self.logger.info("%s: link at index '%d' is no longer viral", self.env_name, link_index)
