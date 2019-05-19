@@ -23,14 +23,20 @@ parameters:  # service configuration
     component: samplers.UniformSampler
     parameters:
       lower_bound: 2  # lower bound (sec) - a_4
-      upper_bound: 8  # upper bound (sec) - b_4
+      upper_bound: 6  # upper bound (sec) - b_4
 
-  link_viral_odds: 0.2
+  links_preferred:
+  - 5
+  - 10
+  links_preferred_strength: 10.0
+
+  link_viral_strength: 1.0
+  link_visited_strength: 1.0
 
 execution:
   loop: True  # restarts service after expected termination
   loop_using_sampler:
     component: samplers.UniformSampler
     parameters:
-      lower_bound: 8  # lower bound (sec) - a_3
-      upper_bound: 30  # upper bound (sec) - b_3
+      lower_bound: 5  # lower bound (sec) - a_3
+      upper_bound: 10  # upper bound (sec) - b_3

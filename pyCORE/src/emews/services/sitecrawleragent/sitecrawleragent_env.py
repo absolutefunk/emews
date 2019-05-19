@@ -28,7 +28,7 @@ class SiteCrawlerAgentEnv(emews.services.base_env.BaseEnv):
         super(SiteCrawlerAgentEnv, self).__init__()
 
         self._env_data = {}  # [observation key]: environment data
-        self._env_data['link_clicked'] = [self._evidence_viral_link, {}, 5, 60]  # callback, link data, viral threshold, expiration
+        self._env_data['link_clicked'] = [self._evidence_viral_link, {}, 10, 60]  # callback, link data, viral threshold, expiration
 
     def update_evidence(self, new_obs):
         """Produce evidence."""
