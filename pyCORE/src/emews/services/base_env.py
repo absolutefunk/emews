@@ -69,7 +69,7 @@ class BaseEnv(emews.base.baseobject.BaseObject):
 
     def put_observation(self, node_id, obs_key, obs_val):
         """Given an observation key and value, update the observation."""
-        self.logger.debug("%s: new observation from node %d: '%s', %d",
+        self.logger.debug("%s: new observation from node %d '%s', %d",
                           self.env_name, node_id, obs_key, obs_val)
         new_obs = Observation(timestamp=time.time(), node_id=node_id, key=obs_key, value=obs_val)
 

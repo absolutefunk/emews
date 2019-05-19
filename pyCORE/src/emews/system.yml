@@ -10,13 +10,13 @@ debug:
   raise_on_servicebuilder_exceptions: True
 general:  # general eMews daemon options
   # Delay (seconds) to start the eMews daemon.  Useful in waiting for routing to setup.  Hub node ignores this.
-  system_start_delay: 30
+  system_start_delay: 72
   # Delay (seconds) to start services from eMews daemon invocation.
-  service_start_delay: 18
+  service_start_delay: 150
   # Delay to wait for 'graceful' thread shutdown.  After this wait, continue shut down.
   thread_shutdown_wait: 3  # in seconds (-1 = disable)
 client:
-  service_launch_delay: 38  # should be higher than system_start_delay
+  service_launch_delay: 120  # should be higher than system_start_delay
 communication:  # communication related eMews daemon options
   port: 32518      # port to use
 logging:

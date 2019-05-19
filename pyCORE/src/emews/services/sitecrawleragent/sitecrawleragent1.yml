@@ -1,0 +1,43 @@
+# Configuration file for SiteCrawlerAgent
+# YAML 1.2 compliant
+parameters:  # service configuration
+  user_agent: 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:57.0) Gecko/20100101 Firefox/57.0'
+  invalid_link_prefixes:  # prefix list for links which we should NOT visit
+  - java
+  - none
+  start_sites: # site address to start crawling from
+  - 'https://10.0.0.10'
+  - 'https://10.0.0.10'
+
+  site_sampler:  # sampler used to pick the site to crawl
+    component: samplers.UniformSampler
+    parameters:
+      lower_bound: 0  # index 0
+      upper_bound: 1  # should match the list size of start_sites -1 (index starts at zero)
+  num_links_sampler:  # sampler used to pick the number of links to crawl.  Dependent on first link
+    component: samplers.TruncnormSampler
+    parameters:
+      upper_bound: null
+      sigma: 5.0
+  link_delay_sampler:  # sampler used to determine delay in crawling to next link
+    component: samplers.UniformSampler
+    parameters:
+      lower_bound: 2  # lower bound (sec) - a_4
+      upper_bound: 6  # upper bound (sec) - b_4
+
+  links_preferred:
+  - 2
+  - 6
+  - 8
+  links_preferred_strength: 8.0
+
+  link_viral_strength: 15.0
+  link_visited_strength: 0.5
+
+execution:
+  loop: True  # restarts service after expected termination
+  loop_using_sampler:
+    component: samplers.UniformSampler
+    parameters:
+      lower_bound: 5  # lower bound (sec) - a_3
+      upper_bound: 10  # upper bound (sec) - b_3
