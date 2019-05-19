@@ -30,8 +30,8 @@ parameters:  # service configuration
   - 10
   links_preferred_strength: 10.0
 
-  link_viral_strength: 1.0
-  link_visited_strength: 1.0
+  link_viral_strength: 10.0
+  link_visited_strength: 0.01
 
 execution:
   loop: True  # restarts service after expected termination

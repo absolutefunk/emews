@@ -27,11 +27,13 @@ class AgentModel(object):
     def set_prior_param(self, num_links, links_preferred, links_preferred_strength):
         """Set the prior."""
         self.prior = [1.0 / float(num_links)] * num_links
-        norm = 0.0
         for i in xrange(len(self.prior)):
             if i in links_preferred:
-                norm += links_preferred_strength
-            norm += 1.0
+                self.prior[i] = links_preferred_strength * self.prior[i]
+
+        norm = 0.0
+        for i in xrange(len(self.prior)):
+            norm += self.prior[i]
         norm = 1.0 / norm
 
         for i in xrange(len(self.prior)):
