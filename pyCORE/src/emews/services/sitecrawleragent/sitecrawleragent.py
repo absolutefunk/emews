@@ -249,8 +249,8 @@ class SiteCrawlerAgent(emews.services.baseagent.BaseAgent):
         self.logger.info("HTTP server up, starting crawl at %s ...", site_url)
 
         # Setup the total number of links to crawl.  As a heuristic, it uses the number of links
-        # from the first page as an upper bound.
-        self._num_links_sampler.update(upper_bound=len(list(self._br.links())))
+        # from the first page * 2 as an upper bound.
+        self._num_links_sampler.update(upper_bound=2*len(list(self._br.links())))
         num_links_to_crawl = self._num_links_sampler.sample()
 
         # now crawl for (max) num_links_to_crawl
