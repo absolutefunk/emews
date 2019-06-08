@@ -28,7 +28,7 @@ class AgentModel(object):
         """Set the prior."""
         self.prior = [1.0 / float(num_links)] * num_links
         for i in xrange(len(self.prior)):
-            if i in links_preferred:
+            if i < num_links and i in links_preferred:
                 self.prior[i] = links_preferred_strength * self.prior[i]
 
         norm = 0.0
@@ -136,8 +136,8 @@ class SiteCrawlerAgent(emews.services.baseagent.BaseAgent):
         """Build the model based on the number of links.  Evidence count is consistent."""
         # rebuild prior (class) distribution
         self._next_link_model.set_prior_param(num_links, self._links_preferred, self._links_preferred_strength)
-        self.logger.debug("Agent Model: prior: %f (state_space=%d)",
-                          self._next_link_model.prior, num_links)
+        # self.logger.debug("Agent Model: prior: %s (state_space=%d)",
+        #                  str(self._next_link_model.prior), num_links)
         # rebuild conditional distributions
         self._next_link_model.set_evidence_params(
             self._link_viral_strength, self._link_visited_strength, num_links)
@@ -200,7 +200,7 @@ class SiteCrawlerAgent(emews.services.baseagent.BaseAgent):
 
         for i in xrange(len(posteriors)):
             posteriors[i] = posteriors[i] * norm
-            self.logger.debug("POSTERIOR: %f", posteriors[i])
+            # self.logger.debug("POSTERIOR: %f", posteriors[i])
 
         # sample from the posterior
         r_sample = random.random()  # [0.0, 1.0)
@@ -213,7 +213,7 @@ class SiteCrawlerAgent(emews.services.baseagent.BaseAgent):
                 break
             selected_link_index += 1
 
-        self.logger.debug("SAMPLE: link index (%d/%d), random_sample: %f", selected_link_index, num_links, r_sample)
+        # self.logger.debug("SAMPLE: link index (%d/%d), random_sample: %f", selected_link_index, num_links, r_sample)
         return selected_link_index
 
     def _checklink(self, link_str):

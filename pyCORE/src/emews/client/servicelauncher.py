@@ -6,6 +6,7 @@ Created on Apr 26, 2018
 """
 import argparse
 import os
+import random
 import signal
 import socket
 import struct
@@ -160,10 +161,18 @@ def main():
     client = SingleServiceClient(config_dict_system, args.service, args.service_config)
 
     start_delay = config_dict_system['client']['service_launch_delay']
+    upper_bound = config_dict_system['client']['service_launch_window']
     if start_delay > 0:
         print "[service_launcher] waiting for " + str(start_delay) + " seconds before connecting ..."
         sys.stdout.flush()
         client_wait.wait(start_delay)
+    if upper_bound > 0:
+        print "[service_launcher] launch window of [0, " + str(upper_bound) + "] given."
+        sys.stdout.flush()
+        uniform_delay = random.randint(0, upper_bound)
+        print "[service_launcher] waiting additionally for " + str(uniform_delay) + " seconds before connecting ..."
+        sys.stdout.flush()
+        client_wait.wait(uniform_delay)
 
     client.start()
 

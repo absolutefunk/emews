@@ -26,6 +26,7 @@ system:
   overrides:
     client:
       service_launch_delay: -1 # Delay (seconds) to connect and send service launch request.  Should be higher than general-->system_start_delay.
+      service_launch_window: -1  # Upper bound to wait after service launch delay, [0, upper_bound], a delay sampled uniformly.  Helps to prevent service launch requests from flooding the hub.
     communication: # communication related eMews daemon options
       port: 32518 # port to use
       connect_timeout: 5 # seconds to wait during connection attempts
