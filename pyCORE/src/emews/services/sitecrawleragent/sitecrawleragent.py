@@ -53,8 +53,7 @@ class AgentModel(object):
 class SiteCrawlerAgent(emews.services.baseagent.BaseAgent):
     """Classdocs."""
 
-    __slots__ = ('_br',
-                 '_invalid_link_prefixes',
+    __slots__ = ('_invalid_link_prefixes',
                  '_siteURLs',
                  '_std_deviation_link',
                  '_site_sampler',
@@ -65,15 +64,12 @@ class SiteCrawlerAgent(emews.services.baseagent.BaseAgent):
                  '_next_link_model',
                  '_visited_links',
                  '_links_preferred',
-                 '_links_preferred_strength')
+                 '_links_preferred_strength',
+                 '_br_header')
 
     def __init__(self, config):
         """Constructor."""
         super(SiteCrawlerAgent, self).__init__()
-
-        self._br = mechanize.Browser()
-        # no, I am not a robot ;-)
-        self._br.set_handle_robots(False)
 
         self._invalid_link_prefixes = config['invalid_link_prefixes']  # list
         self._siteURLs = config['start_sites']  # list
@@ -91,7 +87,19 @@ class SiteCrawlerAgent(emews.services.baseagent.BaseAgent):
         self._links_preferred_strength = config['links_preferred_strength']
 
         # set user agent string to something real-world
-        self._br.addheaders = [('User-agent', config['user_agent'])]
+        self._br_header = config['user_agent']
+
+        # Disable SSL cert verification, as most likely we will be using self-signed certs (HTTPS)
+        # https://stackoverflow.com/questions/30551400/disable-ssl-certificate-validation-in-mechanize
+        # TODO: clean this up (maybe add a config option to enable SSL no-check-cert, or autodetect)
+        try:
+            _create_unverified_https_context = ssl._create_unverified_context
+        except AttributeError:
+            # Legacy Python that doesn't verify HTTPS certificates by default
+            pass
+        else:
+            # Handle target environment that doesn't support HTTPS verification
+            ssl._create_default_https_context = _create_unverified_https_context
 
     def _get_next_link_index(self, page_links, std_deviation=None):
         """Given a list of page links, find and return the index of the first valid link."""
@@ -226,31 +234,25 @@ class SiteCrawlerAgent(emews.services.baseagent.BaseAgent):
 
     def run_service(self):
         """Crawl a web site, starting from the _siteURL, picking links from each page visited."""
-        # Disable SSL cert verification, as most likely we will be using self-signed certs (HTTPS)
-        # https://stackoverflow.com/questions/30551400/disable-ssl-certificate-validation-in-mechanize
-        # TODO: clean this up (maybe add a config option to enable SSL no-check-cert, or autodetect)
-        try:
-            _create_unverified_https_context = ssl._create_unverified_context
-        except AttributeError:
-            # Legacy Python that doesn't verify HTTPS certificates by default
-            pass
-        else:
-            # Handle target environment that doesn't support HTTPS verification
-            ssl._create_default_https_context = _create_unverified_https_context
+        br = mechanize.Browser()
+        # no, I am not a robot ;-)
+        br.set_handle_robots(False)
+        br.addheaders = [('User-agent', self._br_header)]
 
         site_url = self._siteURLs[self._site_sampler.sample()]
         try:
-            self._br.open(site_url)
+            br.open(site_url)
         except Exception as ex:
             self.logger.warning("On site open: %s, (server: %s)", ex, site_url)
             return
+
         # Forces output to be considered HTML (output usually is).
-        self._br._factory.is_html = True  # pylint: disable=W0212
+        br._factory.is_html = True  # pylint: disable=W0212
         self.logger.info("HTTP server up, starting crawl at %s ...", site_url)
 
         # Setup the total number of links to crawl.  As a heuristic, it uses the number of links
         # from the first page * 2 as an upper bound.
-        self._num_links_sampler.update(upper_bound=2*len(list(self._br.links())))
+        self._num_links_sampler.update(upper_bound=2*len(list(br.links())))
         num_links_to_crawl = self._num_links_sampler.sample()
 
         # now crawl for (max) num_links_to_crawl
@@ -258,7 +260,7 @@ class SiteCrawlerAgent(emews.services.baseagent.BaseAgent):
             if self.interrupted:
                 break
 
-            page_links = list(self._br.links())
+            page_links = list(br.links())
             selected_link_index = self._get_next_link_index(page_links)
             if selected_link_index is None:
                 break
@@ -273,7 +275,7 @@ class SiteCrawlerAgent(emews.services.baseagent.BaseAgent):
                               next_link.absolute_url)
 
             try:
-                self._br.follow_link(link=next_link)
+                br.follow_link(link=next_link)
             except Exception as ex:
                 self.logger.warning("On follow_link: %s, (server: %s)", ex, site_url)
                 break

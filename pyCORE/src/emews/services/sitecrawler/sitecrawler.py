@@ -111,10 +111,6 @@ class SiteCrawler(emews.services.baseservice.BaseService):
         br._factory.is_html = True  # pylint: disable=W0212
         self.logger.info("HTTP server up, starting crawl at %s ...", site_url)
 
-        self._web_crawl(br, site_url)
-
-    def _web_crawl(self, br, site_url):
-        """Crawl the site opened."""
         # Crawl to the first link.  This will allow us to set the link delay parameters correctly.
         page_links = list(br.links())
         selected_link_index = self._get_next_link_index(page_links)
