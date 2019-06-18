@@ -26,8 +26,8 @@ parameters:  # service configuration
       upper_bound: 6  # upper bound (sec) - b_4
 
   links_preferred:
-  - 5
-  - 10
+  - 8
+  - 12
   links_preferred_strength: 10.0
 
   link_viral_strength: 10.0

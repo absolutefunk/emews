@@ -16,38 +16,36 @@ import emews.services.baseagent
 class AgentModel(object):
     """Next link sampler."""
 
-    __slots__ = ('prior', 'ev_viral', 'ev_visited')
+    __slots__ = ('prior', 'ev_viral', 'ev_visited', 'num_pref_links')
 
     def __init__(self):
         """Constructor."""
-        self.prior = []  # class variable
-        self.ev_viral = [None] * 2  # attribute variables (plate notation)
+        self.prior = [None] * 2  # class variable
+        self.ev_viral = [None] * 2  # attribute variables
         self.ev_visited = [None] * 2
+        self.num_pref_links = 0
 
     def set_prior_param(self, num_links, links_preferred, links_preferred_strength):
         """Set the prior."""
-        self.prior = [1.0 / float(num_links)] * num_links
-        for i in xrange(len(self.prior)):
-            if i < num_links and i in links_preferred:
-                self.prior[i] = links_preferred_strength * self.prior[i]
+        self.num_pref_links = 0
+        for index in links_preferred:
+            if index >= 0 and index < num_links:
+                self.num_pref_links += 1
 
-        norm = 0.0
-        for i in xrange(len(self.prior)):
-            norm += self.prior[i]
-        norm = 1.0 / norm
+        norm = ((self.num_pref_links * links_preferred_strength) + num_links - self.num_pref_links) / float(num_links)
 
-        for i in xrange(len(self.prior)):
-            self.prior[i] = norm * self.prior[i]
+        self.prior[0] = links_preferred_strength / (num_links * norm)
+        self.prior[1] = 1.0 / (num_links * norm)
 
     def set_evidence_params(self, link_viral_strength, link_visited_strength, num_links):
         """Set the evidence variable parameters."""
-        prob_viral = link_viral_strength * (1.0 / float(num_links))
-        self.ev_viral[0] = prob_viral
-        self.ev_viral[1] = (1.0 - prob_viral)/(num_links - 1)
+        norm = (link_viral_strength + num_links - 1.0) / float(num_links)
+        self.ev_viral[0] = link_viral_strength / (num_links * norm)
+        self.ev_viral[1] = 1.0 / (num_links * norm)
 
-        prob_visited = link_visited_strength * (1.0 / float(num_links))
-        self.ev_visited[0] = prob_visited
-        self.ev_visited[1] = (1.0 - prob_visited)/(num_links - 1)
+        norm = (link_visited_strength + num_links - 1.0) / float(num_links)
+        self.ev_visited[0] = link_visited_strength / (num_links * norm)
+        self.ev_visited[1] = 1.0 / (num_links * norm)
 
 
 class SiteCrawlerAgent(emews.services.baseagent.BaseAgent):
@@ -144,11 +142,12 @@ class SiteCrawlerAgent(emews.services.baseagent.BaseAgent):
         """Build the model based on the number of links.  Evidence count is consistent."""
         # rebuild prior (class) distribution
         self._next_link_model.set_prior_param(num_links, self._links_preferred, self._links_preferred_strength)
-        # self.logger.debug("Agent Model: prior: %s (state_space=%d)",
-        #                  str(self._next_link_model.prior), num_links)
         # rebuild conditional distributions
         self._next_link_model.set_evidence_params(
             self._link_viral_strength, self._link_visited_strength, num_links)
+        self.logger.debug(
+            "Agent Model: attributes (prior): pref=%f, not_pref=%f (state_space=2, num_attributes=%d, num_pref_links=%d)",
+            self._next_link_model.prior[0], self._next_link_model.prior[1], num_links, self._next_link_model.num_pref_links)
         self.logger.debug(
             "Agent Model: attributes (evidence): viral=%f, not_viral=%f (state_space=2, num_attributes=%d)",
             self._next_link_model.ev_viral[0], self._next_link_model.ev_viral[1], num_links)
@@ -156,17 +155,29 @@ class SiteCrawlerAgent(emews.services.baseagent.BaseAgent):
             "Agent Model: attributes (evidence): visited=%f, not_visited=%f (state_space=2, num_attributes=%d)",
             self._next_link_model.ev_visited[0], self._next_link_model.ev_visited[1], num_links)
 
+    def _prob_to_log(self, prob):
+        """Convert a probability to a log prob."""
+        if prob > 0.0:
+            return math.log(prob)  # base e
+
+        return -28.0  # represent an arbitarily small probability
+
     def _sample(self, viral_links, num_links):
         """Perform inference on the factored joint, and sample."""
-        #log_prior = math.log(self._next_link_model.prior)  # base e
-        log_viral = math.log(self._next_link_model.ev_viral[0])
-        log_nonviral = math.log(self._next_link_model.ev_viral[1])
-        log_visited = math.log(self._next_link_model.ev_visited[0])
-        log_nonvisited = math.log(self._next_link_model.ev_visited[1])
+        log_prior_pref = self._prob_to_log(self._next_link_model.prior[0])
+        log_prior_nonpref = self._prob_to_log(self._next_link_model.prior[1])
+        log_viral = self._prob_to_log(self._next_link_model.ev_viral[0])
+        log_nonviral = self._prob_to_log(self._next_link_model.ev_viral[1])
+        log_visited = self._prob_to_log(self._next_link_model.ev_visited[0])
+        log_nonvisited = self._prob_to_log(self._next_link_model.ev_visited[1])
 
         posteriors = []
-        for prior in self._next_link_model.prior:
-            posteriors.append(math.log(prior))
+        # init to appropriate prior
+        for i in xrange(num_links):
+            if i in self._links_preferred:
+                posteriors.append(log_prior_pref)
+            else:
+                posteriors.append(log_prior_nonpref)
 
         for i in xrange(num_links):
             # for each link in prior (links to click)
