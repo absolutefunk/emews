@@ -15,6 +15,6 @@ Helpful hints:
 - Under the eMews hub node folder (n1.conf by default), the eMews log file is located, named emews.log.  This is the log file for distributed logging from all eMews nodes.  Scenario monitoring should be performed by accessing this file during an active scenario.
 - All eMews nodes contain a file called 'emews_console.log'.  This file logs console output (including exceptions) from each eMews daemon and service launcher.
 - For basic customization, please consult the system.yml configuration file, located under <emews_root>/system.yml
-- Sample CORE networks are located under <emews_root>/core/sample_networks.
+- Sample CORE networks are located under /core_networks.
 
 A much more complete user guide will be included here soon.
