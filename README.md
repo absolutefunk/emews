@@ -1,7 +1,8 @@
 # emews
-eMews - scalable network experimentation and automation framework
+eMews - Scalable Network Experimentation and Automation Framework
 
 Version used in IRI-18 paper contained in v0.32 branch.
+Current version is 0.4.  This version is being constantly updated, including bug fixes and additional services ported from earlier versions (in progress).
 
 Quick start:
 - Installation is simply a matter of copying everything in /src/emews to a target folder.  Make sure the folder hierarchy remains intact when copying.  Also make sure that the target path to the emews root folder (top of the hierarchy, ie, /src/emews by default) is present in your python path.
