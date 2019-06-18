@@ -1,4 +1,4 @@
-# emews
+# eMews
 eMews - Scalable Network Experimentation and Automation Framework
 
 Version used in IRI-18 paper contained in v0.32 branch.
