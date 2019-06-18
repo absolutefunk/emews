@@ -1,0 +1,1306 @@
+node n1 {
+    type router
+    model PC
+    network-config {
+	hostname n1
+	!
+	interface eth0
+	 ip address 10.0.0.20/24
+	 ipv6 address 2001:0::20/64
+	!
+    }
+    canvas c1
+    iconcoords {38.0 402.0}
+    labelcoords {38.0 434.0}
+    interface-peer {eth0 n2}
+    services {eMewsDaemon DefaultRoute}
+}
+
+node n2 {
+    type lanswitch
+    network-config {
+	hostname n2
+	!
+    }
+    canvas c1
+    iconcoords {212.0 396.0}
+    labelcoords {212.0 420.0}
+    interface-peer {e0 n1}
+    interface-peer {e1 n3}
+    interface-peer {e2 n4}
+    interface-peer {e3 n5}
+    interface-peer {e4 n6}
+    interface-peer {e5 n7}
+    interface-peer {e6 n8}
+    interface-peer {e7 n9}
+    interface-peer {e8 n10}
+    interface-peer {e9 n11}
+    interface-peer {e10 n12}
+    interface-peer {e11 n14}
+}
+
+node n3 {
+    type router
+    model host
+    network-config {
+	hostname n3
+	!
+	interface eth0
+	 ip address 10.0.0.10/24
+	 ipv6 address 2001:0::10/64
+	!
+    }
+    canvas c1
+    iconcoords {62.0 261.0}
+    labelcoords {62.0 293.0}
+    interface-peer {eth0 n2}
+    services {Serv_HTTPS DefaultRoute SSH}
+}
+
+node n4 {
+    type router
+    model PC
+    network-config {
+	hostname n4
+	!
+	interface eth0
+	 ip address 10.0.0.21/24
+	 ipv6 address 2001:0::21/64
+	!
+    }
+    canvas c1
+    iconcoords {152.0 560.0}
+    labelcoords {152.0 592.0}
+    interface-peer {eth0 n2}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n5 {
+    type router
+    model PC
+    network-config {
+	hostname n5
+	!
+	interface eth0
+	 ip address 10.0.0.22/24
+	 ipv6 address 2001:0::22/64
+	!
+    }
+    canvas c1
+    iconcoords {302.0 543.0}
+    labelcoords {302.0 575.0}
+    interface-peer {eth0 n2}
+    services {eMewsDaemon SiteCrawlerAgent DefaultRoute}
+}
+
+node n6 {
+    type router
+    model PC
+    network-config {
+	hostname n6
+	!
+	interface eth0
+	 ip address 10.0.0.23/24
+	 ipv6 address 2001:0::23/64
+	!
+    }
+    canvas c1
+    iconcoords {331.0 399.0}
+    labelcoords {331.0 431.0}
+    interface-peer {eth0 n2}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n7 {
+    type router
+    model PC
+    network-config {
+	hostname n7
+	!
+	interface eth0
+	 ip address 10.0.0.24/24
+	 ipv6 address 2001:0::24/64
+	!
+    }
+    canvas c1
+    iconcoords {69.0 503.0}
+    labelcoords {69.0 535.0}
+    interface-peer {eth0 n2}
+    services {eMewsDaemon SiteCrawlerAgent DefaultRoute}
+}
+
+node n8 {
+    type router
+    model PC
+    network-config {
+	hostname n8
+	!
+	interface eth0
+	 ip address 10.0.0.25/24
+	 ipv6 address 2001:0::25/64
+	!
+    }
+    canvas c1
+    iconcoords {111.0 541.0}
+    labelcoords {111.0 573.0}
+    interface-peer {eth0 n2}
+    services {eMewsDaemon SiteCrawlerAgent DefaultRoute}
+}
+
+node n9 {
+    type router
+    model PC
+    network-config {
+	hostname n9
+	!
+	interface eth0
+	 ip address 10.0.0.26/24
+	 ipv6 address 2001:0::26/64
+	!
+    }
+    canvas c1
+    iconcoords {198.0 570.0}
+    labelcoords {198.0 602.0}
+    interface-peer {eth0 n2}
+    services {eMewsDaemon SiteCrawlerAgent DefaultRoute}
+}
+
+node n10 {
+    type router
+    model PC
+    network-config {
+	hostname n10
+	!
+	interface eth0
+	 ip address 10.0.0.27/24
+	 ipv6 address 2001:0::27/64
+	!
+    }
+    canvas c1
+    iconcoords {256.0 568.0}
+    labelcoords {256.0 600.0}
+    interface-peer {eth0 n2}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n11 {
+    type router
+    model PC
+    network-config {
+	hostname n11
+	!
+	interface eth0
+	 ip address 10.0.0.28/24
+	 ipv6 address 2001:0::28/64
+	!
+    }
+    canvas c1
+    iconcoords {331.0 496.0}
+    labelcoords {331.0 528.0}
+    interface-peer {eth0 n2}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n12 {
+    type router
+    model router
+    network-config {
+	hostname n12
+	!
+	interface eth1
+	 ip address 10.0.1.1/24
+	 ipv6 address 2001:1::1/64
+	!
+	interface eth0
+	 ip address 10.0.0.1/24
+	 ipv6 address 2001:0::1/64
+	!
+    }
+    canvas c1
+    iconcoords {389.0 246.0}
+    labelcoords {389.0 278.0}
+    interface-peer {eth0 n2}
+    interface-peer {eth1 n13}
+}
+
+node n13 {
+    type router
+    model router
+    network-config {
+	hostname n13
+	!
+	interface eth4
+	 ip address 10.0.5.1/24
+	 ipv6 address 2001:5::1/64
+	!
+	interface eth3
+	 ip address 10.0.4.1/24
+	 ipv6 address 2001:4::1/64
+	!
+	interface eth2
+	 ip address 10.0.3.1/24
+	 ipv6 address 2001:3::1/64
+	!
+	interface eth1
+	 ip address 10.0.2.1/24
+	 ipv6 address 2001:2::1/64
+	!
+	interface eth0
+	 ip address 10.0.1.2/24
+	 ipv6 address 2001:1::2/64
+	!
+    }
+    canvas c1
+    iconcoords {700.0 245.0}
+    labelcoords {700.0 277.0}
+    interface-peer {eth0 n12}
+    interface-peer {eth1 n15}
+    interface-peer {eth2 n24}
+    interface-peer {eth3 n33}
+    interface-peer {eth4 n47}
+}
+
+node n14 {
+    type router
+    model PC
+    network-config {
+	hostname n14
+	!
+	interface eth0
+	 ip address 10.0.0.29/24
+	 ipv6 address 2001:0::29/64
+	!
+    }
+    canvas c1
+    iconcoords {341.0 445.0}
+    labelcoords {341.0 477.0}
+    interface-peer {eth0 n2}
+    services {eMewsDaemon SiteCrawlerAgent DefaultRoute}
+}
+
+node n15 {
+    type lanswitch
+    network-config {
+	hostname n15
+	!
+    }
+    canvas c1
+    iconcoords {748.0 405.0}
+    labelcoords {748.0 429.0}
+    interface-peer {e0 n13}
+    interface-peer {e1 n16}
+    interface-peer {e2 n17}
+    interface-peer {e3 n18}
+    interface-peer {e4 n19}
+    interface-peer {e5 n20}
+    interface-peer {e6 n21}
+    interface-peer {e7 n22}
+    interface-peer {e8 n23}
+    interface-peer {e9 n48}
+    interface-peer {e10 n49}
+}
+
+node n16 {
+    type router
+    model PC
+    network-config {
+	hostname n16
+	!
+	interface eth0
+	 ip address 10.0.2.20/24
+	 ipv6 address 2001:2::20/64
+	!
+    }
+    canvas c1
+    iconcoords {609.0 497.0}
+    labelcoords {609.0 529.0}
+    interface-peer {eth0 n15}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n17 {
+    type router
+    model PC
+    network-config {
+	hostname n17
+	!
+	interface eth0
+	 ip address 10.0.2.21/24
+	 ipv6 address 2001:2::21/64
+	!
+    }
+    canvas c1
+    iconcoords {675.0 565.0}
+    labelcoords {675.0 597.0}
+    interface-peer {eth0 n15}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n18 {
+    type router
+    model PC
+    network-config {
+	hostname n18
+	!
+	interface eth0
+	 ip address 10.0.2.22/24
+	 ipv6 address 2001:2::22/64
+	!
+    }
+    canvas c1
+    iconcoords {579.0 454.0}
+    labelcoords {579.0 486.0}
+    interface-peer {eth0 n15}
+    services {eMewsDaemon SiteCrawlerAgent DefaultRoute}
+}
+
+node n19 {
+    type router
+    model PC
+    network-config {
+	hostname n19
+	!
+	interface eth0
+	 ip address 10.0.2.23/24
+	 ipv6 address 2001:2::23/64
+	!
+    }
+    canvas c1
+    iconcoords {864.0 509.0}
+    labelcoords {864.0 541.0}
+    interface-peer {eth0 n15}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n20 {
+    type router
+    model PC
+    network-config {
+	hostname n20
+	!
+	interface eth0
+	 ip address 10.0.2.24/24
+	 ipv6 address 2001:2::24/64
+	!
+    }
+    canvas c1
+    iconcoords {632.0 552.0}
+    labelcoords {632.0 584.0}
+    interface-peer {eth0 n15}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n21 {
+    type router
+    model PC
+    network-config {
+	hostname n21
+	!
+	interface eth0
+	 ip address 10.0.2.25/24
+	 ipv6 address 2001:2::25/64
+	!
+    }
+    canvas c1
+    iconcoords {714.0 579.0}
+    labelcoords {714.0 611.0}
+    interface-peer {eth0 n15}
+    services {eMewsDaemon SiteCrawlerAgent DefaultRoute}
+}
+
+node n22 {
+    type router
+    model PC
+    network-config {
+	hostname n22
+	!
+	interface eth0
+	 ip address 10.0.2.26/24
+	 ipv6 address 2001:2::26/64
+	!
+    }
+    canvas c1
+    iconcoords {767.0 575.0}
+    labelcoords {767.0 607.0}
+    interface-peer {eth0 n15}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n23 {
+    type router
+    model PC
+    network-config {
+	hostname n23
+	!
+	interface eth0
+	 ip address 10.0.2.27/24
+	 ipv6 address 2001:2::27/64
+	!
+    }
+    canvas c1
+    iconcoords {828.0 551.0}
+    labelcoords {828.0 583.0}
+    interface-peer {eth0 n15}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n24 {
+    type lanswitch
+    network-config {
+	hostname n24
+	!
+    }
+    canvas c1
+    iconcoords {712.0 18.0}
+    labelcoords {712.0 42.0}
+    interface-peer {e0 n13}
+    interface-peer {e1 n25}
+    interface-peer {e2 n26}
+    interface-peer {e3 n27}
+    interface-peer {e4 n28}
+    interface-peer {e5 n29}
+    interface-peer {e6 n30}
+    interface-peer {e7 n31}
+    interface-peer {e8 n32}
+}
+
+node n25 {
+    type router
+    model PC
+    network-config {
+	hostname n25
+	!
+	interface eth0
+	 ip address 10.0.3.20/24
+	 ipv6 address 2001:3::20/64
+	!
+    }
+    canvas c1
+    iconcoords {558.0 82.0}
+    labelcoords {558.0 114.0}
+    interface-peer {eth0 n24}
+    services {eMewsDaemon SiteCrawlerAgent DefaultRoute}
+}
+
+node n26 {
+    type router
+    model PC
+    network-config {
+	hostname n26
+	!
+	interface eth0
+	 ip address 10.0.3.21/24
+	 ipv6 address 2001:3::21/64
+	!
+    }
+    canvas c1
+    iconcoords {624.0 161.0}
+    labelcoords {624.0 193.0}
+    interface-peer {eth0 n24}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n27 {
+    type router
+    model PC
+    network-config {
+	hostname n27
+	!
+	interface eth0
+	 ip address 10.0.3.22/24
+	 ipv6 address 2001:3::22/64
+	!
+    }
+    canvas c1
+    iconcoords {533.0 35.0}
+    labelcoords {533.0 67.0}
+    interface-peer {eth0 n24}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n28 {
+    type router
+    model PC
+    network-config {
+	hostname n28
+	!
+	interface eth0
+	 ip address 10.0.3.23/24
+	 ipv6 address 2001:3::23/64
+	!
+    }
+    canvas c1
+    iconcoords {860.0 62.0}
+    labelcoords {860.0 94.0}
+    interface-peer {eth0 n24}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n29 {
+    type router
+    model PC
+    network-config {
+	hostname n29
+	!
+	interface eth0
+	 ip address 10.0.3.24/24
+	 ipv6 address 2001:3::24/64
+	!
+    }
+    canvas c1
+    iconcoords {589.0 128.0}
+    labelcoords {589.0 160.0}
+    interface-peer {eth0 n24}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n30 {
+    type router
+    model PC
+    network-config {
+	hostname n30
+	!
+	interface eth0
+	 ip address 10.0.3.25/24
+	 ipv6 address 2001:3::25/64
+	!
+    }
+    canvas c1
+    iconcoords {672.0 163.0}
+    labelcoords {672.0 195.0}
+    interface-peer {eth0 n24}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n31 {
+    type router
+    model PC
+    network-config {
+	hostname n31
+	!
+	interface eth0
+	 ip address 10.0.3.26/24
+	 ipv6 address 2001:3::26/64
+	!
+    }
+    canvas c1
+    iconcoords {769.0 144.0}
+    labelcoords {769.0 176.0}
+    interface-peer {eth0 n24}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n32 {
+    type router
+    model PC
+    network-config {
+	hostname n32
+	!
+	interface eth0
+	 ip address 10.0.3.27/24
+	 ipv6 address 2001:3::27/64
+	!
+    }
+    canvas c1
+    iconcoords {820.0 111.0}
+    labelcoords {820.0 143.0}
+    interface-peer {eth0 n24}
+    services {eMewsDaemon SiteCrawlerAgent DefaultRoute}
+}
+
+node n33 {
+    type lanswitch
+    network-config {
+	hostname n33
+	!
+    }
+    canvas c1
+    iconcoords {1060.0 529.0}
+    labelcoords {1060.0 553.0}
+    interface-peer {e0 n13}
+    interface-peer {e1 n34}
+    interface-peer {e2 n35}
+    interface-peer {e3 n36}
+    interface-peer {e4 n37}
+    interface-peer {e5 n38}
+    interface-peer {e6 n39}
+    interface-peer {e7 n40}
+    interface-peer {e8 n41}
+    interface-peer {e9 n42}
+    interface-peer {e10 n43}
+    interface-peer {e11 n44}
+    interface-peer {e12 n45}
+    interface-peer {e13 n46}
+}
+
+node n34 {
+    type router
+    model PC
+    network-config {
+	hostname n34
+	!
+	interface eth0
+	 ip address 10.0.4.20/24
+	 ipv6 address 2001:4::20/64
+	!
+    }
+    canvas c1
+    iconcoords {939.0 592.0}
+    labelcoords {939.0 624.0}
+    interface-peer {eth0 n33}
+    services {eMewsDaemon SiteCrawlerAgent DefaultRoute}
+}
+
+node n35 {
+    type router
+    model PC
+    network-config {
+	hostname n35
+	!
+	interface eth0
+	 ip address 10.0.4.21/24
+	 ipv6 address 2001:4::21/64
+	!
+    }
+    canvas c1
+    iconcoords {995.0 664.0}
+    labelcoords {995.0 696.0}
+    interface-peer {eth0 n33}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n36 {
+    type router
+    model PC
+    network-config {
+	hostname n36
+	!
+	interface eth0
+	 ip address 10.0.4.22/24
+	 ipv6 address 2001:4::22/64
+	!
+    }
+    canvas c1
+    iconcoords {931.0 538.0}
+    labelcoords {931.0 570.0}
+    interface-peer {eth0 n33}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n37 {
+    type router
+    model PC
+    network-config {
+	hostname n37
+	!
+	interface eth0
+	 ip address 10.0.4.23/24
+	 ipv6 address 2001:4::23/64
+	!
+    }
+    canvas c1
+    iconcoords {1176.0 625.0}
+    labelcoords {1176.0 657.0}
+    interface-peer {eth0 n33}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n38 {
+    type router
+    model PC
+    network-config {
+	hostname n38
+	!
+	interface eth0
+	 ip address 10.0.4.24/24
+	 ipv6 address 2001:4::24/64
+	!
+    }
+    canvas c1
+    iconcoords {956.0 639.0}
+    labelcoords {956.0 671.0}
+    interface-peer {eth0 n33}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n39 {
+    type router
+    model PC
+    network-config {
+	hostname n39
+	!
+	interface eth0
+	 ip address 10.0.4.25/24
+	 ipv6 address 2001:4::25/64
+	!
+    }
+    canvas c1
+    iconcoords {1040.0 678.0}
+    labelcoords {1040.0 710.0}
+    interface-peer {eth0 n33}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n40 {
+    type router
+    model PC
+    network-config {
+	hostname n40
+	!
+	interface eth0
+	 ip address 10.0.4.26/24
+	 ipv6 address 2001:4::26/64
+	!
+    }
+    canvas c1
+    iconcoords {1090.0 684.0}
+    labelcoords {1090.0 716.0}
+    interface-peer {eth0 n33}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n41 {
+    type router
+    model PC
+    network-config {
+	hostname n41
+	!
+	interface eth0
+	 ip address 10.0.4.27/24
+	 ipv6 address 2001:4::27/64
+	!
+    }
+    canvas c1
+    iconcoords {1139.0 663.0}
+    labelcoords {1139.0 695.0}
+    interface-peer {eth0 n33}
+    services {eMewsDaemon SiteCrawlerAgent DefaultRoute}
+}
+
+node n42 {
+    type router
+    model PC
+    network-config {
+	hostname n42
+	!
+	interface eth0
+	 ip address 10.0.4.28/24
+	 ipv6 address 2001:4::28/64
+	!
+    }
+    canvas c1
+    iconcoords {1190.0 581.0}
+    labelcoords {1190.0 613.0}
+    interface-peer {eth0 n33}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n43 {
+    type router
+    model PC
+    network-config {
+	hostname n43
+	!
+	interface eth0
+	 ip address 10.0.4.29/24
+	 ipv6 address 2001:4::29/64
+	!
+    }
+    canvas c1
+    iconcoords {1200.0 534.0}
+    labelcoords {1200.0 566.0}
+    interface-peer {eth0 n33}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n44 {
+    type router
+    model PC
+    network-config {
+	hostname n44
+	!
+	interface eth0
+	 ip address 10.0.4.30/24
+	 ipv6 address 2001:4::30/64
+	!
+    }
+    canvas c1
+    iconcoords {1193.0 481.0}
+    labelcoords {1193.0 513.0}
+    interface-peer {eth0 n33}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n45 {
+    type router
+    model PC
+    network-config {
+	hostname n45
+	!
+	interface eth0
+	 ip address 10.0.4.31/24
+	 ipv6 address 2001:4::31/64
+	!
+    }
+    canvas c1
+    iconcoords {1148.0 442.0}
+    labelcoords {1148.0 474.0}
+    interface-peer {eth0 n33}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n46 {
+    type router
+    model PC
+    network-config {
+	hostname n46
+	!
+	interface eth0
+	 ip address 10.0.4.32/24
+	 ipv6 address 2001:4::32/64
+	!
+    }
+    canvas c1
+    iconcoords {1093.0 420.0}
+    labelcoords {1093.0 452.0}
+    interface-peer {eth0 n33}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n47 {
+    type router
+    model router
+    network-config {
+	hostname n47
+	!
+	interface eth1
+	 ip address 10.0.6.1/24
+	 ipv6 address 2001:6::1/64
+	!
+	interface eth0
+	 ip address 10.0.5.2/24
+	 ipv6 address 2001:5::2/64
+	!
+    }
+    canvas c1
+    iconcoords {976.0 174.0}
+    labelcoords {976.0 206.0}
+    interface-peer {eth0 n13}
+    interface-peer {eth1 n50}
+}
+
+node n48 {
+    type router
+    model PC
+    network-config {
+	hostname n48
+	!
+	interface eth0
+	 ip address 10.0.2.28/24
+	 ipv6 address 2001:2::28/64
+	!
+    }
+    canvas c1
+    iconcoords {876.0 451.0}
+    labelcoords {876.0 483.0}
+    interface-peer {eth0 n15}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n49 {
+    type router
+    model PC
+    network-config {
+	hostname n49
+	!
+	interface eth0
+	 ip address 10.0.2.29/24
+	 ipv6 address 2001:2::29/64
+	!
+    }
+    canvas c1
+    iconcoords {569.0 398.0}
+    labelcoords {569.0 430.0}
+    interface-peer {eth0 n15}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+node n50 {
+    type lanswitch
+    network-config {
+	hostname n50
+	!
+    }
+    canvas c1
+    iconcoords {1035.0 285.0}
+    labelcoords {1035.0 309.0}
+    interface-peer {e0 n47}
+    interface-peer {e1 n51}
+    interface-peer {e2 n52}
+}
+
+node n51 {
+    type router
+    model PC
+    network-config {
+	hostname n51
+	!
+	interface eth0
+	 ip address 10.0.6.20/24
+	 ipv6 address 2001:6::20/64
+	!
+    }
+    canvas c1
+    iconcoords {985.0 359.0}
+    labelcoords {985.0 391.0}
+    interface-peer {eth0 n50}
+    services {eMewsDaemon SiteCrawlerAgent DefaultRoute}
+}
+
+node n52 {
+    type router
+    model PC
+    network-config {
+	hostname n52
+	!
+	interface eth0
+	 ip address 10.0.6.21/24
+	 ipv6 address 2001:6::21/64
+	!
+    }
+    canvas c1
+    iconcoords {1117.0 349.0}
+    labelcoords {1117.0 381.0}
+    interface-peer {eth0 n50}
+    services {eMewsDaemon SiteCrawler DefaultRoute}
+}
+
+link l1 {
+    delay 160
+    nodes {n1 n2}
+    bandwidth 10000000
+}
+
+link l2 {
+    delay 160
+    nodes {n3 n2}
+    bandwidth 10000000
+}
+
+link l3 {
+    delay 160
+    nodes {n4 n2}
+    bandwidth 10000000
+}
+
+link l4 {
+    delay 160
+    nodes {n5 n2}
+    bandwidth 10000000
+}
+
+link l5 {
+    delay 160
+    nodes {n6 n2}
+    bandwidth 10000000
+}
+
+link l6 {
+    delay 160
+    nodes {n7 n2}
+    bandwidth 10000000
+}
+
+link l7 {
+    delay 160
+    nodes {n8 n2}
+    bandwidth 10000000
+}
+
+link l8 {
+    delay 160
+    nodes {n9 n2}
+    bandwidth 10000000
+}
+
+link l9 {
+    delay 160
+    nodes {n10 n2}
+    bandwidth 10000000
+}
+
+link l10 {
+    delay 160
+    nodes {n11 n2}
+    bandwidth 10000000
+}
+
+link l11 {
+    delay 110
+    nodes {n2 n12}
+    bandwidth 100000000
+}
+
+link l12 {
+    delay 110
+    nodes {n12 n13}
+    bandwidth 100000000
+}
+
+link l13 {
+    delay 160
+    nodes {n14 n2}
+    bandwidth 10000000
+}
+
+link l14 {
+    delay 160
+    nodes {n13 n15}
+    bandwidth 10000000
+}
+
+link l15 {
+    delay 160
+    nodes {n16 n15}
+    bandwidth 10000000
+}
+
+link l16 {
+    delay 160
+    nodes {n17 n15}
+    bandwidth 10000000
+}
+
+link l17 {
+    delay 160
+    nodes {n18 n15}
+    bandwidth 10000000
+}
+
+link l18 {
+    delay 160
+    nodes {n19 n15}
+    bandwidth 10000000
+}
+
+link l19 {
+    delay 160
+    nodes {n20 n15}
+    bandwidth 10000000
+}
+
+link l20 {
+    delay 160
+    nodes {n21 n15}
+    bandwidth 10000000
+}
+
+link l21 {
+    delay 160
+    nodes {n22 n15}
+    bandwidth 10000000
+}
+
+link l22 {
+    delay 160
+    nodes {n23 n15}
+    bandwidth 10000000
+}
+
+link l23 {
+    delay 160
+    nodes {n13 n24}
+    bandwidth 10000000
+}
+
+link l24 {
+    delay 160
+    nodes {n25 n24}
+    bandwidth 10000000
+}
+
+link l25 {
+    delay 160
+    nodes {n26 n24}
+    bandwidth 10000000
+}
+
+link l26 {
+    delay 160
+    nodes {n27 n24}
+    bandwidth 10000000
+}
+
+link l27 {
+    delay 160
+    nodes {n28 n24}
+    bandwidth 10000000
+}
+
+link l28 {
+    delay 160
+    nodes {n29 n24}
+    bandwidth 10000000
+}
+
+link l29 {
+    delay 160
+    nodes {n30 n24}
+    bandwidth 10000000
+}
+
+link l30 {
+    delay 160
+    nodes {n31 n24}
+    bandwidth 10000000
+}
+
+link l31 {
+    delay 160
+    nodes {n32 n24}
+    bandwidth 10000000
+}
+
+link l32 {
+    delay 160
+    nodes {n13 n33}
+    bandwidth 10000000
+}
+
+link l33 {
+    delay 160
+    nodes {n34 n33}
+    bandwidth 10000000
+}
+
+link l34 {
+    delay 160
+    nodes {n35 n33}
+    bandwidth 10000000
+}
+
+link l35 {
+    delay 160
+    nodes {n36 n33}
+    bandwidth 10000000
+}
+
+link l36 {
+    delay 160
+    nodes {n37 n33}
+    bandwidth 10000000
+}
+
+link l37 {
+    delay 160
+    nodes {n38 n33}
+    bandwidth 10000000
+}
+
+link l38 {
+    delay 160
+    nodes {n39 n33}
+    bandwidth 10000000
+}
+
+link l39 {
+    delay 160
+    nodes {n40 n33}
+    bandwidth 10000000
+}
+
+link l40 {
+    delay 160
+    nodes {n41 n33}
+    bandwidth 10000000
+}
+
+link l41 {
+    delay 160
+    nodes {n42 n33}
+    bandwidth 10000000
+}
+
+link l42 {
+    delay 160
+    nodes {n43 n33}
+    bandwidth 10000000
+}
+
+link l43 {
+    delay 160
+    nodes {n44 n33}
+    bandwidth 10000000
+}
+
+link l44 {
+    delay 160
+    nodes {n45 n33}
+    bandwidth 10000000
+}
+
+link l45 {
+    delay 160
+    nodes {n46 n33}
+    bandwidth 10000000
+}
+
+link l46 {
+    delay 110
+    nodes {n13 n47}
+    bandwidth 100000000
+}
+
+link l47 {
+    delay 160
+    nodes {n48 n15}
+    bandwidth 10000000
+}
+
+link l48 {
+    delay 160
+    nodes {n49 n15}
+    bandwidth 10000000
+}
+
+link l49 {
+    delay 160
+    nodes {n47 n50}
+    bandwidth 10000000
+}
+
+link l50 {
+    delay 160
+    nodes {n51 n50}
+    bandwidth 10000000
+}
+
+link l51 {
+    delay 160
+    nodes {n52 n50}
+    bandwidth 10000000
+}
+
+canvas c1 {
+    name {Canvas1}
+    refpt {0 0 47.5791667 -122.132322 2.0}
+    scale {150.0}
+    size {1500 750}
+}
+
+option global {
+    interface_names no
+    ip_addresses yes
+    ipv6_addresses yes
+    node_labels yes
+    link_labels yes
+    show_api no
+    background_images no
+    annotations yes
+    grid yes
+    traffic_start 0
+}
+
+option session {
+}
+
