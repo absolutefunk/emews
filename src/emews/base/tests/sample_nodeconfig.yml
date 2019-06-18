@@ -1,8 +1,0 @@
-# Example node config file
-# YAML 1.2 compliant
-general:
-  node_name: 'test_node_conf'
-
-startup_services:
-  # null as value indicates using all defaults
-  testservice: null
