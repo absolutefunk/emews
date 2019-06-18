@@ -1,0 +1,7 @@
+# Configuration file for Throughput
+# YAML 1.2 compliant
+
+parameters:  # service configuration
+  interface_prefixes: # prefixes to use for interface matching
+  - eth
+  - enx
