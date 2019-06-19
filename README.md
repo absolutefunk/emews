@@ -1,7 +1,7 @@
 # eMews
 eMews - Scalable Network Experimentation and Automation Framework
 
-Version used in IRI-18 paper contained in v0.32 branch.
+Version used in IRI-18 [1] paper contained in v0.32 branch.
 Current version is 0.4.
 
 Quick start:
@@ -18,3 +18,7 @@ Helpful hints:
 - Sample CORE networks are located under /core_networks.
 
 A much more complete user guide will be included here soon.
+
+References:
+[1] B. Ricks, P. Tague and B. Thuraisingham, "Large-Scale Realistic Network Data Generation on a Budget," 2018 IEEE International Conference on Information Reuse and Integration (IRI), Salt Lake City, UT, 2018, pp. 23-30. doi: 10.1109/IRI.2018.00012
+- URL: https://www.researchgate.net/publication/326852468_Large-Scale_Realistic_Network_Data_Generation_on_a_Budget
