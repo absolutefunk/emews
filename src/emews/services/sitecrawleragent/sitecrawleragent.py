@@ -7,6 +7,8 @@ Created on Jan 19, 2018
 import math
 import random
 import ssl
+import socket
+import struct
 
 import mechanize
 
@@ -260,6 +262,9 @@ class SiteCrawlerAgent(emews.services.baseagent.BaseAgent):
         # Forces output to be considered HTML (output usually is).
         br._factory.is_html = True  # pylint: disable=W0212
         self.logger.info("HTTP server up, starting crawl at %s ...", site_url)
+
+        # tell environment the site we are going to crawl
+        self.tell('crawl_site', struct.unpack(">I", socket.inet_aton(site_url))[0])
 
         # Setup the total number of links to crawl.  As a heuristic, it uses the number of links
         # from the first page * 2 as an upper bound.
