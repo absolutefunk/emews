@@ -14,13 +14,9 @@ import emews.services.base_env
 class SiteCrawlerAgentEnv(emews.services.base_env.BaseEnv):
     """Classdocs."""
 
-    __slots__ = ('_env_data')
+    __slots__ = ('_cb', '_site_map', '_viral_map', '_viral_link_threshold', '_viral_link_expiration')
 
     # enums
-    ENV_DATA_CB = 0
-    ENV_DATA_DICT = 1
-    ENV_DATA_THRESH = 2
-    ENV_DATA_EXP = 3
     LINK_COUNT = 0
     LINK_VIRAL = 1
     LINK_TIMER = 2
@@ -29,9 +25,15 @@ class SiteCrawlerAgentEnv(emews.services.base_env.BaseEnv):
         """Constructor."""
         super(SiteCrawlerAgentEnv, self).__init__()
 
-        self._env_data = {}  # [observation key]: environment data
-        self._env_data['crawl_site'] = [self._update_crawl_site, {}]  # callback, node site data
-        self._env_data['link_clicked'] = [self._evidence_viral_link, {}, 10, 60]  # callback, link data, viral threshold, expiration
+        self._cb = {
+            'crawl_site': self._update_crawl_site,
+            'link_clicked': self._evidence_viral_link,
+        }
+        self._site_map = {}  # [node_id]: current site
+        self._viral_map = {}  # [site]: list of viral links
+
+        self._viral_link_threshold = 10
+        self._viral_link_expiration = 60
 
     def update_evidence(self, new_obs):
         """Produce evidence."""
