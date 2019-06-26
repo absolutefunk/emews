@@ -108,7 +108,7 @@ class ServAgent(emews.base.queryserv.QueryServ):
             self.logger.warning("Session id: %d, env id '%d' not registered.", session_id, env_id)
             return ('0', self.query_handler)  # '0' should be treated as invalid
 
-        ev_str = self._env_handler[env_id][1].get_evidence()
+        ev_str = self._env_handler[env_id][1].get_evidence(self._net_cache.session[session_id].node_id)
 
         return (ev_str, self.query_handler)
 

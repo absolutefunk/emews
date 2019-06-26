@@ -67,31 +67,31 @@ class SiteCrawlerAgentEnv(emews.services.base_env.BaseEnv):
         link_data[new_obs.value][SiteCrawlerAgentEnv.LINK_COUNT] = num_clicks
 
         if num_clicks > env_data[SiteCrawlerAgentEnv.ENV_DATA_THRESH] and not link_data[new_obs.value][SiteCrawlerAgentEnv.LINK_VIRAL]:
-            # viral link
+            # viral link, update evidence cache (used for agent ask)
             link_data[new_obs.value][SiteCrawlerAgentEnv.LINK_VIRAL] = True
-            viral_link_ev = self._evidence_cache.get('viral_link', None)
+            viral_link_ev = self._evidence_cache[new_obs.node_id].get('viral_link', None)
             if viral_link_ev is None:
-                self._evidence_cache['viral_link'] = []
-                viral_link_ev = self._evidence_cache['viral_link']
+                self._evidence_cache[new_obs.node_id]['viral_link'] = []
+                viral_link_ev = self._evidence_cache[new_obs.node_id]['viral_link']
 
             viral_link_ev.append(new_obs.value)
 
             self.logger.info(
                 "%s: link on server '%s' at index '%d' has gone viral",
-                socket.inet_ntoa(struct.pack(">I", crawl_site)), self.env_name, new_obs.value)
+                self.env_name, socket.inet_ntoa(struct.pack(">I", crawl_site)), new_obs.value)
             self._thread_dispatcher.dispatch(
                 emews.base.timer.Timer(
-                    env_data[SiteCrawlerAgentEnv.ENV_DATA_EXP], self._evidence_viral_link_expired, [crawl_site, new_obs.value]))
+                    env_data[SiteCrawlerAgentEnv.ENV_DATA_EXP], self._evidence_viral_link_expired, [new_obs.node_id, crawl_site, new_obs.value]))
 
-    def _evidence_viral_link_expired(self, crawl_site, link_index):
+    def _evidence_viral_link_expired(self, node_id, crawl_site, link_index):
         """When a timer has finished, this will be invoked."""
-        viral_link_ev = self._evidence_cache['viral_link']
+        viral_link_ev = self._evidence_cache[node_id]['viral_link']
         viral_link_ev.remove(link_index)
 
         if not len(viral_link_ev):
             # remove the evidence key as it no longer has any values
-            del self._evidence_cache['viral_link']
+            del self._evidence_cache[node_id]['viral_link']
 
         self.logger.info(
             "%s: link on server '%s' at index '%d' is no longer viral",
-            socket.inet_ntoa(struct.pack(">I", crawl_site)), self.env_name, link_index)
+            self.env_name, socket.inet_ntoa(struct.pack(">I", crawl_site)), link_index)

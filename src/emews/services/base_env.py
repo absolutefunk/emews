@@ -42,20 +42,24 @@ class BaseEnv(emews.base.baseobject.BaseObject):
     def __init__(self):
         """Constructor."""
         super(BaseEnv, self).__init__()
-        self._evidence_cache = {}  # [ev_key]: ev_val (int or list of int)
+        self._evidence_cache = {}  # [node_id]-->[ev_key]: ev_val (int or list of int)
 
     @property
     def env_id(self):
         """Return the env id."""
         return self._env_id
 
-    def get_evidence(self):
+    def get_evidence(self, node_id):
         """Return the current evidence."""
         if not len(self._evidence_cache):
             return '0'
 
+        ev_cache = self._evidence_cache.get(node_id, None)
+        if ev_cache is None:
+            return '0'
+
         ev_str = ''
-        for key, val in self._evidence_cache.iteritems():
+        for key, val in ev_cache.iteritems():
             ev_str += str(key) + " "
 
             if isinstance(val, list):
@@ -71,6 +75,10 @@ class BaseEnv(emews.base.baseobject.BaseObject):
         """Given an observation key and value, update the observation."""
         self.logger.debug("%s: new observation from node %d '%s', %d",
                           self.env_name, node_id, obs_key, obs_val)
+
+        if node_id not in self._evidence_cache:
+            self._evidence_cache[node_id] = {}
+
         new_obs = Observation(timestamp=time.time(), node_id=node_id, key=obs_key, value=obs_val)
 
         self.update_evidence(new_obs)

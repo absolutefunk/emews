@@ -264,7 +264,7 @@ class SiteCrawlerAgent(emews.services.baseagent.BaseAgent):
         self.logger.info("HTTP server up, starting crawl at %s ...", site_url)
 
         # tell environment the site we are going to crawl
-        self.tell('crawl_site', struct.unpack(">I", socket.inet_aton(site_url))[0])
+        self.tell('crawl_site', struct.unpack(">I", socket.inet_aton(site_url.rsplit('/', 1)[-1]))[0])
 
         # Setup the total number of links to crawl.  As a heuristic, it uses the number of links
         # from the first page * 2 as an upper bound.
