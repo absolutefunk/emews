@@ -14,7 +14,7 @@ import emews.services.base_env
 class SiteCrawlerAgentEnv(emews.services.base_env.BaseEnv):
     """Classdocs."""
 
-    __slots__ = ('_cb', '_site_map', '_viral_map', '_viral_link_threshold', '_viral_link_expiration')
+    __slots__ = ('_cb', '_site_map', '_link_data', '_viral_links', '_viral_link_threshold', '_viral_link_expiration')
 
     # enums
     LINK_COUNT = 0
@@ -30,37 +30,37 @@ class SiteCrawlerAgentEnv(emews.services.base_env.BaseEnv):
             'link_clicked': self._evidence_viral_link,
         }
         self._site_map = {}  # [node_id]: current site
-        self._viral_map = {}  # [site]: list of viral links
+        self._link_data = {}  # [site]: {[link_index]: link_data}
+        self._viral_links = {}  # [site]: list of viral links
 
-        self._viral_link_threshold = 10
-        self._viral_link_expiration = 60
+        # viral link parameters
+        self._viral_link_threshold = 10  # number of specific links clicks, per site, before viral
+        self._viral_link_expiration = 60  # seconds that a link remains viral
 
     def update_evidence(self, new_obs):
         """Produce evidence."""
-        env_data = self._env_data.get(new_obs.key, None)
+        cb = self._cb.get(new_obs.key, None)
 
-        if env_data is None:
+        if cb is None:
             self.logger.error("%s: observation key '%s' is unknown", self.env_name, new_obs.key)
             raise AttributeError("%s: observation key '%s' is unknown" % (self.env_name, new_obs.key))
 
-        env_data[SiteCrawlerAgentEnv.ENV_DATA_CB](env_data, new_obs)
+        cb(new_obs)
 
-    def _update_crawl_site(self, env_data, new_obs):
+    def _update_crawl_site(self, new_obs):
         """Update site the node is crawling on."""
-        site_data = env_data[SiteCrawlerAgentEnv.ENV_DATA_DICT]
-        site_data[new_obs.node_id] = new_obs.value
+        self._site_map[new_obs.node_id] = new_obs.value
 
-    def _evidence_viral_link(self, env_data, new_obs):
+    def _evidence_viral_link(self, new_obs):
         """Given that the last observation was for this evidence, check for viral link."""
         # New_obs.val is the link index clicked on.  Simply check if enough clicks have occurred.
-        link_data = env_data[SiteCrawlerAgentEnv.ENV_DATA_DICT]
         # The agent needs to send an observation on what site it is crawling before sending link clicks
         crawl_site = self._env_data['crawl_site'][SiteCrawlerAgentEnv.ENV_DATA_DICT][new_obs.node_id]
 
-        if crawl_site not in link_data:
-            link_data[crawl_site] = {}
+        if crawl_site not in self._link_data:
+            self._link_data[crawl_site] = {}
 
-        link_data = link_data[crawl_site]  # link data is for a specific site
+        link_data = self._link_data[crawl_site]  # link data is for a specific site
 
         if new_obs.value not in link_data:
             link_data[new_obs.value] = [0, False, None]  # [link index]: number of clicks, went viral?, viral duration timer
@@ -68,9 +68,10 @@ class SiteCrawlerAgentEnv(emews.services.base_env.BaseEnv):
         num_clicks = link_data[new_obs.value][SiteCrawlerAgentEnv.LINK_COUNT] + 1
         link_data[new_obs.value][SiteCrawlerAgentEnv.LINK_COUNT] = num_clicks
 
-        if num_clicks > env_data[SiteCrawlerAgentEnv.ENV_DATA_THRESH] and not link_data[new_obs.value][SiteCrawlerAgentEnv.LINK_VIRAL]:
+        if num_clicks > self._viral_link_threshold and not link_data[new_obs.value][SiteCrawlerAgentEnv.LINK_VIRAL]:
             # viral link, update evidence cache (used for agent ask)
             link_data[new_obs.value][SiteCrawlerAgentEnv.LINK_VIRAL] = True
+            if crawl_site not in self._viral
             viral_link_ev = self._evidence_cache[new_obs.node_id].get('viral_link', None)
             if viral_link_ev is None:
                 self._evidence_cache[new_obs.node_id]['viral_link'] = []
