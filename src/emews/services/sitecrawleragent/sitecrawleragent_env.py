@@ -38,7 +38,7 @@ class SiteCrawlerAgentEnv(emews.services.base_env.BaseEnv):
         self._viral_link_expiration = 60  # seconds that a link remains viral
 
     def update_evidence(self, new_obs):
-        """Produce evidence."""
+        """@Override Produce evidence."""
         cb = self._cb.get(new_obs.key, None)
 
         if cb is None:
@@ -46,6 +46,18 @@ class SiteCrawlerAgentEnv(emews.services.base_env.BaseEnv):
             raise AttributeError("%s: observation key '%s' is unknown" % (self.env_name, new_obs.key))
 
         cb(new_obs)
+
+    def get_evidence_list(self, node_id, key):
+        """@Override Return the relevant list of evidence given the key and a node id."""
+        crawl_site = self._site_map.get(node_id, None)
+        if crawl_site is None:
+            return []
+
+        viral_links = self._viral_links.get(crawl_site, None)
+        if viral_links is None:
+            return []
+
+        return viral_links
 
     def _update_crawl_site(self, new_obs):
         """Update site the node is crawling on."""
@@ -55,7 +67,7 @@ class SiteCrawlerAgentEnv(emews.services.base_env.BaseEnv):
         """Given that the last observation was for this evidence, check for viral link."""
         # New_obs.val is the link index clicked on.  Simply check if enough clicks have occurred.
         # The agent needs to send an observation on what site it is crawling before sending link clicks
-        crawl_site = self._env_data['crawl_site'][SiteCrawlerAgentEnv.ENV_DATA_DICT][new_obs.node_id]
+        crawl_site = self._site_map[new_obs.node_id]
 
         if crawl_site not in self._link_data:
             self._link_data[crawl_site] = {}
@@ -69,31 +81,23 @@ class SiteCrawlerAgentEnv(emews.services.base_env.BaseEnv):
         link_data[new_obs.value][SiteCrawlerAgentEnv.LINK_COUNT] = num_clicks
 
         if num_clicks > self._viral_link_threshold and not link_data[new_obs.value][SiteCrawlerAgentEnv.LINK_VIRAL]:
-            # viral link, update evidence cache (used for agent ask)
+            # viral link, update evidence (used for agent ask)
             link_data[new_obs.value][SiteCrawlerAgentEnv.LINK_VIRAL] = True
-            if crawl_site not in self._viral
-            viral_link_ev = self._evidence_cache[new_obs.node_id].get('viral_link', None)
-            if viral_link_ev is None:
-                self._evidence_cache[new_obs.node_id]['viral_link'] = []
-                viral_link_ev = self._evidence_cache[new_obs.node_id]['viral_link']
+            if crawl_site not in self._viral_links:
+                self._viral_links[crawl_site] = []
 
-            viral_link_ev.append(new_obs.value)
+            self._viral_links[crawl_site].append(new_obs.value)
 
             self.logger.info(
                 "%s: link on server '%s' at index '%d' has gone viral",
                 self.env_name, socket.inet_ntoa(struct.pack(">I", crawl_site)), new_obs.value)
             self._thread_dispatcher.dispatch(
                 emews.base.timer.Timer(
-                    env_data[SiteCrawlerAgentEnv.ENV_DATA_EXP], self._evidence_viral_link_expired, [new_obs.node_id, crawl_site, new_obs.value]))
+                    self._viral_link_expiration, self._evidence_viral_link_expired, [new_obs.node_id, crawl_site, new_obs.value]))
 
     def _evidence_viral_link_expired(self, node_id, crawl_site, link_index):
         """When a timer has finished, this will be invoked."""
-        viral_link_ev = self._evidence_cache[node_id]['viral_link']
-        viral_link_ev.remove(link_index)
-
-        if not len(viral_link_ev):
-            # remove the evidence key as it no longer has any values
-            del self._evidence_cache[node_id]['viral_link']
+        self._viral_links[crawl_site].remove(link_index)
 
         self.logger.info(
             "%s: link on server '%s' at index '%d' is no longer viral",

@@ -37,37 +37,27 @@ class Observation(object):
 class BaseEnv(emews.base.baseobject.BaseObject):
     """Classdocs."""
 
-    __slots__ = ('env_name', '_env_id', '_thread_dispatcher', '_evidence_cache')
+    __slots__ = ('env_name', '_env_id', '_thread_dispatcher')
 
     def __init__(self):
         """Constructor."""
         super(BaseEnv, self).__init__()
-        self._evidence_cache = {}  # [node_id]-->[ev_key]: ev_val (int or list of int)
 
     @property
     def env_id(self):
         """Return the env id."""
         return self._env_id
 
-    def get_evidence(self, node_id):
-        """Return the current evidence."""
-        if not len(self._evidence_cache):
-            return '0'
-
-        ev_cache = self._evidence_cache.get(node_id, None)
-        if ev_cache is None:
+    def get_evidence(self, node_id, key):
+        """Return the current evidence by key."""
+        ev_list = self.get_evidence_list(node_id, key)
+        if not len(ev_list):
             return '0'
 
         ev_str = ''
-        for key, val in ev_cache.iteritems():
-            ev_str += str(key) + " "
-
-            if isinstance(val, list):
-                for l_val in val:
-                    ev_str += str(l_val) + ","
-                ev_str = ev_str[:-1] + " "  # remove last comma
-            else:
-                ev_str += str(val) + " "
+        for val in ev_list:
+            ev_str += str(val) + ","
+        ev_str = ev_str[:-1] + " "  # remove last comma
 
         return ev_str[:-1]  # last character is a space
 
@@ -76,12 +66,14 @@ class BaseEnv(emews.base.baseobject.BaseObject):
         self.logger.debug("%s: new observation from node %d '%s', %d",
                           self.env_name, node_id, obs_key, obs_val)
 
-        if node_id not in self._evidence_cache:
-            self._evidence_cache[node_id] = {}
-
         new_obs = Observation(timestamp=time.time(), node_id=node_id, key=obs_key, value=obs_val)
 
         self.update_evidence(new_obs)
+
+    @abstractmethod
+    def get_evidence_list(self, node_id, key):
+        """Return the relevant list of evidence given the key and a node id."""
+        pass
 
     @abstractmethod
     def update_evidence(self, new_obs):

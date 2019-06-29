@@ -116,7 +116,7 @@ class SiteCrawlerAgent(emews.services.baseagent.BaseAgent):
             # keep looping until a valid link is found
             # sample the next link
             self._update_model(len(page_links))
-            ev_viral_links = self.ask().get('viral_link', [])
+            ev_viral_links = self.ask('viral_links')
 
             current_evidence = ''
             for v_link in ev_viral_links:

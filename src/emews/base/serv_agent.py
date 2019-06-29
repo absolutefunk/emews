@@ -24,7 +24,7 @@ class ServAgent(emews.base.queryserv.QueryServ):
         cls.protocols[proto_id] = [None] * emews.base.enums.agent_protocols.ENUM_SIZE
 
         new_proto = emews.base.baseserv.NetProto(
-            'L', type_return='s',
+            'Ls', type_return='s',
             proto_id=proto_id,
             request_id=emews.base.enums.agent_protocols.AGENT_ASK)
         cls.protocols[proto_id][new_proto.request_id] = new_proto
@@ -98,9 +98,9 @@ class ServAgent(emews.base.queryserv.QueryServ):
         pass
 
     # agent ask
-    def _agent_ask_env_req(self, session_id, env_id):
+    def _agent_ask_env_req(self, session_id, env_id, ev_key):
         """
-        Remote agent wants the available evidence from the given env_id.
+        Remote agent wants the available evidence of ev_key from the given env_id.
 
         As evidence is variable in size, we return it as a string.
         """
@@ -108,7 +108,7 @@ class ServAgent(emews.base.queryserv.QueryServ):
             self.logger.warning("Session id: %d, env id '%d' not registered.", session_id, env_id)
             return ('0', self.query_handler)  # '0' should be treated as invalid
 
-        ev_str = self._env_handler[env_id][1].get_evidence(self._net_cache.session[session_id].node_id)
+        ev_str = self._env_handler[env_id][1].get_evidence(self._net_cache.session[session_id].node_id, ev_key)
 
         return (ev_str, self.query_handler)
 

@@ -42,49 +42,33 @@ class BaseAgent(emews.services.baseservice.BaseService):
 
         return env_id
 
-    def ask(self):
+    def ask(self, key):
         """
-        Ask (sense) the environment, returning a dict of evidence K/Vs.
+        Ask (sense) the environment, returning evidence given a key.
 
-        Evidence values are either integers or a list of integers.
+        Evidence is a list of integers.
         """
         ev_str = self._net_client.client_session_get(
             self._client_session,
             self._proto[emews.base.enums.agent_protocols.AGENT_ASK],
-            [self._env_id]
+            [self._env_id, key]
             )
 
         if ev_str == '0':
-            return {}
+            return []
 
-        str_tokens = ev_str.split(' ')
-        if len(str_tokens) % 2 != 0:
-            # the returned string should have an even number of tokens
-            self.logger.warning("%s: the evidence string returned is malformed.", self.service_name)
-            return {}
+        val_str_list = ev_str.split(',')
+        val_int_list = []
+        for val_str in val_str_list:
+            try:
+                val_int_list.append(int(val_str))
+            except TypeError:
+                self.logger.warning(
+                    "%s: the evidence string returned has a malformed value '%s' for key: %s",
+                    self.service_name, val_str, key)
+                return []
 
-        ev_dict = {}
-        on_key = True
-        cur_key = None
-        for str_token in str_tokens:
-            if on_key:
-                cur_key = str_token
-                on_key = False
-            else:
-                val_str_list = str_token.split(',')
-                val_int_list = []
-                for val_str in val_str_list:
-                    try:
-                        val_int_list.append(int(val_str))
-                    except TypeError:
-                        self.logger.warning(
-                            "%s: the evidence string returned has a malformed value '%s' in list: %s",
-                            self.service_name, val_str, str_token)
-                        return {}
-                ev_dict[cur_key] = val_int_list
-                on_key = True
-
-        return ev_dict
+        return val_int_list
 
     def tell(self, obs_key, obs_val):
         """
