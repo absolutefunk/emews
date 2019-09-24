@@ -2,7 +2,8 @@
 eMews - Scalable Network Experimentation and Automation Framework
 
 Version used in IRI-18 [1] paper contained in v0.32 branch.
-Current version is v0.4.
+
+Current version is v0.4, which incorporates environments for agent feedback [2]. 
 
 Note:  We are currently porting eMews to Python 3 (currently >= 3.6).  This version should have a smaller memory footprint than v0.4, and incorporate environment extensions to enable agent-based reinforcement learning scenarios.
 
