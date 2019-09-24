@@ -23,7 +23,9 @@ Helpful hints:
 A much more complete user guide will be included here soon.
 
 References:
+
 [1] B. Ricks, P. Tague and B. Thuraisingham, "Large-Scale Realistic Network Data Generation on a Budget," 2018 IEEE International Conference on Information Reuse and Integration (IRI), Salt Lake City, UT, 2018, pp. 23-30. doi: 10.1109/IRI.2018.00012
 - URL: http://mews.sv.cmu.edu/papers/iri-18.pdf
+
 [2] B. Ricks, B. Thuraisingham and P. Tague, "Mimicking Human Behavior in Shared-Resource Computer Networks", 2019 IEEE Intl Conference on Information Reuse and Integration for Data Science (IRI), Los Angeles, CA, Jul 2019.
 - URL: http://mews.sv.cmu.edu/papers/iri-19.pdf
